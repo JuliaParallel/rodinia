@@ -10,7 +10,7 @@ OCL_LIB_DIR = -L$(OPENCL_LIB)
 C_C = gcc
 OCL_LIB = -lOpenCL
 
-./a.out:	./main.o \
+heartwall:	./main.o \
 			./kernel/kernel_gpu_opencl_wrapper.o \
 			./util/avi/avilib.o \
 			./util/avi/avimod.o \

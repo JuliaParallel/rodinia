@@ -8,17 +8,8 @@ FLAGS = -O3
 SRC = streamcluster.cpp
 EXE = streamcluster
 
-release:$(SRC)
+$(EXE): $(SRC)
 	$(CC) -lOpenCL  $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)	$(FLAGS)
-
-errmsg:$(SRC)
-	$(CC) -lOpenCL $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -D ERRMSG $(FLAGS)
-	
-ptx:$(SRC)
-	$(CC) -lOpenCL $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -D PTX_MSG $(FLAGS)
-	
-res:$(SRC)
-	$(CC) -lOpenCL $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -D RES_MSG $(FLAGS)
 	
 clean: $(SRC)
 	$(RM) $(EXE) $(EXE).linkinfo result*

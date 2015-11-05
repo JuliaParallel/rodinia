@@ -19,7 +19,7 @@ OCL_particlefilter_single: ex_particle_OCL_single_seq.o
 	$(CC) $(CC_FLAGS) ex_particle_OCL_single_seq.o $(INCLUDES)  -L$(OPENCL_LIB) -lOpenCL -o OCL_particlefilter_single 
 
 
-%.o: %.[ch]
+%.o: %.c
 	$(CC) $(CC_FLAGS) $< -c
 
 ex_particle_OCL_naive_seq.o: ex_particle_OCL_naive_seq.cpp

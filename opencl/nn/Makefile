@@ -9,7 +9,7 @@ CC_FLAGS = -g -O3
 
 EXE = nn
 
-release:
+$(EXE):
 	$(CC) $(CC_FLAGS) -lOpenCL  -fopenmp $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)
 	
 clean: 

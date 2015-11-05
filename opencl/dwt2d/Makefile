@@ -18,7 +18,7 @@ OCL_INC = -I/usr/local/cuda-5.5/include
 
 default:	dwt2d
 
-components:
+components.o:
 	$(C_C) -o components.o $(OCL_INC) -c components.cpp 
 
 dwt2d:

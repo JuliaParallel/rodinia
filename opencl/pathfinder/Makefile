@@ -8,7 +8,7 @@ CXXFLAGS = -I$(OPENCL_INC) -c $(DEBUGFLAGS)
 LINKFLAGS = -L$(OPENCL_LIB)
 
 # link objects(binaries) together
-a.out: main.o OpenCL.o
+pathfinder: main.o OpenCL.o
 	$(CXX) main.o OpenCL.o $(LINKFLAGS) -o pathfinder
 
 # compile main function file into object (binary)

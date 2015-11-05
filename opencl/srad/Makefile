@@ -6,7 +6,7 @@ OCL_LIB_DIR = -L$(OPENCL_LIB)
 C_C = gcc
 OCL_LIB = -lOpenCL
 
-./a.out:	./main.o \
+srad:	./main.o \
 			./kernel/kernel_gpu_opencl_wrapper.o \
 			./util/opencl/opencl.o \
 			./util/graphics/graphics.o \

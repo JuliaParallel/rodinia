@@ -20,7 +20,7 @@ OCL_LIB =	-L$(OPENCL_LIB) \
 OCL_INC = -I$(OPENCL_INC)
 
 # link objects together
-a.out:		main.o \
+lavaMD:		main.o \
 			./kernel/kernel_gpu_opencl_wrapper.o \
 			./util/num/num.o \
 			./util/timer/timer.o \

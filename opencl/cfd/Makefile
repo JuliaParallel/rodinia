@@ -11,17 +11,9 @@ SRC = euler3d.cpp
 
 EXE = euler3d
 
-release:$(SRC)
+$(EXE): $(SRC)
 	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -lOpenCL $(FLAGS) 
 
-errmsg:$(SRC)
-	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -lOpenCL -D ERRMSG $(FLAGS)
-
-ptx:$(SRC)
-	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)  -lOpenCL -D PTX_MSG $(FLAGS)
-
-res:$(SRC)
-	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)  -lOpenCL -D RES_MSG $(FLAGS)
-
+.PHONY: clean
 clean: $(SRC)
 	$(RM) $(EXE) $(EXE).linkinfo result*
