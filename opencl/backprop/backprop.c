@@ -9,6 +9,8 @@
 
 #include <omp.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include "backprop.h"
 #include <math.h>

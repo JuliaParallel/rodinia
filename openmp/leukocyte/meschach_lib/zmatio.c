@@ -26,6 +26,7 @@
 
 
 #include        <stdio.h>
+#include        <unistd.h>
 #include        <ctype.h>
 #include        "zmatrix.h"
 

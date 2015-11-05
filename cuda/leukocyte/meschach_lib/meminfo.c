@@ -32,6 +32,7 @@
 */
 
 #include <stdio.h>
+#include <unistd.h>
 #include  "matrix.h"
 #include  "meminfo.h"
 #ifdef COMPLEX   

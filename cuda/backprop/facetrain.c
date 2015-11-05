@@ -5,13 +5,15 @@
 #include <math.h>
 #include "backprop.h"
 #include "omp.h"
+#include <string.h>
+#include <unistd.h>
 
-extern char *strcpy();
-extern void exit();
+extern void bpnn_train_kernel(BPNN *net, float *eo, float *eh);
+extern int load(BPNN *net);
 
 int layer_size = 0;
 
-backprop_face()
+int backprop_face()
 {
   BPNN *net;
   int i;
