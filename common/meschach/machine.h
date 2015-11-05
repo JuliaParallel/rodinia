@@ -1,4 +1,4 @@
-/* machine.h.  Generated automatically by configure.  */
+/* machine.h.  Generated from machine.h.in by configure.  */
 /* Any machine specific stuff goes here */
 /* Add details necessary for your own installation here! */
 
@@ -23,12 +23,12 @@
 /* #undef HAVE_COMPLEX_H */
 #define HAVE_MALLOC_H 1
 #define STDC_HEADERS 1
-/* #undef HAVE_BCOPY */
-/* #undef HAVE_BZERO */
+#define HAVE_BCOPY 1
+#define HAVE_BZERO 1
 #define CHAR0ISDBL0 1
-#undef WORDS_BIGENDIAN 
-/* #undef U_INT_DEF */
-#define VARARGS 1
+/* #undef WORDS_BIGENDIAN */
+#define U_INT_DEF 1
+/* #undef VARARGS */
 #define HAVE_PROTOTYPES 1
 /* #undef HAVE_PROTOTYPES_IN_STRUCT */
 
@@ -117,11 +117,6 @@
 #endif
 #endif
 
-/* if the system has complex.h */
-#ifdef HAVE_COMPLEX_H
-#include	<complex.h>
-#endif
-
 /* If prototypes are available & ANSI_C not yet defined, then define it,
 	but don't include any header files as the proper ANSI C headers
         aren't here */
@@ -178,8 +173,8 @@
 #endif
 #endif
 
-#define F_MACHEPS 
-#define D_MACHEPS 
+#define F_MACHEPS 1.19209e-07
+#define D_MACHEPS 2.22045e-16
 
 #ifndef MACHEPS
 #if REAL == DOUBLE
@@ -204,14 +199,10 @@
 #endif
 ********************/
 
-#define	M_MAX_INT 
+#define M_MAX_INT 2147483647
 #ifdef	M_MAX_INT
 #ifndef MAX_RAND
-#ifdef RAND_MAX
-#define	MAX_RAND RAND_MAX
-#else
 #define	MAX_RAND ((double)(M_MAX_INT))
-#endif /* MAX_RAND */
 #endif
 #endif
 
@@ -222,15 +213,6 @@
 #ifndef HUGE
 #define HUGE HUGE_VAL
 #endif
-#endif
-#ifdef HUGE_VAL
-        /* HUGE_VAL later defined in math.h */
-        #undef HUGE_VAL
-#endif
-
-
-#ifdef ANSI_C
-extern	int	isatty(int);
 #endif
 
 #endif

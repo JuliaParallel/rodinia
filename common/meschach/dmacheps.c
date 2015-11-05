@@ -26,21 +26,23 @@
 
 #include	<stdio.h>
 
-double	fclean(x)
+double	dclean(x)
 double	x;
 {
-    static float	y;
+    static double	y;
     y = x;
     return y;	/* prevents optimisation */
 }
 
-main()
+int main()
 {
-    static float	feps, feps1, ftmp;
+    static double	deps, deps1, dtmp;
 
-    feps = 1.0;
-    while ( fclean(1.0+feps) > 1.0 )
-	feps = 0.5*feps;
+    deps = 1.0;
+    while ( dclean(1.0+deps) > 1.0 )
+	deps = 0.5*deps;
 
-    printf("%g\n", 2.0*feps);
+    printf("%g\n", 2.0*deps);
+
+    return 0;
 }

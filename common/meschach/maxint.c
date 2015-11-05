@@ -23,24 +23,19 @@
 **
 ***************************************************************************/
 
+#include <stdio.h>
 
-#include	<stdio.h>
-
-double	dclean(x)
-double	x;
+int main()
 {
-    static double	y;
-    y = x;
-    return y;	/* prevents optimisation */
-}
+    int		i, old_i;
 
-main()
-{
-    static double	deps, deps1, dtmp;
+    i = 1;
+    while ( i > 0 )
+    {
+	old_i = i;
+	i = (i << 1) | 1;
+    }
+    printf("%d\n", old_i);
 
-    deps = 1.0;
-    while ( dclean(1.0+deps) > 1.0 )
-	deps = 0.5*deps;
-
-    printf("%g\n", 2.0*deps);
+    return 0;
 }

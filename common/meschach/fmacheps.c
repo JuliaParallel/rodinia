@@ -24,15 +24,25 @@
 ***************************************************************************/
 
 
-main()
-{
-    int		i, old_i;
+#include	<stdio.h>
 
-    i = 1;
-    while ( i > 0 )
-    {
-	old_i = i;
-	i = (i << 1) | 1;
-    }
-    printf("%d\n", old_i);
+double	fclean(x)
+double	x;
+{
+    static float	y;
+    y = x;
+    return y;	/* prevents optimisation */
+}
+
+int main()
+{
+    static float	feps, feps1, ftmp;
+
+    feps = 1.0;
+    while ( fclean(1.0+feps) > 1.0 )
+	feps = 0.5*feps;
+
+    printf("%g\n", 2.0*feps);
+
+    return 0;
 }
