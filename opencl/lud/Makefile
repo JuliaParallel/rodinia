@@ -1,7 +1,16 @@
-all: lud
+include ../../common/make.config
 
-lud:
-	cd ocl; make
+INC = -I$(OPENCL_INC) -Icommon
+LIB = -L$(OPENCL_LIB)
+
+#C compiler
+CC = g++
+CC_FLAGS = -g -O3 -Wall
+
+EXE = lud
+
+$(EXE): lud.cpp
+	$(CC) $(KERNEL_DIM) $(CC_FLAGS) -o $(EXE) lud.cpp common/common.c $(INC) $(LIB) -lOpenCL
 
 clean:
-	cd ocl; make clean
+	rm -f $(EXE)

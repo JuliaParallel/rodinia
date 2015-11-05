@@ -16,5 +16,4 @@ main.o: main.cpp OpenCL.cpp kernels.cl
 	$(CXX) $(CXXFLAGS) main.cpp OpenCL.cpp
 
 clean:
-	clear
 	@rm -f pathfinder *.o *.out *~ *\#
