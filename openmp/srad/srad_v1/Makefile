@@ -8,7 +8,7 @@
 	# command n
 
 # link objects(binaries) together
-a.out:	main.o
+srad:	main.o
 	gcc	main.o \
 			-lm -fopenmp -o srad
 
