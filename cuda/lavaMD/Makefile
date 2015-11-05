@@ -21,7 +21,7 @@ CUD_C = $(CUDA_DIR)/bin/nvcc
 CUDA_FLAG = -arch sm_13
 
 # link objects (binaries) together
-a.out:		main.o \
+lavaMD:		main.o \
 			./kernel/kernel_gpu_cuda_wrapper.o \
 			./util/num/num.o \
 			./util/timer/timer.o \

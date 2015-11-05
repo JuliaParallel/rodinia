@@ -9,7 +9,6 @@ clean :
 	$(RM) -r *.o nn hurricane_gen
 
 nn : nn_cuda.cu
-	$(CC) -cuda nn_cuda.cu
 	$(CC) -o nn nn_cuda.cu
 
 hurricane_gen : hurricane_gen.c

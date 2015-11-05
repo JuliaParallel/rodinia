@@ -1,3 +1,5 @@
+SHELL=sh -ue
+
 include common/$(MAKE).config
 
 RODINIA_BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))

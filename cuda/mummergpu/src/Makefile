@@ -43,7 +43,6 @@ LIB       := -L$(CUDA_LIB_DIR) -L$(LIBDIR) -lcuda -lcudart -lGL -lGLU ${LIB}
 # Warning flags
 CXXWARN_FLAGS := \
 	-W -Wall \
-	-Wimplicit \
 	-Wswitch \
 	-Wformat \
 	-Wchar-subscripts \
@@ -106,15 +105,15 @@ CFLAGS    += $(COMMONFLAGS)
 OBJDIR := $(ROOTOBJDIR)/$(BINSUBDIR)
 
 #.c.c_$(APPEND)_o:
-$(OBJDIR)/%.c_o : $(SRCDIR)%.c
+$(OBJDIR)/%.c_o : $(SRCDIR)%.c | makedirectories
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 #.cpp.cpp_$(APPEND)_o:
-$(OBJDIR)/%.cpp_o : $(SRCDIR)%.cpp
+$(OBJDIR)/%.cpp_o : $(SRCDIR)%.cpp | makedirectories
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 #.cu.cu_$(APPEND)_o:
-$(OBJDIR)/%.cu_o : $(SRCDIR)%.cu
+$(OBJDIR)/%.cu_o : $(SRCDIR)%.cu | makedirectories
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS)
 
 #.cu.cubin
@@ -142,7 +141,7 @@ $(LIBDIR)/libmummergpu$(LIBSUFFIX).a: $(LIBOBJS)
 BINOBJS= \
     $(OBJDIR)/mummergpu_main.cpp_o
 
-$(BINDIR)/mummergpu: makedirectories $(LIBDIR)/libmummergpu$(LIBSUFFIX).a $(BINOBJS)
+$(BINDIR)/$(BINNAME): $(LIBDIR)/libmummergpu$(LIBSUFFIX).a $(BINOBJS)
 	$(LINK) -o $(BINDIR)/$(BINNAME)  $(BINOBJS) -lmummergpu$(LIBSUFFIX) $(LIB) 
 		
 

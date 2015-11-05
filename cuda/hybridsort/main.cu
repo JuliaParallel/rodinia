@@ -8,8 +8,8 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include "helper_cuda.h"
-#include "helper_timer.h"
+#include "../../common/cuda/helper_cuda.h"
+#include "../../common/cuda/helper_timer.h"
 #include <iostream>
 #include "bucketsort.cuh"
 #include "mergesort.cuh"

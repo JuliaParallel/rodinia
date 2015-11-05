@@ -7,17 +7,8 @@ SRC = pathfinder.cu
 
 EXE = pathfinder
 
-release:
+$(EXE):
 	$(CC) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(CUDA_LIB_DIR) 
-
-enum:
-	$(CC) -deviceemu $(SRC) -o $(EXE) -I$(INCLUDE) -L$$(CUDA_LIB_DIR) 
-
-debug:
-	$(CC) -g $(SRC) -o $(EXE) -I$(INCLUDE) -L$$(CUDA_LIB_DIR) 
-
-debugenum:
-	$(CC) -g -deviceemu $(SRC) -o $(EXE) -I$(INCLUDE) -L$(CUDA_LIB_DIR) 
 
 clean:
 	$(RM) pathfinder
