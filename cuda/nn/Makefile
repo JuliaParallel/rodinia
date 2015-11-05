@@ -6,7 +6,7 @@ CC := $(CUDA_DIR)/bin/nvcc
 all : nn hurricane_gen
 
 clean :
-	rm -rf *.o nn hurricane_gen
+	$(RM) -r *.o nn hurricane_gen
 
 nn : nn_cuda.cu
 	$(CC) -cuda nn_cuda.cu

@@ -110,7 +110,7 @@ oldpart: $(OLDLIST)
 #######################################
 
 tar:
-	- /bin/rm -f $(MES_PAK).tar
+	$(RM) $(MES_PAK).tar
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST)  `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -123,7 +123,7 @@ tar:
 
 # use this only for PC machines	
 msdos-zip:
-	- /bin/rm -f $(MES_PAK).zip
+	$(RM) $(MES_PAK).zip
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -135,7 +135,7 @@ msdos-zip:
 	
 
 fullshar:
-	- /bin/rm -f $(MES_PAK).shar;
+	$(RM) $(MES_PAK).shar;
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -145,7 +145,7 @@ fullshar:
 	MACHINES DOC > $(MES_PAK).shar
 
 shar:
-	- /bin/rm -f meschach1.shar meschach2.shar meschach3.shar \
+	$(RM) meschach1.shar meschach2.shar meschach3.shar \
 	meschach4.shar oldmeschach.shar meschach0.shar 
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
@@ -161,7 +161,7 @@ shar:
 	  $(HLIST)  DOC MACHINES  > meschach0.shar
 
 list:
-	/bin/rm -f $(FLIST)
+	$(RM) $(FLIST)
 	ls -lR `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	`echo $(TORTURE) | sed -e 's/\.o/.c/g'` \
 	$(HLIST) $(OTHERS) MACHINES DOC \
@@ -172,15 +172,15 @@ list:
 
 
 clean:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat 
+	$(RM) *.o core asx5213a.mat iotort.dat 
 
 cleanup:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat *.a 
+	$(RM) *.o core asx5213a.mat iotort.dat *.a 
 
 realclean:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat *.a
-	/bin/rm -f torture sptort ztorture memtort itertort mfuntort iotort
-	/bin/rm -f makefile machine.h config.status maxint macheps
+	$(RM) *.o core asx5213a.mat iotort.dat *.a
+	$(RM) torture sptort ztorture memtort itertort mfuntort iotort
+	$(RM) makefile machine.h config.status maxint macheps
  
 alltorture: torture sptort ztorture memtort itertort mfuntort iotort
 

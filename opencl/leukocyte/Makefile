@@ -5,4 +5,4 @@ OpenCL/leukocyte:
 
 clean:
 	cd OpenCL; make clean
-	rm -f meschach_lib/meschach.a
+	$(RM) meschach_lib/meschach.a

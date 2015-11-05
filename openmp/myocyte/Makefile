@@ -29,4 +29,4 @@ main.o: 	main.c \
 
 # delete all object files
 clean:
-	rm *.o myocyte.out output.txt
+	$(RM) *.o myocyte.out output.txt

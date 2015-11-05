@@ -158,14 +158,14 @@ include ../experiments/rules.mk
 
 
 clean: 
-	rm -f $(LIBOBJS)
-	rm -f $(LIBDIR)/libmummergpu$(LIBSUFFIX).a
-	rm -f $(BINOBJS)
-	rm -f $(BINDIR)/$(BINNAME)
-	rm -f *.linkinfo
-	rm -rf $(ROOTBINDIR)
-	rm -rf $(ROOTOBJDIR)
-	rm -rf $(LIBDIR)
+	$(RM) $(LIBOBJS)
+	$(RM) $(LIBDIR)/libmummergpu$(LIBSUFFIX).a
+	$(RM) $(BINOBJS)
+	$(RM) $(BINDIR)/$(BINNAME)
+	$(RM) *.linkinfo
+	$(RM) -r $(ROOTBINDIR)
+	$(RM) -r $(ROOTOBJDIR)
+	$(RM) -r $(LIBDIR)
 
 mummergpu: $(BINDIR)/mummergpu
 

@@ -24,4 +24,4 @@ res:$(SRC)
 	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)  -lOpenCL -D RES_MSG $(FLAGS)
 
 clean: $(SRC)
-	rm -f $(EXE) $(EXE).linkinfo result*
+	$(RM) $(EXE) $(EXE).linkinfo result*

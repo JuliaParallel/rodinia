@@ -9,5 +9,5 @@ hotspotver: hotspotver.cpp
 	g++ $(FLAGS) -o $@ $<
 
 clean:
-	rm hotspotex hotspotver
+	$(RM) hotspotex hotspotver
 

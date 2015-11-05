@@ -4,5 +4,5 @@ graphgen: graphgen.cpp
 	g++ $(FLAGS) -o $@ $<
 
 clean: 
-	rm graphgen
+	$(RM) graphgen
 

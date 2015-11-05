@@ -51,4 +51,4 @@ $(MATRIX_DIR)/meschach.a:
 	cd $(MATRIX_DIR); ./configure --with-all; make all; make clean
 
 clean:
-	rm -f *.o *~ leukocyte *.linkinfo
+	$(RM) *.o *~ leukocyte *.linkinfo

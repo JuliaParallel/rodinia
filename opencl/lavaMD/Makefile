@@ -82,8 +82,8 @@ main.o:		main.h \
 
 # delete all object and executable files
 clean:
-	rm	*.o lavaMD \
-		./kernel/*.o \
-		./util/num/*.o \
-		./util/timer/*.o \
-		./util/opencl/*.o \
+	$(RM)	*.o lavaMD \
+			./kernel/*.o \
+			./util/num/*.o \
+			./util/timer/*.o \
+			./util/opencl/*.o \

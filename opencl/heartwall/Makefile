@@ -92,9 +92,9 @@ OCL_LIB = -lOpenCL
 			$(OCL_INC_DIR)
 
 clean:
-	rm	*.o heartwall \
-		./kernel/*.o \
-		./util/avi/*.o \
-		./util/file/*.o \
-		./util/timer/*.o \
-		./util/opencl/*.o
+	$(RM)	*.o heartwall \
+			./kernel/*.o \
+			./util/avi/*.o \
+			./util/file/*.o \
+			./util/timer/*.o \
+			./util/opencl/*.o

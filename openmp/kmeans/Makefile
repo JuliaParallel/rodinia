@@ -21,4 +21,4 @@ kmeans_clustering.o: kmeans_clustering.c kmeans.h
 	$(CC) $(CC_FLAGS) kmeans_clustering.c -c
 
 clean:
-	rm -f *.o *~ kmeans 
+	$(RM) *.o *~ kmeans 

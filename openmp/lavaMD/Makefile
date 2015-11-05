@@ -64,9 +64,9 @@ main.o:		main.h \
 
 # delete all object and executable files
 clean:
-	rm	*.o \
-		./kernel/*.o \
-		./util/num/*.o \
-		./util/timer/*.o \
-                ./util/device/*.o \
+	$(RM)	*.o \
+			./kernel/*.o \
+			./util/num/*.o \
+			./util/timer/*.o \
+			./util/device/*.o \
 		lavaMD

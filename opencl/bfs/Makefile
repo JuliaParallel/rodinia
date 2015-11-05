@@ -31,4 +31,4 @@ run:
 	./$(EXE)
 
 clean: $(SRC)
-	rm -f $(EXE) $(EXE).linkinfo result*
+	$(RM) $(EXE) $(EXE).linkinfo result*

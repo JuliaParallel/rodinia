@@ -108,5 +108,5 @@ $(EXECUTABLE): $(COBJS) $(CXXOBJS) $(CUOBJS)
 	$(LINK) -o $(EXECUTABLE) $(COBJS) $(CXXOBJS) $(CUOBJS) $(LDFLAGS)
 
 clean:
-	rm -f $(COBJS) $(CXXOBJS) $(CUOBJS) $(EXECUTABLE)
-	rm *.bmp.dwt.*		
+	$(RM) $(COBJS) $(CXXOBJS) $(CUOBJS) $(EXECUTABLE)
+	$(RM) *.bmp.dwt.*		

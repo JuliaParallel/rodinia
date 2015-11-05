@@ -5,4 +5,4 @@ OpenMP/leukocyte:
 
 clean:
 	cd OpenMP; make clean
-	rm -f meschach_lib/meschach.a
+	$(RM) meschach_lib/meschach.a

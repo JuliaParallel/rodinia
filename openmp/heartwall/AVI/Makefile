@@ -10,4 +10,4 @@ avilib.o: avilib.h avilib.c
 
 # delete files
 clean:
-	rm *.o *.out
+	$(RM) *.o *.out

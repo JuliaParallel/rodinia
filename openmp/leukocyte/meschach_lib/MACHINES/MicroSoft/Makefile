@@ -110,7 +110,7 @@ oldpart: $(OLDLIST)
 #######################################
 
 tar:
-	- /bin/rm -f $(MES_PAK).tar
+	- /bin/$(RM)-f $(MES_PAK).tar
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST)  `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -123,7 +123,7 @@ tar:
 
 # use this only for PC machines	
 msdos-zip:
-	- /bin/rm -f $(MES_PAK).zip
+	- /bin/$(RM)-f $(MES_PAK).zip
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -135,7 +135,7 @@ msdos-zip:
 
 
 fullshar:
-	- /bin/rm -f $(MES_PAK).shar;
+	- /bin/$(RM)-f $(MES_PAK).shar;
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -145,7 +145,7 @@ fullshar:
 	MACHINES DOC > $(MES_PAK).shar
 
 shar:
-	- /bin/rm -f meschach1.shar meschach2.shar meschach3.shar \
+	- /bin/$(RM)-f meschach1.shar meschach2.shar meschach3.shar \
 	meschach4.shar oldmeschach.shar meschach0.shar 
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
@@ -161,7 +161,7 @@ shar:
 	  $(HLIST)  DOC MACHINES  > meschach0.shar
 
 list:
-	/bin/rm -f $(FLIST)
+	/bin/$(RM)-f $(FLIST)
 	ls -lR `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	`echo $(TORTURE) | sed -e 's/\.o/.c/g'` \
 	$(HLIST) $(OTHERS) MACHINES DOC \
@@ -172,16 +172,16 @@ list:
 
 
 clean:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat 
+	/bin/$(RM)-f *.o core asx5213a.mat iotort.dat 
 
 cleanup:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat *.a *.dll *.def
+	/bin/$(RM)-f *.o core asx5213a.mat iotort.dat *.a *.dll *.def
 
 realclean:
-	/bin/rm -f *.o core asx5213a.mat iotort.dat *.a *.dll *.def
-	/bin/rm -f torture.exe sptort.exe ztorture.exe memtort.exe \
+	/bin/$(RM)-f *.o core asx5213a.mat iotort.dat *.a *.dll *.def
+	/bin/$(RM)-f torture.exe sptort.exe ztorture.exe memtort.exe \
                    itertort.exe mfuntort.exe iotort.exe
-	/bin/rm -f maxint.exe macheps.exe
+	/bin/$(RM)-f maxint.exe macheps.exe
 alltorture: torture sptort ztorture memtort itertort mfuntort iotort
 
 torture:torture.o libmeschach.a

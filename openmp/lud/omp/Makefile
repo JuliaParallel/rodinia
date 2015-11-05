@@ -110,7 +110,7 @@ endif
 				$(CXX) -c $(ALL_CFLAGS) $< -o $@
 
 clean:
-	-rm --force $(EXECUTABLE) $(OBJECTS) *~
+	$(RM) $(EXECUTABLE) $(OBJECTS) *~
 
 .PHONY: clean
 

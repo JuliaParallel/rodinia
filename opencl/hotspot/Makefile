@@ -14,4 +14,4 @@ $(EXE): hotspot.c hotspot.h OpenCL_helper_library.c OpenCL_helper_library.h
 	$(CC) $(KERNEL_DIM) $(CC_FLAGS) -o $(EXE) -I$(OPENCL_INC) OpenCL_helper_library.c hotspot.c -L$(OPENCL_LIB) -lOpenCL
 
 clean:
-	rm -f $(EXE)
+	$(RM) $(EXE)

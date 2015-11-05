@@ -28,12 +28,12 @@ clean: clean_cuda clean_openmp clean_opencl
 
 .PHONY: clean_cuda
 clean_cuda:
-	-for dir in $(CUDA_DIRS);   do $(MAKE) -C "cuda/$$dir" clean;   done
+	for dir in $(CUDA_DIRS);   do $(MAKE) -C "cuda/$$dir" clean;   done
 
 .PHONY: clean_OMP
 clean_openmp:
-	-for dir in $(OPENMP_DIRS); do $(MAKE) -C "openmp/$$dir" clean; done
+	for dir in $(OPENMP_DIRS); do $(MAKE) -C "openmp/$$dir" clean; done
 
 .PHONY: clean_opencl
 clean_opencl:
-	-for dir in $(OPENCL_DIRS); do $(MAKE) -C "opencl/$$dir" clean; done
+	for dir in $(OPENCL_DIRS); do $(MAKE) -C "opencl/$$dir" clean; done

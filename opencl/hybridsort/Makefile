@@ -19,4 +19,4 @@ hybridsort: hybridsort.c bucketsort.h mergesort.h bucketsort.c mergesort.c
 
 
 clean:
-	rm -f  hybridsort
+	$(RM)  hybridsort

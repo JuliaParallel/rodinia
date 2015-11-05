@@ -27,7 +27,7 @@ CFLAGS = -O6
 # we do not need the shell
 ##SHELL = sh
 # if we have rm, otherwise use del.
-RM= rm -f
+RM= $(RM)-f
 MES_PAK = mesch12a
 TAR = tar
 SHAR = shar -u
@@ -111,7 +111,7 @@ oldpart: $(OLDLIST)
 #######################################
 
 tar:
-	- /bin/rm -f $(MES_PAK).tar
+	- /bin/$(RM)-f $(MES_PAK).tar
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST)  `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -123,7 +123,7 @@ tar:
 
 # use this only for PC machines	
 msdos-zip:
-	- /bin/rm -f $(MES_PAK).zip
+	- /bin/$(RM)-f $(MES_PAK).zip
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -134,7 +134,7 @@ msdos-zip:
 	
 
 fullshar:
-	- /bin/rm -f $(MES_PAK).shar;
+	- /bin/$(RM)-f $(MES_PAK).shar;
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 
 	chmod 755 configure
@@ -143,7 +143,7 @@ fullshar:
 	MACHINES DOC > $(MES_PAK).shar
 
 shar:
-	- /bin/rm -f meschach1.shar meschach2.shar meschach3.shar \
+	- /bin/$(RM)-f meschach1.shar meschach2.shar meschach3.shar \
 	meschach4.shar oldmeschach.shar meschach0.shar 
 	chmod 644 `echo $(ALL_LISTS) | sed -e 's/\.o/.c/g'` \
 	$(OTHERS) $(HLIST) `echo $(TORTURE) | sed -e 's/\.o/.c/g'` 

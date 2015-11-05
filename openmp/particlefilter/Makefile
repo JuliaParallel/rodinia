@@ -9,4 +9,4 @@ icc_openmp: ex_particle_OPENMP_seq.c
 
 
 clean:
-	rm particle_filter
+	$(RM) particle_filter

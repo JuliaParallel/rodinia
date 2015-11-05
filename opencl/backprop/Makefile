@@ -20,4 +20,4 @@ imagenet.o: imagenet.c
 	$(CC) $(CC_FLAGS) imagenet.c -c
 
 clean:
-	rm -f *.o *~ backprop *.linkinfo
+	$(RM) *.o *~ backprop *.linkinfo

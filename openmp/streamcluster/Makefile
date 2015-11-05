@@ -20,5 +20,5 @@ omp:
 
 
 clean:
-	rm -f *.o *~ *.txt sc_cpu sc_omp
+	$(RM) -r *.o *~ *.txt sc_cpu sc_omp
 	

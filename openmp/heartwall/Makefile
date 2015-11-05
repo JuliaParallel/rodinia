@@ -16,4 +16,4 @@ main.o: main.c define.c kernel.c
 
 # delete all object files
 clean:
-	rm -f *.o AVI/*.o heartwall
+	$(RM) *.o AVI/*.o heartwall

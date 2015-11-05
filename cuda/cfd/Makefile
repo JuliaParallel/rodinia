@@ -28,4 +28,4 @@ pre_euler3d_double: pre_euler3d_double.cu
 
 
 clean:
-	rm -f euler3d euler3d_double pre_euler3d pre_euler3d_double *.linkinfo
+	$(RM) euler3d euler3d_double pre_euler3d pre_euler3d_double *.linkinfo

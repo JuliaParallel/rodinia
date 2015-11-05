@@ -32,4 +32,4 @@ ex_particle_OCL_single_seq.o: ex_particle_OCL_single_seq.cpp
 	$(CC) $(CC_FLAGS) $(INCLUDES) ex_particle_OCL_single_seq.cpp -c
 
 clean:
-	rm -f *.o *~ OCL_particlefilter_naive OCL_particlefilter_double OCL_particlefilter_single *.linkinfo
+	$(RM) *.o *~ OCL_particlefilter_naive OCL_particlefilter_double OCL_particlefilter_single *.linkinfo

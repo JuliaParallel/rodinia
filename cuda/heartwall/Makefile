@@ -16,4 +16,4 @@ main.o: main.cu kernel.cu define.c
 
 # delete all object files
 clean:
-	rm -f *.o AVI/*.o heartwall *.linkinfo
+	$(RM) *.o AVI/*.o heartwall *.linkinfo

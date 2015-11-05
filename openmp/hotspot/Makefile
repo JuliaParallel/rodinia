@@ -6,4 +6,4 @@ hotspot:
 	$(CC) $(CC_FLAGS) hotspot_openmp.cpp -o hotspot 
 
 clean:
-	rm -f hotspot
+	$(RM) hotspot

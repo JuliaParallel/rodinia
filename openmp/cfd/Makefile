@@ -29,12 +29,12 @@ pre_euler3d_cpu_double: pre_euler3d_cpu_double.cpp
 
 
 clean:
-#	rm -f euler3d
-	rm -f euler3d_cpu
-#	rm -f euler3d_double
-	rm -f euler3d_cpu_double
+#	$(RM) euler3d
+	$(RM) euler3d_cpu
+#	$(RM) euler3d_double
+	$(RM) euler3d_cpu_double
 
-#	rm -f pre_euler3d
-	rm -f pre_euler3d_cpu
-#	rm -f pre_euler3d_double
-	rm -f pre_euler3d_cpu_double
+#	$(RM) pre_euler3d
+	$(RM) pre_euler3d_cpu
+#	$(RM) pre_euler3d_double
+	$(RM) pre_euler3d_cpu_double

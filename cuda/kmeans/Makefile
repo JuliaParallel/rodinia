@@ -31,4 +31,4 @@ kmeans_cuda.o: kmeans_cuda.cu
 	$(NVCC) $(NVCC_FLAGS) -c kmeans_cuda.cu
 
 clean:
-	rm -f *.o *~ kmeans kmeans_cuda.linkinfo
+	$(RM) *.o *~ kmeans kmeans_cuda.linkinfo

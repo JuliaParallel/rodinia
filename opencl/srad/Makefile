@@ -79,8 +79,8 @@ OCL_LIB = -lOpenCL
 			$(OCL_INC_DIR)
 
 clean:
-	rm	./*.o srad\
-		./kernel/*.o \
-		./util/opencl/*.o \
-		./util/graphics/*.o \
-		./util/timer/*.o
+	$(RM)	./*.o srad\
+			./kernel/*.o \
+			./util/opencl/*.o \
+			./util/graphics/*.o \
+			./util/timer/*.o

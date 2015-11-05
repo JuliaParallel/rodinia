@@ -13,4 +13,4 @@ release:
 	$(CC) $(CC_FLAGS) -lOpenCL  -fopenmp $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)
 	
 clean: 
-	rm -f $(EXE) 
+	$(RM) $(EXE) 

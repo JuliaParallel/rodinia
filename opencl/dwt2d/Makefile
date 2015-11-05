@@ -29,6 +29,6 @@ dwt2d:
 		$(OCL_LIB)
 
 clean:	
-	rm -rf *.o dwt2d
-	rm *.bmp.dwt.*
+	$(RM) *.o dwt2d
+	$(RM) -r *.bmp.dwt.*
 

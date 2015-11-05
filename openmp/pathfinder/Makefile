@@ -10,6 +10,4 @@ debug:
 	$(CC) $(SRC) -g -Wall -o $(EXE)
 
 clean:
-	rm -f pathfinder
-
-
+	$(RM) pathfinder

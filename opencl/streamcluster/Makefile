@@ -21,4 +21,4 @@ res:$(SRC)
 	$(CC) -lOpenCL $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -D RES_MSG $(FLAGS)
 	
 clean: $(SRC)
-	rm -f $(EXE) $(EXE).linkinfo result*
+	$(RM) $(EXE) $(EXE).linkinfo result*
