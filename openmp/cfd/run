@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -ue
+
 There are three datasets:
 
 ./euler3d_cpu ../../data/cfd/fvcorr.domn.097K   

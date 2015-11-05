@@ -1,2 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
 ./gaussian -f ../../data/gaussian/matrix4.txt
 ./gaussian -s 16

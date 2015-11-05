@@ -1,1 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
 ./heartwall 20
+

@@ -1,1 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
 ./myocyte.out 100 1 0
+

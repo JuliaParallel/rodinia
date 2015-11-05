@@ -1,1 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
 ./srad 2048 2048 0 127 0 127 2 0.5 2
