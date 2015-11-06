@@ -8,4 +8,3 @@ all: $(EXE)
 .PHONY: clean
 clean:
 	$(RM) $(EXE)
-	$(MAKE) -C original $@

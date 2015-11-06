@@ -4,7 +4,9 @@
 #include <string.h>
 #include <math.h>
 #include <sys/time.h>
+extern "C" {
 #include "backprop.h"
+}
 
 #ifdef NV //NVIDIA
 	#include <oclUtils.h>

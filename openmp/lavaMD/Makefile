@@ -1,7 +1,7 @@
 include ../Make.inc
 
 EXE  = lavaMD
-OBJS = lavaMD.o kernel/kernel_cpu.o util/num/num.o util/timer/timer.o
+OBJS = kernel/kernel_cpu.o util/num/num.o util/timer/timer.o
 
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT

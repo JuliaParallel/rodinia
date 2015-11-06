@@ -1,7 +1,7 @@
 include ../Make.inc
 
 EXE  = b+tree
-OBJS = b+tree.o kernel/kernel_cpu.o kernel/kernel_cpu_2.o util/timer/timer.o util/num/num.o
+OBJS = kernel/kernel_cpu.o kernel/kernel_cpu_2.o util/timer/timer.o util/num/num.o
 
 .PHONY: all
 all: $(EXE)

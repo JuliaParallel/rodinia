@@ -1,9 +1,8 @@
 include ../Make.inc
 
 EXE  = leukocyte
-OBJS = leukocyte.o avilib.o find_ellipse.o track_ellipse.o misc_math.o $(MESCHACH_DIR)/meschach.a
+OBJS = avilib.o find_ellipse.o track_ellipse.o misc_math.o $(MESCHACH_DIR)/meschach.a
 
-CPPFLAGS += -Imeschach_lib
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT
 endif

@@ -1,7 +1,7 @@
 include ../Make.inc
 
 EXE  = lud
-OBJS = lud.o lud_omp.o common/common.o
+OBJS = lud_omp.o common/common.o
 
 CPPFLAGS += -Icommon
 

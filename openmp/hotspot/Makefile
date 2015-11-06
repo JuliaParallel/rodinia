@@ -1,9 +1,10 @@
-# C compiler
-CC = g++
-CC_FLAGS = -g -fopenmp -O2
+include ../Make.inc
 
-hotspot: 
-	$(CC) $(CC_FLAGS) hotspot_openmp.cpp -o hotspot 
+EXE  = hotspot
 
+.PHONY: all
+all: $(EXE)
+
+.PHONY: clean
 clean:
-	$(RM) hotspot
+	$(RM) $(EXE)

@@ -1,17 +1,13 @@
-include ../../common/make.config
+include ../Make.inc
 
-#C compiler
-CC = g++
+EXE  = gaussian
+OBJS = clutils.o utils.o
 
-SRC = clutils.cpp gaussianElim.cpp utils.cpp
+.PHONY: all
+all: $(EXE)
 
-CC_FLAGS = -g -O3
-
-EXE = gaussian
-
-$(EXE):
-	$(CC) $(KERNEL_DIM) $(CC_FLAGS) -lOpenCL  -fopenmp $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)
+$(EXE): $(OBJS)
 
 .PHONY: clean
-clean: 
-	$(RM) $(EXE) 
+clean:
+	$(RM) $(EXE) $(OBJS)

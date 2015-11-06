@@ -3,10 +3,10 @@ extern "C" {
 #endif
 
 //========================================================================================================================================================================================================200
-//	INCLUDE/DEFINE (had to bring from ./../main.h here because feature of including headers in clBuildProgram does not work for some reason)
+//	INCLUDE/DEFINE (had to bring from ./../lavaMD.h here because feature of including headers in clBuildProgram does not work for some reason)
 //========================================================================================================================================================================================================200
 
-// #include <main.h>						// (in the directory SOMEHOW known to the OpenCL compiler function)
+// #include <lavaMD.h>						// (in the directory SOMEHOW known to the OpenCL compiler function)
 
 #define fp float
 
@@ -17,7 +17,7 @@ extern "C" {
 #define DOT(A,B) ((A.x)*(B.x)+(A.y)*(B.y)+(A.z)*(B.z))	// STABLE
 
 //===============================================================================================================================================================================================================200
-//	STRUCTURES (had to bring from ./../main.h here because feature of including headers in clBuildProgram does not work for some reason)
+//	STRUCTURES (had to bring from ./../lavaMD.h here because feature of including headers in clBuildProgram does not work for some reason)
 //===============================================================================================================================================================================================================200
 
 typedef struct

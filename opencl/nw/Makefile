@@ -1,14 +1,10 @@
-include ../../common/make.config
+include ../Make.inc
 
-#C compiler
-CC = g++
+EXE  = nw
 
-CC_FLAGS = -g -O3 -Wall
+.PHONY: all
+all: $(EXE)
 
-EXE = nw
-
-$(EXE): nw.c
-	$(CC) ${KERNEL_DIM} $(CC_FLAGS) -o $(EXE) nw.c -I$(OPENCL_INC) -L$(OPENCL_LIB) -lOpenCL
-
+.PHONY: clean
 clean:
 	$(RM) $(EXE)

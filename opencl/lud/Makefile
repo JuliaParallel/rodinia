@@ -1,16 +1,16 @@
-include ../../common/make.config
+include ../Make.inc
 
-INC = -I$(OPENCL_INC) -Icommon
-LIB = -L$(OPENCL_LIB)
+EXE  = lud
+OBJS = common/common.o
 
-#C compiler
-CC = g++
-CC_FLAGS = -g -O3 -Wall
+CPPFLAGS += -Icommon
 
-EXE = lud
+.PHONY: all
+all: $(EXE)
 
-$(EXE): lud.cpp
-	$(CC) $(KERNEL_DIM) $(CC_FLAGS) -o $(EXE) lud.cpp common/common.c $(INC) $(LIB) -lOpenCL
+$(EXE): $(OBJS)
+$(EXE): LDLIBS += -lm
 
+.PHONY: clean
 clean:
-	$(RM) $(EXE)
+	$(RM) $(EXE) $(OBJS)

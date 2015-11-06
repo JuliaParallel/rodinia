@@ -1,7 +1,7 @@
 include ../Make.inc
 
 EXE  = heartwall
-OBJS = heartwall.o AVI/avilib.o AVI/avimod.o
+OBJS = AVI/avilib.o AVI/avimod.o
 
 CPPFLAGS += -I./AVI
 ifdef OUTPUT

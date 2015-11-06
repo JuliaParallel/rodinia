@@ -1,7 +1,9 @@
-include ../Make.inc
+include ../../Make.inc
 
-EXE  = backprop_ocl
-OBJS = backprop.o facetrain.o imagenet.o
+EXE  = lud
+OBJS = lud_base.o ../common/common.o
+
+CPPFLAGS += -I../common
 
 .PHONY: all
 all: $(EXE)

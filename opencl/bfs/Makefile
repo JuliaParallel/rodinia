@@ -1,17 +1,10 @@
-include ../../common/make.config
+include ../Make.inc
 
-#C compiler
-CC = g++
+EXE  = bfs
 
-SRC = bfs.cpp timer.cc
-
-CC_FLAGS = -g -O3
-
-EXE = bfs
-
-$(EXE): $(SRC)
-	$(CC) $(CC_FLAGS)  -fopenmp $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB) -lOpenCL 
+.PHONY: all
+all: $(EXE)
 
 .PHONY: clean
-clean: $(SRC)
-	$(RM) $(EXE) $(EXE).linkinfo result*
+clean:
+	$(RM) $(EXE)

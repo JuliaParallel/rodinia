@@ -1,16 +1,13 @@
-include ../../common/make.config
+include ../Make.inc
 
-#C compiler
-CC = g++
+EXE  = nn
+OBJS = clutils.o utils.o
 
-SRC = nearestNeighbor.cpp clutils.cpp utils.cpp
+.PHONY: all
+all: $(EXE)
 
-CC_FLAGS = -g -O3
+$(EXE): $(OBJS)
 
-EXE = nn
-
-$(EXE):
-	$(CC) $(CC_FLAGS) -lOpenCL  -fopenmp $(SRC) -o $(EXE) -I$(OPENCL_INC) -L$(OPENCL_LIB)
-	
-clean: 
-	$(RM) $(EXE) 
+.PHONY: clean
+clean:
+	$(RM) $(EXE) $(OBJS)

@@ -1,7 +1,7 @@
 include ../Make.inc
 
 EXE  = backprop
-OBJS = backprop.o facetrain.o imagenet.o backprop_kernel.o
+OBJS = facetrain.o imagenet.o backprop_kernel.o
 
 .PHONY: all
 all: $(EXE)
