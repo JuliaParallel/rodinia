@@ -7,7 +7,6 @@ OBJS = components.o
 all: $(EXE)
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT

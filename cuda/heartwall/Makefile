@@ -12,7 +12,6 @@ endif
 all: $(EXE)
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:

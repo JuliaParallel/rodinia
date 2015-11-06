@@ -7,7 +7,6 @@ OBJS = dwt.o components.o dwt_cuda/common.o dwt_cuda/fdwt53.o dwt_cuda/fdwt97.o 
 all: $(EXE)
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT

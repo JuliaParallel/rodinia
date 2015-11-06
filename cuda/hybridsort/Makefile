@@ -19,7 +19,6 @@ CPPFLAGS += TIMER = -DTIMER
 endif
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:

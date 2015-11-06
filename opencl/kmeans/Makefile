@@ -7,7 +7,6 @@ OBJS = cluster.o getopt.o read_input.o kmeans_clustering.o  rmse.o
 all: $(EXE)
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:

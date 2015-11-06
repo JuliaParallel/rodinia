@@ -7,7 +7,6 @@ OBJS = backprop.o facetrain.o imagenet.o
 all: $(EXE)
 
 $(EXE): $(OBJS)
-$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:
