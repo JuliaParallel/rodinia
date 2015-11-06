@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-./leukocyte ../../../data/leukocyte/testfile.avi 10
-

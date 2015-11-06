@@ -1,15 +1,10 @@
-include ../../common/make.config
+include ../Make.inc
 
-CC := $(CUDA_DIR)/bin/nvcc
+EXE  = bfs
 
-INCLUDE := $(CUDA_DIR)/include
+.PHONY: all
+all: $(EXE)
 
-SRC = bfs.cu
-
-EXE = bfs
-
-$(EXE): $(SRC)
-	$(CC) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(CUDA_LIB_DIR) 
-
-clean: $(SRC)
-	$(RM) $(EXE) $(EXE).linkinfo result.txt
+.PHONY: clean
+clean:
+	$(RM) $(EXE)

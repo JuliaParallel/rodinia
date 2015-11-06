@@ -1,8 +1,18 @@
-all: mummer 
+include ../Make.inc
 
-mummer:
-	cd src; make
+EXE  = mummergpu
+OBJS = mummergpu_gold.o mummergpu_cuda.o suffix-tree.o PoolMalloc.o
 
+ifdef OUTPUT
+CPPFLAGS += -DOUTPUT
+endif
+
+.PHONY: all
+all: $(EXE)
+
+$(EXE): $(OBJS)
+$(EXE): LDLIBS += -lm -fopenmp -lcuda
+
+.PHONY: clean
 clean:
-	cd src; make clean
-	
+	$(RM) $(EXE) $(OBJS)

@@ -1,14 +1,11 @@
--base
-  Non-optimized, non-paralleled implementation. It is considered as a baseline implementation to be compared with OpenMP and CUDA implementations. 
+The dimension of input matrix should be multiple size of block size. The block
+size can be obtained from lud_kernel.cu
 
--common
-  Common functions used in all implementations.
+******Adjustable work group size*****
+The kernel has square shape 
+RD_WG_SIZE_0 or RD_WG_SIZE_0_0 describe one dimension 
+The actually dimension = RD_WG_SIZE_0 * RD_WG_SIZE_0
 
--data
-  Some sample input matrices. 
-  
--omp
-  An paralleled implementation with OpenMP.
-
--tools
-  Tools to generate input matrix with random number.
+USAGE:
+make clean
+make KERNEL_DIM="-DRD_WG_SIZE_0=16"

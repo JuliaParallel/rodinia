@@ -1,19 +1,19 @@
+include ../Make.inc
 
+EXE  = heartwall
+OBJS = AVI/avilib.o AVI/avimod.o
+
+CPPFLAGS += -I./AVI
 ifdef OUTPUT
-override OUTPUT = -DOUTPUT
+CPPFLAGS += -DOUTPUT
 endif
 
-# link objects(binaries) together
-heartwall: main.o ./AVI/avilib.o ./AVI/avimod.o 
-	nvcc main.o ./AVI/avilib.o ./AVI/avimod.o -I/usr/local/cuda/include -lm -o heartwall
+.PHONY: all
+all: $(EXE)
 
-# compile main function file into object (binary)
-main.o: main.cu kernel.cu define.c
-	nvcc $(OUTPUT) $(KERNEL_DIM) main.cu -I./AVI -c -O3
+$(EXE): $(OBJS)
+$(EXE): LDLIBS += -lm
 
-./AVI/avilib.o ./AVI/avimod.o:
-	cd AVI; make;
-
-# delete all object files
+.PHONY: clean
 clean:
-	$(RM) *.o AVI/*.o heartwall *.linkinfo
+	$(RM) $(EXE) $(OBJS)

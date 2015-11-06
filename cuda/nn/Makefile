@@ -1,19 +1,10 @@
-include ../../common/make.config
+include ../Make.inc
 
-LOCAL_CC = gcc -g -O3 -Wall
-CC := $(CUDA_DIR)/bin/nvcc
+EXE  = nn
 
-all : nn hurricane_gen
+.PHONY: all
+all: $(EXE)
 
-clean :
-	$(RM) -r *.o nn hurricane_gen
-
-nn : nn_cuda.cu
-	$(CC) -o nn nn_cuda.cu
-
-hurricane_gen : hurricane_gen.c
-	$(LOCAL_CC) -o $@ $< -lm
-
-#data :
-#	mkdir data
-#	./gen_dataset.sh
+.PHONY: clean
+clean:
+	$(RM) $(EXE)

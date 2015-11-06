@@ -1,14 +1,10 @@
-include ../../common/make.config
+include ../Make.inc
 
-CC := $(CUDA_DIR)/bin/nvcc
-INCLUDE := $(CUDA_DIR)/include
+EXE  = pathfinder
 
-SRC = pathfinder.cu
+.PHONY: all
+all: $(EXE)
 
-EXE = pathfinder
-
-$(EXE):
-	$(CC) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(CUDA_LIB_DIR) 
-
+.PHONY: clean
 clean:
-	$(RM) pathfinder
+	$(RM) $(EXE)

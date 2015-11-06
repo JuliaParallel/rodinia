@@ -1,14 +1,11 @@
-include ../../common/make.config
+include ../Make.inc
 
-CC := $(CUDA_DIR)/bin/nvcc
+EXE  = gaussian
 
-INCLUDE := $(CUDA_DIR)/include
+.PHONY: all
+all: $(EXE)
 
-SRC = gaussian.cu
-EXE = gaussian
 
-$(EXE): $(SRC)
-	$(CC) $(KERNEL_DIM) $(SRC) -o $(EXE) -I$(INCLUDE) -L$(CUDA_LIB_DIR) 
-
+.PHONY: clean
 clean:
-	$(RM) gaussian
+	$(RM) $(EXE)

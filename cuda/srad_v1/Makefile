@@ -1,9 +1,11 @@
 include ../Make.inc
 
-EXE  = needle
+EXE  = srad
 
 .PHONY: all
 all: $(EXE)
+
+$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:

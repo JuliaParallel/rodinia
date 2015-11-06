@@ -1,6 +1,6 @@
 include ../Make.inc
 
-EXE  = needle
+EXE  = srad
 
 .PHONY: all
 all: $(EXE)
@@ -8,3 +8,4 @@ all: $(EXE)
 .PHONY: clean
 clean:
 	$(RM) $(EXE)
+

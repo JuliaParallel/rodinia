@@ -1,18 +1,10 @@
-#makefile
+include ../Make.inc
 
-include ../../common/make.config
+EXES  = particlefilter_naive particlefilter_float
 
-CC := $(CUDA_DIR)/bin/nvcc
+.PHONY: all
+all: $(EXES)
 
-INCLUDE := $(CUDA_DIR)/include
-
-all: particlefilter_naive particlefilter_float
-
-particlefilter_naive: ex_particle_CUDA_naive_seq.cu
-	$(CC) -I$(INCLUDE) -L$(CUDA_LIB_DIR) -lcuda -g -lm -O3 -use_fast_math -arch sm_13 ex_particle_CUDA_naive_seq.cu -o particlefilter_naive
-	
-particlefilter_float: ex_particle_CUDA_float_seq.cu
-	$(CC) -I$(INCLUDE) -L$(CUDA_LIB_DIR) -lcuda -g -lm -O3 -use_fast_math -arch sm_13 ex_particle_CUDA_float_seq.cu -o particlefilter_float
-
+.PHONY: clean
 clean:
-	$(RM) particlefilter_naive particlefilter_float
+	$(RM) $(EXES)

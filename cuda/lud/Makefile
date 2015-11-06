@@ -1,7 +1,16 @@
-all: lud_cuda 
+include ../Make.inc
 
-lud_cuda:
-	cd cuda; make
+EXE  = lud
+OBJS = common/common.o lud_kernel.o
 
+CPPFLAGS += -Icommon
+
+.PHONY: all
+all: $(EXE)
+
+$(EXE): $(OBJS)
+$(EXE): LDLIBS += -lm
+
+.PHONY: clean
 clean:
-	cd cuda; make clean
+	$(RM) $(EXE) $(OBJS)
