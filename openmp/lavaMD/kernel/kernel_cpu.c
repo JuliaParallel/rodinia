@@ -19,7 +19,7 @@ extern "C" {
 //	MAIN FUNCTION HEADER
 //======================================================================================================================================================150
 
-#include "./../main.h"								// (in the main program folder)	needed to recognized input variables
+#include "./../lavaMD.h"								// (in the main program folder)	needed to recognized input variables
 
 //======================================================================================================================================================150
 //	UTILITIES

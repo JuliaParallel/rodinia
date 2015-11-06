@@ -1,9 +1,11 @@
-# C compiler
-CC = g++
-CC_FLAGS = -g -fopenmp -O2
+include ../../Make.inc
 
-srad: 
-	$(CC) $(CC_FLAGS) srad.cpp -o srad 
+EXE  = srad
 
+.PHONY: all
+all: $(EXE)
+
+.PHONY: clean
 clean:
-	$(RM) srad
+	$(RM) $(EXE)
+

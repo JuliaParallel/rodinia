@@ -10,7 +10,7 @@ CC_FLAGS = -g -O3 -Wall -I$(MATRIX_DIR)
 
 # CUDA compiler
 NVCC = $(CUDA_DIR)/bin/nvcc
-NVCC_FLAGS = -I$(CUDA_DIR)/include -I$(SDK_DIR)/common/inc
+NVCC_FLAGS = -I$(CUDA_DIR)/include
 
 # Matrix library path
 MATRIX_DIR = ../meschach_lib

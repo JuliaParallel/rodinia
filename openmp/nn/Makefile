@@ -1,15 +1,12 @@
-LOCAL_CC = gcc -g -O3 -Wall
-CC = gcc
-CFLAGS = -lm -fopenmp -Wall
+include ../Make.inc
 
+EXES = nn hurricane_gen
 
-all : nn
+.PHONY: all
+all: $(EXES)
 
-clean :
-	$(RM) *.o nn
+$(EXES): LDLIBS += -lm
 
-nn : nn_openmp.c
-	$(CC) -o $@ $< $(LDFLAGS) $(CFLAGS) 
-
-hurricane_gen : hurricane_gen.c
-	$(LOCAL_CC) -o $@ $< -lm
+.PHONY: clean
+clean:
+	$(RM) $(EXES)

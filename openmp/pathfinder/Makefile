@@ -1,11 +1,10 @@
-CC = g++
-SRC = pathfinder.cpp
-EXE = pathfinder
-FLAGS = -fopenmp
+include ../Make.inc
 
-$(EXE):
-	$(CC) $(SRC) $(FLAGS) -o $(EXE)
+EXE  = pathfinder
+
+.PHONY: all
+all: $(EXE)
 
 .PHONY: clean
 clean:
-	$(RM) pathfinder
+	$(RM) $(EXE)

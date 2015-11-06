@@ -1,32 +1,12 @@
-# Example
-# target: dependencies
-	# command 1
-	# command 2
-          # .
-          # .
-          # .
-	# command n
+include ../Make.inc
 
-# link objects(binaries) together
-myocyte.out:	main.o
-	gcc	main.o \
-			-lm -fopenmp \
-	-o myocyte.out
+EXE  = myocyte
 
-# compile main function file into object (binary)
-main.o: 	main.c \
-				define.c \
-				ecc.c \
-				cam.c \
-				fin.c \
-				master.c \
-				embedded_fehlberg_7_8.c \
-				solver.c \
-				file.c \
-				timer.c
-	gcc	main.c \
-			-c -O3 -fopenmp
+.PHONY: all
+all: $(EXE)
 
-# delete all object files
+$(EXE): LDLIBS += -lm
+
+.PHONY: clean
 clean:
-	$(RM) *.o myocyte.out output.txt
+	$(RM) $(EXE)

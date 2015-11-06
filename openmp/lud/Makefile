@@ -1,7 +1,16 @@
-all: lud_omp 
+include ../Make.inc
 
-lud_omp:
-	cd omp; make
+EXE  = lud
+OBJS = lud.o lud_omp.o common/common.o
 
+CPPFLAGS += -Icommon
+
+.PHONY: all
+all: $(EXE)
+
+$(EXE): $(OBJS)
+$(EXE): LDLIBS += -lm
+
+.PHONY: clean
 clean:
-	cd omp; make clean
+	$(RM) $(EXE) $(OBJS)

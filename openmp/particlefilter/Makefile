@@ -1,6 +1,12 @@
-particle_filter: ex_particle_OPENMP_seq.c
-	gcc -O3 -ffast-math -fopenmp ex_particle_OPENMP_seq.c -o particle_filter -lm 
+include ../Make.inc
+
+EXE  = particle_filter
+
+.PHONY: all
+all: $(EXE)
+
+$(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:
-	$(RM) particle_filter
+	$(RM) $(EXE)

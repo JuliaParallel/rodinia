@@ -1,24 +1,12 @@
-# Example
-# target: dependencies
-	# command 1
-	# command 2
-          # .
-          # .
-          # .
-	# command n
+include ../../Make.inc
 
-# link objects(binaries) together
-srad:	main.o
-	gcc	main.o \
-			-lm -fopenmp -o srad
+EXE  = srad
 
-# compile main function file into object (binary)
-main.o: 	main.c \
-				define.c \
-				graphics.c
-	gcc	main.c \
-			-c -O3 -fopenmp
+.PHONY: all
+all: $(EXE)
 
-# delete all object files
+$(EXE): LDLIBS += -lm
+
+.PHONY: clean
 clean:
-	$(RM) *.o srad
+	$(RM) $(EXE)

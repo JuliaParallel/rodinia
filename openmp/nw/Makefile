@@ -1,9 +1,10 @@
-# C compiler
-CC = g++
-CC_FLAGS = -g -fopenmp 
+include ../Make.inc
 
-needle: 
-	$(CC) $(CC_FLAGS) needle.cpp -o needle 
+EXE  = needle
 
+.PHONY: all
+all: $(EXE)
+
+.PHONY: clean
 clean:
-	$(RM) needle 
+	$(RM) $(EXE)

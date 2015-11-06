@@ -1,9 +1,10 @@
-# C compiler
-CC = g++
-CC_FLAGS = -g -fopenmp -O2
+include ../Make.inc
 
-bfs: 
-	$(CC) $(CC_FLAGS) bfs.cpp -o bfs 
+EXE  = bfs
 
+.PHONY: all
+all: $(EXE)
+
+.PHONY: clean
 clean:
-	$(RM) bfs result.txt
+	$(RM) $(EXE)

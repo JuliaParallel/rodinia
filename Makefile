@@ -4,9 +4,9 @@ include common/$(MAKE).config
 
 RODINIA_BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-OPENMP_DIRS  := backprop bfs cfd          heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder
-CUDA_DIRS    := backprop bfs cfd gaussian heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder mummergpu hybridsort dwt2d
-OPENCL_DIRS  := backprop bfs cfd gaussian heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder           hybridsort dwt2d
+OPENMP_DIRS  := backprop bfs b+tree cfd          heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder
+CUDA_DIRS    := backprop bfs b+tree cfd gaussian heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder mummergpu hybridsort dwt2d
+OPENCL_DIRS  := backprop bfs b+tree cfd gaussian heartwall hotspot kmeans lavaMD leukocyte lud nn nw srad streamcluster particlefilter pathfinder           hybridsort dwt2d
 
 
 .PHONY: compile

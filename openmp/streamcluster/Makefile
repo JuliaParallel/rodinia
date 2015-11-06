@@ -1,24 +1,11 @@
-PREFIX=${PARSECDIR}/pkgs/kernels/streamcluster/inst/${PARSECPLAT}
+include ../Make.inc
 
-TARGET_C = sc_cpu
+EXE  = streamcluster
 
-TARGET_O = sc_omp
+.PHONY: all
+all: $(EXE)
 
-ifdef version
-  ifeq "$(version)" "parallel"
-    CXXFLAGS :=	$(CXXFLAGS) -DENABLE_THREADS -pthread
-  endif
-endif
-
-all: sc_cpu sc_omp
-
-sc_cpu:
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) streamcluster_original.cpp -o $(TARGET_C) $(LIBS) -DENABLE_THREADS -pthread
-
-sc_omp:
-	g++ -O3 -fopenmp -o $(TARGET_O) streamcluster_omp.cpp
-
-
+.PHONY: clean
 clean:
-	$(RM) -r *.o *~ *.txt sc_cpu sc_omp
-	
+	$(RM) $(EXE)
+	$(MAKE) -C original $@
