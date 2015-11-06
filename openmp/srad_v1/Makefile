@@ -1,4 +1,4 @@
-include ../../Make.inc
+include ../Make.inc
 
 EXE  = srad
 
