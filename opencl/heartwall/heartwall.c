@@ -19,7 +19,7 @@
 //	MAIN FUNCTION HEADER
 //======================================================================================================================================================150
 
-#include "./main.h"								// (in the main program folder)	needed to recognized input parameters
+#include "./heartwall.h"								// (in the main program folder)	needed to recognized input parameters
 
 //======================================================================================================================================================150
 //	UTILITIES
