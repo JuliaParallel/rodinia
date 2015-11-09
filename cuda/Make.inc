@@ -28,8 +28,11 @@ CPPFLAGS += -I$(CUDA_ROOT)/include
 
 NVCC=$(CUDA_ROOT)/bin/nvcc
 
-ifneq ($(strip $(LDLIBS)),)
-NVCC_LDLIBS = -Xcompiler $(call join-list,$(LDLIBS),$(COMMA))
+# NOTE: passing -lcuda to nvcc is redundant
+NONCUDA_LDLIBS = $(filter-out -lcuda -lcudart,$(LDLIBS))
+
+ifneq ($(strip $(NONCUDA_LDLIBS)),)
+NVCC_LDLIBS = -Xcompiler $(call join-list,$(NONCUDA_LDLIBS),$(COMMA))
 endif
 
 %: %.cu

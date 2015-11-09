@@ -48,7 +48,7 @@
 //======================================================================================================================================================150
 //	END
 //======================================================================================================================================================150
- 
+
 //========================================================================================================================================================================================================200
 //	DEFINE/INCLUDE
 //========================================================================================================================================================================================================200
@@ -59,7 +59,7 @@
 
 #include <stdio.h>									// (in directory known to compiler)			needed by printf, stderr
 #include <limits.h>									// (in directory known to compiler)			needed by INT_MIN, INT_MAX
-// #include <sys/time.h>							// (in directory known to compiler)			needed by ???
+#include <sys/time.h>							// (in directory known to compiler)			needed by gettimeofday
 #include <math.h>									// (in directory known to compiler)			needed by log, pow
 #include <string.h>									// (in directory known to compiler)			needed by memset
 
@@ -905,6 +905,7 @@ path_to_root( node* root, node* child )
 void 
 print_tree( node* root ) 
 {
+  FILE* file = fopen("output.txt", "w+");
 
 	node * n = NULL;
 	int i = 0;
@@ -912,7 +913,7 @@ print_tree( node* root )
 	int new_rank = 0;
 
 	if (root == NULL) {
-		printf("Empty tree.\n");
+		fprintf(file, "Empty tree.\n");
 		return;
 	}
 	queue = NULL;
@@ -923,28 +924,30 @@ print_tree( node* root )
 			new_rank = path_to_root( root, n );
 			if (new_rank != rank) {
 				rank = new_rank;
-				printf("\n");
+				fprintf(file, "\n");
 			}
 		}
 		if (verbose_output) 
-		printf("(%x)", n);
+		fprintf(file, "(%x)", n);
 		for (i = 0; i < n->num_keys; i++) {
 			if (verbose_output)
-			printf("%x ", n->pointers[i]);
-			printf("%d ", n->keys[i]);
+			fprintf(file, "%x ", n->pointers[i]);
+			fprintf(file, "%d ", n->keys[i]);
 		}
 		if (!n->is_leaf)
 		for (i = 0; i <= n->num_keys; i++)
 		enqueue((node *) n->pointers[i]);
 		if (verbose_output) {
 			if (n->is_leaf) 
-			printf("%x ", n->pointers[order - 1]);
+			fprintf(file, "%x ", n->pointers[order - 1]);
 			else
-			printf("%x ", n->pointers[n->num_keys]);
+			fprintf(file, "%x ", n->pointers[n->num_keys]);
 		}
-		printf("| ");
+		fprintf(file, "| ");
 	}
-	printf("\n");
+	fprintf(file, "\n");
+
+  fclose(file);
 }
 
 /* Traces the path from the root to a leaf, searching by key.  Displays information about the path if the verbose flag is set. Returns the leaf containing the given key. */
@@ -1844,20 +1847,6 @@ int
 main(	int argc, 
 		char** argv ) 
 {
-
-  printf("WG size of kernel 1 & 2  = %d \n", DEFAULT_ORDER);
-
-	// ------------------------------------------------------------60
-	// figure out and display whether 32-bit or 64-bit architecture
-	// ------------------------------------------------------------60
-
-	// if(sizeof(int *)==8){
-		// printf("64 bit machine\n");
-	// }
-	// else if(sizeof(int *)==4){
-		// printf("32 bit machine\n");
-	// }
-
 	// ------------------------------------------------------------60
 	// set GPU
 	// ------------------------------------------------------------60
@@ -1872,10 +1861,6 @@ main(	int argc,
 
 	// assing default values
 	int cur_arg;
-	int arch_arg;
-	arch_arg = 0;
-	int cores_arg;
-	cores_arg = 1;
 	char *input_file = NULL;
 	char *command_file = NULL;
 	char *output="output.txt";
@@ -1884,7 +1869,6 @@ main(	int argc,
 
 	// go through arguments
 	for(cur_arg=1; cur_arg<argc; cur_arg++){
-	  // check if -file
 	  if(strcmp(argv[cur_arg], "file")==0){
 	    // check if value provided
 	    if(argc>=cur_arg+1){
@@ -1958,6 +1942,7 @@ main(	int argc,
        fputs ("Fail to open %s !\n",output);
      fprintf(pFile,"******starting******\n");
      fclose(pFile);
+
 
 	// ------------------------------------------------------------60
 	// general variables
@@ -2136,7 +2121,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [GPU] find K (initK, findK)
+			// find K (initK, findK)
 			// ----------------------------------------40
 
 			case 'k':
@@ -2149,6 +2134,7 @@ main(	int argc,
 				  commandPointer++;
 
 				printf("\n ******command: k count=%d \n",count);
+
 				if(count > 65535){
 					printf("ERROR: Number of requested querries should be 65,535 at most. (limited by # of CUDA blocks)\n");
 					exit(0);
@@ -2194,29 +2180,21 @@ main(	int argc,
 					ans[i].value = -1;
 				}
 
-				// CUDA kernel
-				kernel_gpu_cuda_wrapper(records,
-										records_mem,
-										knodes,
-										knodes_elem,
-										knodes_mem,
+				kernel_gpu_cuda_wrapper(
+							records,
+							records_mem,
+							knodes,
+							knodes_elem,
+							knodes_mem,
 
-										order,
-										maxheight,
-										count,
+							order,
+							maxheight,
+							count,
 
-										currKnode,
-										offset,
-										keys,
-										ans);
-
-				/* printf("ans: \n"); */
-				/* for(i = 0; i < count; i++){ */
-				/*   printf("%d    ",ans[i].value); */
-				/* } */
-				
-				/* printf(" \n"); */
-
+							currKnode,
+							offset,
+							keys,
+							ans);
 
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
@@ -2231,6 +2209,7 @@ main(	int argc,
 				fprintf(pFile, " \n");
                                 fclose(pFile);
 				
+
 				// free memory
 				free(currKnode);
 				free(offset);
@@ -2266,7 +2245,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [GPU] find Range K (initK, findRangeK)
+			// find Range K (initK, findRangeK)
 			// ----------------------------------------40
 
 			case 'j':
@@ -2284,9 +2263,10 @@ main(	int argc,
 				  commandPointer++;
 
 				printf("\n******command: j count=%d, rSize=%d \n",count, rSize);
+
 				if(rSize > size || rSize < 0) {
-				  printf("Search range size is larger than data set size %d.\n", (int)size);
-				  exit(0);
+					printf("Search range size is larger than data set size %d.\n", (int)size);
+					exit(0);
 				}
 
 				// INPUT: knodes CPU allocation (setting pointer in mem variable)
@@ -2346,24 +2326,23 @@ main(	int argc,
 					reclength[i] = 0;
 				}
 
-				// CUDA kernel
-				kernel_gpu_cuda_wrapper_2(	knodes,
-											knodes_elem,
-											knodes_mem,
+				kernel_gpu_cuda_wrapper_2(
+								knodes,
+								knodes_elem,
+								knodes_mem,
 
-											order,
-											maxheight,
-											count,
+								order,
+								maxheight,
+								count,
 
-											currKnode,
-											offset,
-											lastKnode,
-											offset_2,
-											start,
-											end,
-											recstart,
-											reclength);
-
+								currKnode,
+								offset,
+								lastKnode,
+								offset_2,
+								start,
+								end,
+								recstart,
+								reclength);
 
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
@@ -2377,7 +2356,6 @@ main(	int argc,
 				}
 				fprintf(pFile, " \n");
                                 fclose(pFile);
-
 
 				// free memory
 				free(currKnode);
@@ -2411,6 +2389,12 @@ main(	int argc,
 
 	}
 	printf("\n");
+
+
+#ifdef OUTPUT
+  print_tree(root);
+#endif
+
 
 	// ------------------------------------------------------------60
 	// free remaining memory and exit

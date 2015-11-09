@@ -8,10 +8,6 @@ all: $(EXE)
 
 $(EXE): $(OBJS)
 
-ifdef OUTPUT
-CPPFLAGS += -DOUTPUT
-endif
-
 .PHONY: clean
 clean:
 	$(RM) $(EXE) $(OBJS)

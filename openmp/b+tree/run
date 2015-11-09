@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-./b+tree.out core 2 file ../../data/b+tree/mil.txt command ../../data/b+tree/command.txt
+./b+tree file ../../data/b+tree/mil.txt command ../../data/b+tree/command.txt
 

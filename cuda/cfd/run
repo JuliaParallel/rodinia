@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -ue
 
-There are three datasets:
+# There are three datasets:
+./euler3d_cpu ../../data/cfd/fvcorr.domn.097K
+#./euler3d_cpu ../../data/cfd/fvcorr.domn.193K
+#./euler3d_cpu ../../data/cfd/missile.domn.0.2M
 
-./euler3d ../../data/cfd/fvcorr.domn.097K   
-./euler3d ../../data/cfd/fvcorr.domn.193K   
-./euler3d ../../data/cfd/missile.domn.0.2M  
-
-replace euler3d with other CFD programs
+# replace euler3d with other CFD programs

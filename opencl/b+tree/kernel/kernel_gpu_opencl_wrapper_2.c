@@ -212,8 +212,8 @@ kernel_gpu_opencl_wrapper_2(knode *knodes,
 	//  sprintf(clOptions,"-I../../src");                                                                                 
 	sprintf(clOptions,"-I./../");
 
-#ifdef DEFAULT_ORDER_2
-	sprintf(clOptions + strlen(clOptions), " -DDEFAULT_ORDER_2=%d", DEFAULT_ORDER_2);
+#ifdef DEFAULT_ORDER
+	sprintf(clOptions + strlen(clOptions), " -DDEFAULT_ORDER=%d", DEFAULT_ORDER);
 #endif
 
 	// Compile the program

@@ -360,37 +360,22 @@ void bpnn_train(BPNN *net, float *eo, float *eh)
 }
 
 
-
-
-void bpnn_save(BPNN *net, char *filename)
+void bpnn_save(net, filename)
+BPNN *net;
+char *filename;
 {
   int n1, n2, n3, i, j, memcnt;
   float dvalue, **w;
   char *mem;
-  ///add//
   FILE *pFile;
   pFile = fopen( filename, "w+" );
-  ///////
-  /*
-  if ((fd = creat(filename, 0644)) == -1) {
-    printf("BPNN_SAVE: Cannot create '%s'\n", filename);
-    return;
-  }
-  */
 
   n1 = net->input_n;  n2 = net->hidden_n;  n3 = net->output_n;
   printf("Saving %dx%dx%d network to '%s'\n", n1, n2, n3, filename);
-  //fflush(stdout);
 
-  //write(fd, (char *) &n1, sizeof(int));
-  //write(fd, (char *) &n2, sizeof(int));
-  //write(fd, (char *) &n3, sizeof(int));
-
-  fwrite( (char *) &n1 , sizeof(char), sizeof(char), pFile);
-  fwrite( (char *) &n2 , sizeof(char), sizeof(char), pFile);
-  fwrite( (char *) &n3 , sizeof(char), sizeof(char), pFile);
-
-  
+  fwrite( (int *) &n1 , sizeof(int), 1, pFile);
+  fwrite( (int *) &n2 , sizeof(int), 1, pFile);
+  fwrite( (int *) &n3 , sizeof(int), 1, pFile);  
 
   memcnt = 0;
   w = net->input_weights;
@@ -402,8 +387,7 @@ void bpnn_save(BPNN *net, char *filename)
       memcnt += sizeof(float);
     }
   }
-  //write(fd, mem, (n1+1) * (n2+1) * sizeof(float));
-  fwrite( mem , (unsigned)(sizeof(float)), (unsigned) ((n1+1) * (n2+1) * sizeof(float)) , pFile);
+  fwrite( mem , (unsigned)(sizeof(float)), (unsigned) ((n1+1) * (n2+1)) , pFile);
   free(mem);
 
   memcnt = 0;
@@ -416,8 +400,7 @@ void bpnn_save(BPNN *net, char *filename)
       memcnt += sizeof(float);
     }
   }
-  //write(fd, mem, (n2+1) * (n3+1) * sizeof(float));
-  fwrite( mem , sizeof(float), (unsigned) ((n2+1) * (n3+1) * sizeof(float)) , pFile);
+  fwrite( mem , sizeof(float), (unsigned) ((n2+1) * (n3+1)) , pFile);
   free(mem);
 
   fclose(pFile);

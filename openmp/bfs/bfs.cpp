@@ -2,9 +2,6 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include <omp.h>
-//#define NUM_THREAD 4
-#define OPEN
 
 int no_of_nodes;
 int edge_list_size;
@@ -21,9 +18,11 @@ void BFSGraph(int argc, char** argv);
 
 void Usage(int argc, char**argv){
 
-fprintf(stderr,"Usage: %s <num_threads> <input_file>\n", argv[0]);
+fprintf(stderr,"Usage: %s <input_file>\n", argv[0]);
 
 }
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Main Program
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,22 +34,19 @@ int main( int argc, char** argv)
 }
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
-//Apply BFS on a Graph using CUDA
+//Apply BFS on a Graph
 ////////////////////////////////////////////////////////////////////////////////
 void BFSGraph( int argc, char** argv) 
 {
     char *input_f;
-	int	 num_omp_threads;
 	
-	if(argc!=3){
+	if(argc!=2){
 	Usage(argc, argv);
 	exit(0);
 	}
     
-	num_omp_threads = atoi(argv[1]);
-	input_f = argv[2];
+	input_f = argv[1];
 	
 	printf("Reading File\n");
 	//Read in Graph from a file
@@ -64,7 +60,7 @@ void BFSGraph( int argc, char** argv)
 	int source = 0;
 
 	fscanf(fp,"%d",&no_of_nodes);
-   
+
 	// allocate host memory
 	Node* h_graph_nodes = (Node*) malloc(sizeof(Node)*no_of_nodes);
 	bool *h_graph_mask = (bool*) malloc(sizeof(bool)*no_of_nodes);
@@ -122,10 +118,7 @@ void BFSGraph( int argc, char** argv)
 		//if no thread changes this value then the loop stops
 		stop=false;
 
-#ifdef OPEN
-		omp_set_num_threads(num_omp_threads);
 		#pragma omp parallel for 
-#endif 
 		for(int tid = 0; tid < no_of_nodes; tid++ )
 		{
 			if (h_graph_mask[tid] == true){ 
@@ -155,21 +148,19 @@ void BFSGraph( int argc, char** argv)
 	}
 	while(stop);
 
-	//Store the result into a file
-	FILE *fpo = fopen("result.txt","w");
+	// Store the result into a file
+#ifdef OUTPUT
+	FILE *fpo = fopen("output.txt","w");
 	for(int i=0;i<no_of_nodes;i++)
 		fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
 	fclose(fpo);
-	printf("Result stored in result.txt\n");
-
+#endif
 
 	// cleanup memory
-	free( h_graph_nodes);
-	free( h_graph_edges);
-	free( h_graph_mask);
-	free( h_updating_graph_mask);
-	free( h_graph_visited);
-	free( h_cost);
-
+	free(h_graph_nodes);
+	free(h_graph_edges);
+	free(h_graph_mask);
+	free(h_updating_graph_mask);
+	free(h_graph_visited);
+	free(h_cost);
 }
-

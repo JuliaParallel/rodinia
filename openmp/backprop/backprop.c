@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include "backprop.h"
 #include <math.h>
-#define OPEN
 
 #define ABS(x)          (((x) > 0.0) ? (x) : (-(x)))
 
@@ -244,10 +243,8 @@ int n1, n2;
 
   /*** Set up thresholding unit ***/
   l1[0] = 1.0;
-#ifdef OPEN
   omp_set_num_threads(NUM_THREAD);
   #pragma omp parallel for shared(conn, n1, n2, l1) private(k, j) reduction(+: sum) schedule(static)
-#endif 
   /*** For each unit in second layer ***/
   for (j = 1; j <= n2; j++) {
 
@@ -315,13 +312,11 @@ int ndelta, nly;
   //eta = 0.3;
   //momentum = 0.3;
 
-#ifdef OPEN
   omp_set_num_threads(NUM_THREAD);
   #pragma omp parallel for  \
       shared(oldw, w, delta) \
 	  private(j, k, new_dw) \
 	  firstprivate(ndelta, nly) 
-#endif 
   for (j = 1; j <= ndelta; j++) {
     for (k = 0; k <= nly; k++) {
       new_dw = ((ETA * delta[j] * ly[k]) + (MOMENTUM * oldw[k][j]));
@@ -384,8 +379,6 @@ float *eo, *eh;
 }
 
 
-
-
 void bpnn_save(net, filename)
 BPNN *net;
 char *filename;
@@ -393,30 +386,15 @@ char *filename;
   int n1, n2, n3, i, j, memcnt;
   float dvalue, **w;
   char *mem;
-  ///add//
   FILE *pFile;
   pFile = fopen( filename, "w+" );
-  ///////
-  /*
-  if ((fd = creat(filename, 0644)) == -1) {
-    printf("BPNN_SAVE: Cannot create '%s'\n", filename);
-    return;
-  }
-  */
 
   n1 = net->input_n;  n2 = net->hidden_n;  n3 = net->output_n;
   printf("Saving %dx%dx%d network to '%s'\n", n1, n2, n3, filename);
-  //fflush(stdout);
 
-  //write(fd, (char *) &n1, sizeof(int));
-  //write(fd, (char *) &n2, sizeof(int));
-  //write(fd, (char *) &n3, sizeof(int));
-
-  fwrite( (char *) &n1 , sizeof(char), sizeof(char), pFile);
-  fwrite( (char *) &n2 , sizeof(char), sizeof(char), pFile);
-  fwrite( (char *) &n3 , sizeof(char), sizeof(char), pFile);
-
-  
+  fwrite( (int *) &n1 , sizeof(int), 1, pFile);
+  fwrite( (int *) &n2 , sizeof(int), 1, pFile);
+  fwrite( (int *) &n3 , sizeof(int), 1, pFile);  
 
   memcnt = 0;
   w = net->input_weights;
@@ -428,8 +406,7 @@ char *filename;
       memcnt += sizeof(float);
     }
   }
-  //write(fd, mem, (n1+1) * (n2+1) * sizeof(float));
-  fwrite( mem , (unsigned)(sizeof(float)), (unsigned) ((n1+1) * (n2+1) * sizeof(float)) , pFile);
+  fwrite( mem , (unsigned)(sizeof(float)), (unsigned) ((n1+1) * (n2+1)) , pFile);
   free(mem);
 
   memcnt = 0;
@@ -442,8 +419,7 @@ char *filename;
       memcnt += sizeof(float);
     }
   }
-  //write(fd, mem, (n2+1) * (n3+1) * sizeof(float));
-  fwrite( mem , sizeof(float), (unsigned) ((n2+1) * (n3+1) * sizeof(float)) , pFile);
+  fwrite( mem , sizeof(float), (unsigned) ((n2+1) * (n3+1)) , pFile);
   free(mem);
 
   fclose(pFile);
@@ -462,15 +438,15 @@ char *filename;
     return (NULL);
   }
 
-  printf("Reading '%s'\n", filename);  //fflush(stdout);
+  printf("Reading '%s'\n", filename);
 
-  read(fd, (char *) &n1, sizeof(int));
-  read(fd, (char *) &n2, sizeof(int));
-  read(fd, (char *) &n3, sizeof(int));
+  read(fd, (int *) &n1, sizeof(int));
+  read(fd, (int *) &n2, sizeof(int));
+  read(fd, (int *) &n3, sizeof(int));
   new = bpnn_internal_create(n1, n2, n3);
 
   printf("'%s' contains a %dx%dx%d network\n", filename, n1, n2, n3);
-  printf("Reading input weights...");  //fflush(stdout);
+  printf("Reading input weights...");
 
   memcnt = 0;
   mem = (char *) malloc ((unsigned) ((n1+1) * (n2+1) * sizeof(float)));
@@ -483,7 +459,7 @@ char *filename;
   }
   free(mem);
 
-  printf("Done\nReading hidden weights...");  //fflush(stdout);
+  printf("Done\nReading hidden weights...");
 
   memcnt = 0;
   mem = (char *) malloc ((unsigned) ((n2+1) * (n3+1) * sizeof(float)));
@@ -497,7 +473,7 @@ char *filename;
   free(mem);
   close(fd);
 
-  printf("Done\n");  //fflush(stdout);
+  printf("Done\n");
 
   bpnn_zero_weights(new->input_prev_weights, n1, n2);
   bpnn_zero_weights(new->hidden_prev_weights, n2, n3);

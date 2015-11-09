@@ -10,10 +10,6 @@ ifdef VERIFY
 CPPFLAGS += VERIFY = -DVERIFY
 endif
 
-ifdef OUTPUT
-CPPFLAGS += -DOUTPUT
-endif
-
 ifdef TIMER
 CPPFLAGS += TIMER = -DTIMER
 endif

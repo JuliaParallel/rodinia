@@ -23,7 +23,7 @@
 // change to double if double precision needed
 #define fp float
 
-//#define DEFAULT_ORDER_2 256
+//#define DEFAULT_ORDER 256
 
 //======================================================================================================================================================150
 //	STRUCTURES (had to bring from ../common.h here because feature of including headers in clBuildProgram does not work for some reason)
@@ -32,8 +32,8 @@
 // ???
 typedef struct knode {
 	int location;
-	int indices [DEFAULT_ORDER_2 + 1];
-	int  keys [DEFAULT_ORDER_2 + 1];
+	int indices [DEFAULT_ORDER + 1];
+	int  keys [DEFAULT_ORDER + 1];
 	bool is_leaf;
 	int num_keys;
 } knode; 

@@ -3,10 +3,6 @@ include ../Make.inc
 EXE  = leukocyte
 OBJS = avilib.o find_ellipse.o find_ellipse_opencl.o track_ellipse.o track_ellipse_opencl.o misc_math.o OpenCL_helper_library.o $(MESCHACH_DIR)/meschach.a
 
-ifdef OUTPUT
-CPPFLAGS += -DOUTPUT
-endif
-
 .PHONY: all
 all: $(EXE)
 

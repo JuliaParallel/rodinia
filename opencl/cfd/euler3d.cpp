@@ -91,14 +91,14 @@ void dump(cl_mem variables, int nel, int nelr){
 
 	{
 		std::ofstream file("density");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++) file << h_variables[i + VAR_DENSITY*nelr] << std::endl;
 	}
 
 
 	{
 		std::ofstream file("momentum");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++)
 		{
 			for(int j = 0; j != NDIM; j++)
@@ -109,7 +109,7 @@ void dump(cl_mem variables, int nel, int nelr){
 	
 	{
 		std::ofstream file("density_energy");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++) file << h_variables[i + VAR_DENSITY_ENERGY*nelr] << std::endl;
 	}
 	delete[] h_variables;
@@ -358,9 +358,13 @@ int main(int argc, char** argv){
 			}
 		}
 		_clFinish();
+
+#ifdef OUTPUT
 		std::cout << "Saving solution..." << std::endl;
 		dump(variables, nel, nelr);
 		std::cout << "Saved solution..." << std::endl;
+#endif
+		
 		_clStatistics();
 		std::cout << "Cleaning up..." << std::endl;
 		

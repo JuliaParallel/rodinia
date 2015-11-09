@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include "backprop.h"
-#include "omp.h"
+#include <string.h>
+#include <unistd.h>
 
-extern char *strcpy();
-extern void exit();
+
+
+
+
 
 int layer_size = 0;
 
@@ -14,34 +17,33 @@ void backprop_face()
   BPNN *net;
   int i;
   float out_err, hid_err;
-  net = bpnn_create(layer_size, 16, 1); // (16, 1 can not be changed)
-  
+  net = bpnn_create(layer_size, 16, 1); // (16, 1 can not be changed)  
   printf("Input layer size : %d\n", layer_size);
   load(net);
   //entering the training kernel, only one iteration
   printf("Starting training kernel\n");
   bpnn_train_kernel(net, &out_err, &hid_err);
+#ifdef OUTPUT
+  bpnn_save(net, "output.dat");
+#endif
   bpnn_free(net);
-  printf("\nFinish the training for one iteration\n");
+  printf("Training done\n");
 }
 
 int setup(int argc, char **argv)
-{
-	
-  int seed;
-
-  if (argc!=2){
-  fprintf(stderr, "usage: backprop <num of input elements>\n");
-  exit(0);
+{	
+  if (argc!=2) {
+    fprintf(stderr, "usage: backprop <num of input elements>\n");
+    exit(1);
   }
+
   layer_size = atoi(argv[1]);
   if (layer_size%16!=0){
-  fprintf(stderr, "The number of input points must be divided by 16\n");
-  exit(0);
-  }
-  
+    fprintf(stderr, "The number of input points must be divided by 16\n");
+    exit(1);
+  }  
 
-  seed = 7;   
+  int seed = 7;   
   bpnn_initialize(seed);
   backprop_face();
 

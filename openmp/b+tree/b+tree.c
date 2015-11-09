@@ -32,7 +32,7 @@
 //======================================================================================================================================================150
 
 // EXAMPLE:
-// ./a.out -file ./input/mil.txt -cores 16
+// ./b+tree file ./input/mil.txt command ./command.txt
 // ...then enter any of the following commands after the prompt > :
 // f <x>  -- Find the value under key <x>
 // p <x> -- Print the path from the root to key k and its associated value
@@ -59,7 +59,7 @@
 
 #include <stdio.h>									// (in directory known to compiler)			needed by printf, stderr
 #include <limits.h>									// (in directory known to compiler)			needed by INT_MIN, INT_MAX
-// #include <sys/time.h>							// (in directory known to compiler)			needed by ???
+#include <sys/time.h>							// (in directory known to compiler)			needed by gettimeofday
 #include <math.h>									// (in directory known to compiler)			needed by log, pow
 #include <string.h>									// (in directory known to compiler)			needed by memset
 
@@ -905,6 +905,7 @@ path_to_root( node* root, node* child )
 void 
 print_tree( node* root ) 
 {
+  FILE* file = fopen("output.txt", "w+");
 
 	node * n = NULL;
 	int i = 0;
@@ -912,7 +913,7 @@ print_tree( node* root )
 	int new_rank = 0;
 
 	if (root == NULL) {
-		printf("Empty tree.\n");
+		fprintf(file, "Empty tree.\n");
 		return;
 	}
 	queue = NULL;
@@ -923,28 +924,30 @@ print_tree( node* root )
 			new_rank = path_to_root( root, n );
 			if (new_rank != rank) {
 				rank = new_rank;
-				printf("\n");
+				fprintf(file, "\n");
 			}
 		}
 		if (verbose_output) 
-		printf("(%x)", n);
+		fprintf(file, "(%x)", n);
 		for (i = 0; i < n->num_keys; i++) {
 			if (verbose_output)
-			printf("%x ", n->pointers[i]);
-			printf("%d ", n->keys[i]);
+			fprintf(file, "%x ", n->pointers[i]);
+			fprintf(file, "%d ", n->keys[i]);
 		}
 		if (!n->is_leaf)
 		for (i = 0; i <= n->num_keys; i++)
 		enqueue((node *) n->pointers[i]);
 		if (verbose_output) {
 			if (n->is_leaf) 
-			printf("%x ", n->pointers[order - 1]);
+			fprintf(file, "%x ", n->pointers[order - 1]);
 			else
-			printf("%x ", n->pointers[n->num_keys]);
+			fprintf(file, "%x ", n->pointers[n->num_keys]);
 		}
-		printf("| ");
+		fprintf(file, "| ");
 	}
-	printf("\n");
+	fprintf(file, "\n");
+
+  fclose(file);
 }
 
 /* Traces the path from the root to a leaf, searching by key.  Displays information about the path if the verbose flag is set. Returns the leaf containing the given key. */
@@ -1846,7 +1849,6 @@ main(	int argc,
 {
 	// assing default values
 	int cur_arg;
-	int cores_arg =1;
 	char *input_file = NULL;
 	char *command_file = NULL;
 	char *output="output.txt";
@@ -1855,27 +1857,7 @@ main(	int argc,
 
 	// go through arguments
 	for(cur_arg=1; cur_arg<argc; cur_arg++){
-	  if(strcmp(argv[cur_arg], "cores")==0){
-	    // check if value provided
-	    if(argc>=cur_arg+1){
-	      // check if value is a number
-	      if(isInteger(argv[cur_arg+1])==1){
-		cores_arg = atoi(argv[cur_arg+1]);
-		if(cores_arg<0){
-		  printf("ERROR: Wrong value to cores parameter, cannot be <=0\n");
-		  return -1;
-		}
-		cur_arg = cur_arg+1;
-	      }
-	      // value is not a number
-	      else{
-		printf("ERROR: Value to cores parameter in not a number\n");
-		return 0;
-	      }
-	    }
-	  }
-	  // check if -file
-	  else if(strcmp(argv[cur_arg], "file")==0){
+	  if(strcmp(argv[cur_arg], "file")==0){
 	    // check if value provided
 	    if(argc>=cur_arg+1){
 	      input_file = argv[cur_arg+1];
@@ -1972,7 +1954,7 @@ main(	int argc,
 
 	if (input_file != NULL) {
 
-		printf("Getting input from file %s...\n", argv[1]);
+		printf("Getting input from file %s...\n", input_file);
 
 		// open input file
 		file_pointer = fopen(input_file, "r");
@@ -2127,7 +2109,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [OpenMP] find K (initK, findK)
+			// find K (initK, findK)
 			// ----------------------------------------40
 
 			case 'k':
@@ -2150,13 +2132,13 @@ main(	int argc,
 				record *records = (record *)mem;
 				long records_elem = (long)rootLoc / sizeof(record);
 				long records_mem = (long)rootLoc;
-				// printf("records_elem=%d, records_unit_mem=%d, records_mem=%d\n", (int)records_elem, sizeof(record), (int)records_mem);
+				printf("records_elem=%d, records_unit_mem=%d, records_mem=%d\n", (int)records_elem, (int)sizeof(record), (int)records_mem);
 
 				// INPUT: knodes CPU allocation (setting pointer in mem variable)
 				knode *knodes = (knode *)((long)mem + (long)rootLoc);
 				long knodes_elem = ((long)(mem_used) - (long)rootLoc) / sizeof(knode);
 				long knodes_mem = (long)(mem_used) - (long)rootLoc;
-				// printf("knodes_elem=%d, knodes_unit_mem=%d, knodes_mem=%d\n", (int)knodes_elem, sizeof(knode), (int)knodes_mem);
+				printf("knodes_elem=%d, knodes_unit_mem=%d, knodes_mem=%d\n", (int)knodes_elem, (int)sizeof(knode), (int)knodes_mem);
 
 				// INPUT: currKnode CPU allocation
 				long *currKnode;
@@ -2186,9 +2168,7 @@ main(	int argc,
 					ans[i].value = -1;
 				}
 
-				// New OpenMP kernel, same algorighm across all versions(OpenMP, CUDA, OpenCL) for comparison purposes
-				kernel_cpu(	cores_arg,
-
+				kernel_cpu(
 							records,
 							knodes,
 							knodes_elem,
@@ -2202,16 +2182,6 @@ main(	int argc,
 							keys,
 							ans);
 
-				// Original OpenMP kernel, different algorithm
-				// int j;
-				// for(j = 0; j < count; j++){
-					// find(	root,				// node *
-
-							// keys[j],			// int
-							// false);				// bool
-				// }
-
-
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
 				  {
@@ -2224,6 +2194,7 @@ main(	int argc,
 				}
 				fprintf(pFile, " \n");
                                 fclose(pFile);
+				
 
 				// free memory
 				free(currKnode);
@@ -2260,7 +2231,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [OpenMP] find Range K (initK, findRangeK)
+			// find Range K (initK, findRangeK)
 			// ----------------------------------------40
 
 			case 'j':
@@ -2288,7 +2259,7 @@ main(	int argc,
 				knode *knodes = (knode *)((long)mem + (long)rootLoc);
 				long knodes_elem = ((long)(mem_used) - (long)rootLoc) / sizeof(knode);
 				long knodes_mem = (long)(mem_used) - (long)rootLoc;
-				// printf("knodes_elem=%d, knodes_unit_mem=%d, knodes_mem=%d\n", (int)knodes_elem, sizeof(knode), (int)knodes_mem);
+				printf("knodes_elem=%d, knodes_unit_mem=%d, knodes_mem=%d\n", (int)knodes_elem, (int)sizeof(knode), (int)knodes_mem);
 
 				// INPUT: currKnode CPU allocation
 				long *currKnode;
@@ -2341,9 +2312,7 @@ main(	int argc,
 					reclength[i] = 0;
 				}
 
-				// New kernel, same algorighm across all versions(OpenMP, CUDA, OpenCL) for comparison purposes
-				kernel_cpu_2(	cores_arg,
-
+				kernel_cpu_2(
 								knodes,
 								knodes_elem,
 
@@ -2360,14 +2329,6 @@ main(	int argc,
 								recstart,
 								reclength);
 
-				// Original [CPU] kernel, different algorithm
-				// int k;
-				// for(k = 0; k < count; k++){
-					// findRange(	root,
-
-								// start[k], 
-								// end[k]);
-				// }
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
 				  {
@@ -2413,6 +2374,12 @@ main(	int argc,
 
 	}
 	printf("\n");
+
+
+#ifdef OUTPUT
+  print_tree(root);
+#endif
+
 
 	// ------------------------------------------------------------60
 	// free remaining memory and exit

@@ -32,7 +32,7 @@
 //======================================================================================================================================================150
 
 // EXAMPLE:
-// ./a.out -file ./input/mil.txt
+// ./b+tree file ./input/mil.txt command ./command.txt
 // ...then enter any of the following commands after the prompt > :
 // f <x>  -- Find the value under key <x>
 // p <x> -- Print the path from the root to key k and its associated value
@@ -59,7 +59,7 @@
 
 #include <stdio.h>									// (in directory known to compiler)			needed by printf, stderr
 #include <limits.h>									// (in directory known to compiler)			needed by INT_MIN, INT_MAX
-// #include <sys/time.h>							// (in directory known to compiler)			needed by ???
+#include <sys/time.h>							// (in directory known to compiler)			needed by gettimeofday
 #include <math.h>									// (in directory known to compiler)			needed by log, pow
 #include <string.h>									// (in directory known to compiler)			needed by memset
 
@@ -905,6 +905,7 @@ path_to_root( node* root, node* child )
 void 
 print_tree( node* root ) 
 {
+  FILE* file = fopen("output.txt", "w+");
 
 	node * n = NULL;
 	int i = 0;
@@ -912,7 +913,7 @@ print_tree( node* root )
 	int new_rank = 0;
 
 	if (root == NULL) {
-		printf("Empty tree.\n");
+		fprintf(file, "Empty tree.\n");
 		return;
 	}
 	queue = NULL;
@@ -923,28 +924,30 @@ print_tree( node* root )
 			new_rank = path_to_root( root, n );
 			if (new_rank != rank) {
 				rank = new_rank;
-				printf("\n");
+				fprintf(file, "\n");
 			}
 		}
 		if (verbose_output) 
-		printf("(%x)", n);
+		fprintf(file, "(%x)", n);
 		for (i = 0; i < n->num_keys; i++) {
 			if (verbose_output)
-			printf("%x ", n->pointers[i]);
-			printf("%d ", n->keys[i]);
+			fprintf(file, "%x ", n->pointers[i]);
+			fprintf(file, "%d ", n->keys[i]);
 		}
 		if (!n->is_leaf)
 		for (i = 0; i <= n->num_keys; i++)
 		enqueue((node *) n->pointers[i]);
 		if (verbose_output) {
 			if (n->is_leaf) 
-			printf("%x ", n->pointers[order - 1]);
+			fprintf(file, "%x ", n->pointers[order - 1]);
 			else
-			printf("%x ", n->pointers[n->num_keys]);
+			fprintf(file, "%x ", n->pointers[n->num_keys]);
 		}
-		printf("| ");
+		fprintf(file, "| ");
 	}
-	printf("\n");
+	fprintf(file, "\n");
+
+  fclose(file);
 }
 
 /* Traces the path from the root to a leaf, searching by key.  Displays information about the path if the verbose flag is set. Returns the leaf containing the given key. */
@@ -1844,37 +1847,16 @@ int
 main(	int argc, 
 		char** argv ) 
 {
-
-  printf("WG size of kernel 1 = %d WG size of kernel 2 = %d \n", DEFAULT_ORDER, DEFAULT_ORDER_2);
-	// ------------------------------------------------------------60
-	// figure out and display whether 32-bit or 64-bit architecture
-	// ------------------------------------------------------------60
-
-	// if(sizeof(int *)==8){
-		// printf("64 bit machine\n");
-	// }
-	// else if(sizeof(int *)==4){
-		// printf("32 bit machine\n");
-	// }
-
-	// ------------------------------------------------------------60
-	// read inputs
-	// ------------------------------------------------------------60
-
 	// assing default values
 	int cur_arg;
-	int arch_arg;
-	arch_arg = 0;
-	int cores_arg;
-	cores_arg = 1;
 	char *input_file = NULL;
 	char *command_file = NULL;
 	char *output="output.txt";
 	FILE * pFile;
 
+
 	// go through arguments
 	for(cur_arg=1; cur_arg<argc; cur_arg++){
-	  // check if -file
 	  if(strcmp(argv[cur_arg], "file")==0){
 	    // check if value provided
 	    if(argc>=cur_arg+1){
@@ -1909,7 +1891,6 @@ main(	int argc,
 	  // For debug
 	  printf("Input File: %s \n", input_file);
 	  printf("Command File: %s \n", command_file);
-
 
      FILE * commandFile;
      long lSize;
@@ -1950,6 +1931,7 @@ main(	int argc,
      fprintf(pFile,"******starting******\n");
      fclose(pFile);
 
+
 	// ------------------------------------------------------------60
 	// general variables
 	// ------------------------------------------------------------60
@@ -1960,7 +1942,7 @@ main(	int argc,
 	record *r;
 	int input;
 	char instruction;
-	order = DEFAULT_ORDER_2;
+	order = DEFAULT_ORDER;
 	verbose_output = false;
 
 	//usage_1();  
@@ -1972,7 +1954,7 @@ main(	int argc,
 
 	if (input_file != NULL) {
 
-		printf("Getting input from file %s...\n", argv[1]);
+		printf("Getting input from file %s...\n", input_file);
 
 		// open input file
 		file_pointer = fopen(input_file, "r");
@@ -2015,11 +1997,12 @@ main(	int argc,
 	// process commands
 	// ------------------------------------------------------------60
 	char *commandPointer=commandBuffer;
+
 	printf("Waiting for command\n");
 	printf("> ");
 	while (sscanf(commandPointer, "%c", &instruction) != EOF) {
 	  commandPointer++;
-	  switch (instruction) {
+		switch (instruction) {
 			// ----------------------------------------40
 			// Insert
 			// ----------------------------------------40
@@ -2126,7 +2109,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [GPU] find K (initK, findK)
+			// find K (initK, findK)
 			// ----------------------------------------40
 
 			case 'k':
@@ -2139,6 +2122,7 @@ main(	int argc,
 				  commandPointer++;
 
 				printf("\n ******command: k count=%d \n",count);
+
 				if(count > 65535){
 					printf("ERROR: Number of requested querries should be 65,535 at most. (limited by # of CUDA blocks)\n");
 					exit(0);
@@ -2184,21 +2168,21 @@ main(	int argc,
 					ans[i].value = -1;
 				}
 
-				// OpenCL kernel
-				kernel_gpu_opencl_wrapper(	records,
-											records_mem,
-											knodes,
-											knodes_elem,
-											knodes_mem,
+				kernel_gpu_opencl_wrapper(
+							records,
+							records_mem,
+							knodes,
+							knodes_elem,
+							knodes_mem,
 
-											order,
-											maxheight,
-											count,
+							order,
+							maxheight,
+							count,
 
-											currKnode,
-											offset,
-											keys,
-											ans);
+							currKnode,
+							offset,
+							keys,
+							ans);
 
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
@@ -2249,7 +2233,7 @@ main(	int argc,
 			}
 
 			// ----------------------------------------40
-			// [GPU] find Range K (initK, findRangeK)
+			// find Range K (initK, findRangeK)
 			// ----------------------------------------40
 
 			case 'j':
@@ -2330,25 +2314,24 @@ main(	int argc,
 					reclength[i] = 0;
 				}
 
-				// CUDA kernel
-				kernel_gpu_opencl_wrapper_2(knodes,
-											knodes_elem,
-											knodes_mem,
+				kernel_gpu_opencl_wrapper_2(
+								knodes,
+								knodes_elem,
+								knodes_mem,
 
-											order,
-											maxheight,
-											count,
+								order,
+								maxheight,
+								count,
 
-											currKnode,
-											offset,
-											lastKnode,
-											offset_2,
-											start,
-											end,
-											recstart,
-											reclength);
+								currKnode,
+								offset,
+								lastKnode,
+								offset_2,
+								start,
+								end,
+								recstart,
+								reclength);
 
-			
 				pFile = fopen (output,"aw+");
 				if (pFile==NULL)
 				  {
@@ -2394,6 +2377,12 @@ main(	int argc,
 
 	}
 	printf("\n");
+
+
+#ifdef OUTPUT
+  print_tree(root);
+#endif
+
 
 	// ------------------------------------------------------------60
 	// free remaining memory and exit

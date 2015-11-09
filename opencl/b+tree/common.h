@@ -31,8 +31,9 @@
 	#define true 1
 #endif
 
-/* #define DEFAULT_ORDER 256 */
+#define DEFAULT_ORDER 256
 
+/*
 #ifdef RD_WG_SIZE_0_0
         #define  DEFAULT_ORDER RD_WG_SIZE_0_0
 #elif defined(RD_WG_SIZE_0)
@@ -52,6 +53,7 @@
 #else
         #define  DEFAULT_ORDER_2 256
 #endif
+*/
 
 
 #define malloc(size) ({                                                   \

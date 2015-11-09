@@ -31,9 +31,7 @@
 //========================================================================================================================================================================================================200
 
 void 
-kernel_cpu(	int cores_arg,
-
-			record *records,
+kernel_cpu( record *records,
 			knode *knodes,
 			long knodes_elem,
 
@@ -65,8 +63,6 @@ kernel_cpu(	int cores_arg,
 	int max_nthreads;
 	max_nthreads = omp_get_max_threads();
 	// printf("max # of threads = %d\n", max_nthreads);
-	omp_set_num_threads(cores_arg);
-	// printf("set # of threads = %d\n", cores_arg);
 
 	int threadsPerBlock;
 	threadsPerBlock = order < 1024 ? order : 1024;

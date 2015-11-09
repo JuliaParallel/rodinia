@@ -31,7 +31,7 @@
 	#define true 1
 #endif
 
-#define DEFAULT_ORDER 508
+#define DEFAULT_ORDER 256
 
 #define malloc(size) ({                                                   \
   void *_tmp;                                                             \

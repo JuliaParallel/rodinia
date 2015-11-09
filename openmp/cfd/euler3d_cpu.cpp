@@ -9,14 +9,6 @@
 
 struct float3 { float x, y, z; };
 
-#ifndef block_length
-	#ifdef _OPENMP
-	#error "you need to define block_length"
-	#else
-	#define block_length 1
-	#endif
-#endif
-
 /*
  * Options
  *
@@ -72,14 +64,14 @@ void dump(float* variables, int nel, int nelr)
 
 	{
 		std::ofstream file("density");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++) file << variables[i*NVAR + VAR_DENSITY] << std::endl;
 	}
 
 
 	{
 		std::ofstream file("momentum");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++)
 		{
 			for(int j = 0; j != NDIM; j++) file << variables[i*NVAR + (VAR_MOMENTUM+j)] << " ";
@@ -89,7 +81,7 @@ void dump(float* variables, int nel, int nelr)
 
 	{
 		std::ofstream file("density_energy");
-		file << nel << " " << nelr << std::endl;
+		file << nel << std::endl;
 		for(int i = 0; i < nel; i++) file << variables[i*NVAR + VAR_DENSITY_ENERGY] << std::endl;
 	}
 
@@ -346,6 +338,8 @@ int main(int argc, char** argv)
 	}
 	const char* data_file_name = argv[1];
 
+	int block_length = omp_get_num_threads();
+
 	// set far field conditions
 	{
 		const float angle_of_attack = float(3.1415926535897931 / 180.0f) * float(deg_angle_of_attack);
@@ -433,9 +427,7 @@ int main(int argc, char** argv)
 
 	// these need to be computed the first time in order to compute time step
 	std::cout << "Starting..." << std::endl;
-#ifdef _OPENMP
 	double start = omp_get_wtime();
-#endif
 	// Begin iterations
 	for(int i = 0; i < iterations; i++)
 	{
@@ -451,16 +443,14 @@ int main(int argc, char** argv)
 		}
 	}
 
-#ifdef _OPENMP
 	double end = omp_get_wtime();
 	std::cout  << (end-start)  / iterations << " seconds per iteration" << std::endl;
-#endif
 
-
+#ifdef OUTPUT
 	std::cout << "Saving solution..." << std::endl;
 	dump(variables, nel, nelr);
 	std::cout << "Saved solution..." << std::endl;
-
+#endif
 
 	std::cout << "Cleaning up..." << std::endl;
 	dealloc<float>(areas);

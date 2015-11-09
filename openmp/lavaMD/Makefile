@@ -3,10 +3,6 @@ include ../Make.inc
 EXE  = lavaMD
 OBJS = kernel/kernel_cpu.o util/num/num.o util/timer/timer.o
 
-ifdef OUTPUT
-CPPFLAGS += -DOUTPUT
-endif
-
 .PHONY: all
 all: $(EXE)
 

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-./backprop 65536
+./backprop_ocl 65536

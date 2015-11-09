@@ -39,6 +39,13 @@ struct Node
 
 void BFSGraph(int argc, char** argv);
 
+void Usage(int argc, char**argv){
+
+fprintf(stderr,"Usage: %s <input_file>\n", argv[0]);
+
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Main Program
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,24 +56,21 @@ int main( int argc, char** argv)
 	BFSGraph( argc, argv);
 }
 
-void Usage(int argc, char**argv){
 
-fprintf(stderr,"Usage: %s <input_file>\n", argv[0]);
-
-}
 ////////////////////////////////////////////////////////////////////////////////
-//Apply BFS on a Graph using CUDA
+//Apply BFS on a Graph
 ////////////////////////////////////////////////////////////////////////////////
 void BFSGraph( int argc, char** argv) 
 {
-
     char *input_f;
+	
 	if(argc!=2){
 	Usage(argc, argv);
 	exit(0);
 	}
-	
+    
 	input_f = argv[1];
+	
 	printf("Reading File\n");
 	//Read in Graph from a file
 	fp = fopen(input_f,"r");
@@ -111,7 +115,7 @@ void BFSGraph( int argc, char** argv)
 
 	//read the source node from the file
 	fscanf(fp,"%d",&source);
-	source=0;
+	// source=0; //tesing code line
 
 	//set the source node as true in the mask
 	h_graph_mask[source]=true;
@@ -204,23 +208,23 @@ void BFSGraph( int argc, char** argv)
 	printf("Kernel Executed %d times\n",k);
 
 	// copy result from device to host
-	cudaMemcpy( h_cost, d_cost, sizeof(int)*no_of_nodes, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy( h_cost, d_cost, sizeof(int)*no_of_nodes, cudaMemcpyDeviceToHost);
 
-	//Store the result into a file
-	FILE *fpo = fopen("result.txt","w");
+	// Store the result into a file
+#ifdef OUTPUT
+	FILE *fpo = fopen("output.txt","w");
 	for(int i=0;i<no_of_nodes;i++)
 		fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
 	fclose(fpo);
-	printf("Result stored in result.txt\n");
-
+#endif
 
 	// cleanup memory
-	free( h_graph_nodes);
-	free( h_graph_edges);
-	free( h_graph_mask);
-	free( h_updating_graph_mask);
-	free( h_graph_visited);
-	free( h_cost);
+	free(h_graph_nodes);
+	free(h_graph_edges);
+	free(h_graph_mask);
+	free(h_updating_graph_mask);
+	free(h_graph_visited);
+	free(h_cost);
 	cudaFree(d_graph_nodes);
 	cudaFree(d_graph_edges);
 	cudaFree(d_graph_mask);
