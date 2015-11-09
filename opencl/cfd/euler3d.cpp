@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include <stdlib.h>
 #include "CLHelper.h" 
  
 /*
@@ -359,11 +360,11 @@ int main(int argc, char** argv){
 		}
 		_clFinish();
 
-#ifdef OUTPUT
+	if(getenv("OUTPUT")) {
 		std::cout << "Saving solution..." << std::endl;
 		dump(variables, nel, nelr);
 		std::cout << "Saved solution..." << std::endl;
-#endif
+	}
 		
 		_clStatistics();
 		std::cout << "Cleaning up..." << std::endl;

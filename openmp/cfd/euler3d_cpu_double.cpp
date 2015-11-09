@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <stdlib.h>
 #include <omp.h>
 
 struct double3 { double x, y, z; };
@@ -445,11 +446,11 @@ int main(int argc, char** argv)
 	double end = omp_get_wtime();
 	std::cout  << (end-start)  / iterations << " seconds per iteration" << std::endl;
 
-#ifdef OUTPUT
-	std::cout << "Saving solution..." << std::endl;
-	dump(variables, nel, nelr);
-	std::cout << "Saved solution..." << std::endl;
-#endif
+	if(getenv("OUTPUT")) {
+		std::cout << "Saving solution..." << std::endl;
+		dump(variables, nel, nelr);
+		std::cout << "Saved solution..." << std::endl;
+	}
 	
 	std::cout << "Cleaning up..." << std::endl;
 	dealloc<double>(areas);

@@ -2391,9 +2391,9 @@ main(	int argc,
 	printf("\n");
 
 
-#ifdef OUTPUT
-  print_tree(root);
-#endif
+  if(getenv("OUTPUT")) {
+    print_tree(root);
+  }
 
 
 	// ------------------------------------------------------------60

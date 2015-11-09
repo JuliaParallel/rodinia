@@ -5,6 +5,7 @@
 #include "../../common/cuda/helper_timer.h"
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
 
  
  
@@ -601,11 +602,11 @@ int main(int argc, char** argv)
 
 	std::cout  << (sdkGetAverageTimerValue(&timer)/1000.0)  / iterations << " seconds per iteration" << std::endl;
 
-#ifdef OUTPUT
-	std::cout << "Saving solution..." << std::endl;
-	dump(variables, nel, nelr);
-	std::cout << "Saved solution..." << std::endl;
-#endif
+	if(getenv("OUTPUT")) {
+		std::cout << "Saving solution..." << std::endl;
+		dump(variables, nel, nelr);
+		std::cout << "Saved solution..." << std::endl;
+	}
 	
 	std::cout << "Cleaning up..." << std::endl;
 	dealloc<float>(areas);

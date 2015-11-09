@@ -9,7 +9,6 @@
 
 
 
-
 int layer_size = 0;
 
 void backprop_face()
@@ -23,9 +22,9 @@ void backprop_face()
   //entering the training kernel, only one iteration
   printf("Starting training kernel\n");
   bpnn_train_kernel(net, &out_err, &hid_err);
-#ifdef OUTPUT
-  bpnn_save(net, "output.dat");
-#endif
+  if(getenv("OUTPUT")) {
+    bpnn_save(net, "output.dat");
+  }
   bpnn_free(net);
   printf("Training done\n");
 }

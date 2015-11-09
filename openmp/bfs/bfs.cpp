@@ -149,12 +149,12 @@ void BFSGraph( int argc, char** argv)
 	while(stop);
 
 	// Store the result into a file
-#ifdef OUTPUT
-	FILE *fpo = fopen("output.txt","w");
-	for(int i=0;i<no_of_nodes;i++)
-		fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
-	fclose(fpo);
-#endif
+	if(getenv("OUTPUT")) {
+		FILE *fpo = fopen("output.txt","w");
+		for(int i=0;i<no_of_nodes;i++)
+			fprintf(fpo,"%d) cost:%d\n",i,h_cost[i]);
+		fclose(fpo);
+	}
 
 	// cleanup memory
 	free(h_graph_nodes);
