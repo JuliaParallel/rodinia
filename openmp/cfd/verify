@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -ue
+
+OUTPUT=1 ./run
+for i in density momentum density_energy; do
+    diff $i ../../results/cfd/$i
+done
+
