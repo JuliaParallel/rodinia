@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXES  = particlefilter_naive particlefilter_single particlefilter_double
 

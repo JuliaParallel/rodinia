@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = backprop
 OBJS = facetrain.o imagenet.o backprop_kernel.o

@@ -1,5 +1,5 @@
 CUDA_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-include $(CUDA_DIR)/../Make.inc
+include $(CUDA_DIR)/../common.mk
 
 
 DUMMY=

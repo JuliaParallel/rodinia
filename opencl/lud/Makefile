@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = lud
 OBJS = common/common.o

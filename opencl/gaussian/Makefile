@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = gaussian
 OBJS = clutils.o utils.o

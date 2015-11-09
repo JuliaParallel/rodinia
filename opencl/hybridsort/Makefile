@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = hybridsort
 OBJS = bucketsort.o mergesort.o

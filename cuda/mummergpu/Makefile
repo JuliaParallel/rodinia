@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = mummergpu
 OBJS = mummergpu_gold.o mummergpu_cuda.o suffix-tree.o PoolMalloc.o

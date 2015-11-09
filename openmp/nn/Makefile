@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXES = nn hurricane_gen
 

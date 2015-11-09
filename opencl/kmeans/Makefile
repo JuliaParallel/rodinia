@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = kmeans
 OBJS = cluster.o getopt.o read_input.o kmeans_clustering.o  rmse.o

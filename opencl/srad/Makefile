@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = srad
 OBJS = kernel/kernel_gpu_opencl_wrapper.o util/opencl/opencl.o util/graphics/graphics.o util/graphics/resize.o util/timer/timer.o

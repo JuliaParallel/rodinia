@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = leukocyte
 OBJS = avilib.o find_ellipse.o track_ellipse.o misc_math.o $(MESCHACH_DIR)/meschach.a

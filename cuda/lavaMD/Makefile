@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = lavaMD
 OBJS = kernel/kernel_gpu_cuda_wrapper.o util/num/num.o util/timer/timer.o util/device/device.o

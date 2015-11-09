@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXE  = heartwall
 OBJS = AVI/avilib.o AVI/avimod.o

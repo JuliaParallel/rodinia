@@ -1,4 +1,4 @@
-include ../Make.inc
+include ../common.mk
 
 EXES = euler3d_cpu euler3d_cpu_double pre_euler3d_cpu pre_euler3d_cpu_double
 
