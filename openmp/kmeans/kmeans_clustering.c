@@ -73,7 +73,6 @@
 #endif
 
 extern double wtime(void);
-extern int num_omp_threads;
 
 int find_nearest_point(float  *pt,          /* [nfeatures] */
                        int     nfeatures,
@@ -133,7 +132,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
     int    **partial_new_centers_len;
     float ***partial_new_centers;
 
-    nthreads = num_omp_threads; 
+    nthreads = omp_get_max_threads(); 
 
     /* allocate space for returning variable clusters[] */
     clusters    = (float**) malloc(nclusters *             sizeof(float*));
@@ -176,10 +175,9 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
         for (j=0; j<nclusters; j++)
             partial_new_centers[i][j] = (float*)calloc(nfeatures, sizeof(float));
 	}
-	printf("num of threads = %d\n", num_omp_threads);
+
     do {
         delta = 0.0;
-		omp_set_num_threads(num_omp_threads);
 		#pragma omp parallel \
                 shared(feature,clusters,membership,partial_new_centers,partial_new_centers_len)
         {
@@ -207,7 +205,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 	        for (j=0; j<nfeatures; j++)
 		       partial_new_centers[tid][index][j] += feature[i][j];
             }
-        } /* end of #pragma omp parallel */
+        }
 
         /* let the main thread perform the array reduction */
         for (i=0; i<nclusters; i++) {

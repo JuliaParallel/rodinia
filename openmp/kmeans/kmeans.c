@@ -83,8 +83,6 @@
 
 extern double wtime(void);
 
-int num_omp_threads = 1;
-
 /*---< usage() >------------------------------------------------------------*/
 void usage(char *argv0) {
     char *help =
@@ -127,9 +125,7 @@ int main(int argc, char **argv) {
             case 't': threshold=atof(optarg);
                       break;
             case 'k': nclusters = atoi(optarg);
-                      break;			
-			case 'n': num_omp_threads = atoi(optarg);
-					  break;
+                      break;
             case '?': usage(argv[0]);
                       break;
             default: usage(argv[0]);
@@ -221,19 +217,22 @@ int main(int argc, char **argv) {
     timing = omp_get_wtime() - timing;
 	
 
-	printf("number of Clusters %d\n",nclusters); 
-	printf("number of Attributes %d\n\n",numAttributes); 
-  /*  	printf("Cluster Centers Output\n"); 
-	printf("The first number is cluster number and the following data is arribute value\n");
-	printf("=============================================================================\n\n");
-	
-    for (i=0; i< nclusters; i++) {
-		printf("%d: ", i);
-        for (j=0; j<numAttributes; j++)
-            printf("%.2f ", cluster_centres[i][j]);
-        printf("\n\n");
+    printf("number of Clusters %d\n",nclusters); 
+    printf("number of Attributes %d\n\n",numAttributes); 
+
+    if(getenv("OUTPUT")) {
+        FILE* file = fopen("output.txt", "w+");
+        // Cluster Centers Output
+        // The first number is cluster number and the following data is arribute value
+        for (i=0; i< nclusters; i++) {
+    		fprintf(file, "%d: ", i);
+            for (j=0; j<numAttributes; j++)
+                fprintf(file, "%.2f ", cluster_centres[i][j]);
+            fprintf(file, "\n\n");
+        }
+
+        fclose(file);
     }
-*/
 	printf("Time for process: %f\n", timing);
 
     free(attributes);

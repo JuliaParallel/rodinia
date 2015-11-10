@@ -94,8 +94,7 @@ void usage(char *argv0) {
 		"    -t threshold     :threshold value                       [default=0.001]\n"
 		"    -l nloops        :iteration for each number of clusters [default=1]\n"
 		"    -b               :input file is in binary format\n"
-        "    -r               :calculate RMSE                        [default=off]\n"
-		"    -o               :output cluster center coordinates     [default=off]\n";
+        "    -r               :calculate RMSE                        [default=off]\n";
     fprintf(stderr, help, argv0);
     exit(-1);
 }
@@ -125,7 +124,6 @@ int setup(int argc, char **argv) {
 		int		isRMSE = 0;		
 		float	rmse;
 		
-		int		isOutput = 0;
 		//float	cluster_timing, io_timing;		
 
 		/* obtain command line arguments and change appropriate options */
@@ -143,8 +141,6 @@ int setup(int argc, char **argv) {
                       break;
 			case 'r': isRMSE = 1;
                       break;
-			case 'o': isOutput = 1;
-					  break;
 		    case 'l': nloops = atoi(optarg);
 					  break;
             case '?': usage(argv[0]);
@@ -253,18 +249,20 @@ int setup(int argc, char **argv) {
 
 	/* =============== Command Line Output =============== */
 
-	/* cluster center coordinates
-	   :displayed only for when k=1*/
-	if((min_nclusters == max_nclusters) && (isOutput == 1)) {
-		printf("\n================= Centroid Coordinates =================\n");
-		for(i = 0; i < max_nclusters; i++){
-			printf("%d:", i);
-			for(j = 0; j < nfeatures; j++){
-				printf(" %.2f", cluster_centres[i][j]);
-			}
-			printf("\n\n");
-		}
-	}
+    if(getenv("OUTPUT")) {
+        FILE* file = fopen("output.txt", "w+");
+        // Cluster Centers Output
+        // The first number is cluster number and the following data is arribute value
+        for(i = 0; i < max_nclusters; i++){
+            fprintf(file, "%d:", i);
+            for(j = 0; j < nfeatures; j++){
+                fprintf(file, " %.2f", cluster_centres[i][j]);
+            }
+            fprintf(file, "\n\n");
+        }
+
+        fclose(file);
+    }
 	
 	len = (float) ((max_nclusters - min_nclusters + 1)*nloops);
 

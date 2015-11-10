@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-./kmeans -n 4 -i ../../data/kmeans/kdd_cup
+./kmeans -i ../../data/kmeans/kdd_cup
