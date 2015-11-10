@@ -2,12 +2,11 @@
 //	DEFINE / INCLUDE
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------200
 
-#define fp double
+#define fp float
 
 #define NUMBER_PAR_PER_BOX 100							// keep this low to allow more blocks that share shared memory to run concurrently, code does not work for larger than 110, more speedup can be achieved with larger number and no shared memory used
 
-/* #define NUMBER_THREADS 128								// this should be roughly equal to NUMBER_PAR_PER_BOX for best performance */
-
+//#define NUMBER_THREADS 128								// this should be roughly equal to NUMBER_PAR_PER_BOX for best performance
 // Parameterized work group size
 #ifdef RD_WG_SIZE_0_0
         #define NUMBER_THREADS RD_WG_SIZE_0_0
@@ -75,7 +74,6 @@ typedef struct dim_str
 	// input arguments
 	int cur_arg;
 	int arch_arg;
-	int cores_arg;
 	int boxes1d_arg;
 
 	// system memory

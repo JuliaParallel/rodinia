@@ -1,15 +1,4 @@
 //========================================================================================================================================================================================================200
-//======================================================================================================================================================150
-//====================================================================================================100
-//==================================================50
-
-//========================================================================================================================================================================================================200
-//	UPDATE
-//========================================================================================================================================================================================================200
-
-//	14 APR 2011 Lukasz G. Szafaryn
-
-//========================================================================================================================================================================================================200
 //	DEFINE/INCLUDE
 //========================================================================================================================================================================================================200
 
@@ -88,70 +77,44 @@ main(	int argc,
 	//======================================================================================================================================================150
 
 	// assing default values
-	dim_cpu.cores_arg = 1;
 	dim_cpu.boxes1d_arg = 1;
 
 	// go through arguments
 	for(dim_cpu.cur_arg=1; dim_cpu.cur_arg<argc; dim_cpu.cur_arg++){
-		// check if -cores
-		if(strcmp(argv[dim_cpu.cur_arg], "-cores")==0){
-			// check if value provided
-			if(argc>=dim_cpu.cur_arg+1){
-				// check if value is a number
-				if(isInteger(argv[dim_cpu.cur_arg+1])==1){
-					dim_cpu.cores_arg = atoi(argv[dim_cpu.cur_arg+1]);
-					if(dim_cpu.cores_arg<0){
-						printf("ERROR: Wrong value to -cores parameter, cannot be <=0\n");
-						return 0;
-					}
-					dim_cpu.cur_arg = dim_cpu.cur_arg+1;
-				}
-				// value is not a number
-				else{
-					printf("ERROR: Value to -cores parameter in not a number\n");
-					return 0;
-				}
-			}
-			// value not provided
-			else{
-				printf("ERROR: Missing value to -cores parameter\n");
-				return 0;
-			}
-		}
 		// check if -boxes1d
-		else if(strcmp(argv[dim_cpu.cur_arg], "-boxes1d")==0){
+		if(strcmp(argv[dim_cpu.cur_arg], "-boxes1d")==0){
 			// check if value provided
 			if(argc>=dim_cpu.cur_arg+1){
 				// check if value is a number
 				if(isInteger(argv[dim_cpu.cur_arg+1])==1){
 					dim_cpu.boxes1d_arg = atoi(argv[dim_cpu.cur_arg+1]);
 					if(dim_cpu.boxes1d_arg<0){
-						printf("ERROR: Wrong value to -boxes1d parameter, cannot be <=0\n");
+						printf("ERROR: Wrong value to -boxes1d argument, cannot be <=0\n");
 						return 0;
 					}
 					dim_cpu.cur_arg = dim_cpu.cur_arg+1;
 				}
 				// value is not a number
 				else{
-					printf("ERROR: Value to -boxes1d parameter in not a number\n");
+					printf("ERROR: Value to -boxes1d argument in not a number\n");
 					return 0;
 				}
 			}
 			// value not provided
 			else{
-				printf("ERROR: Missing value to -boxes1d parameter\n");
+				printf("ERROR: Missing value to -boxes1d argument\n");
 				return 0;
 			}
 		}
 		// unknown
 		else{
-			printf("ERROR: Unknown parameter\n");
+			printf("ERROR: Unknown argument\n");
 			return 0;
 		}
 	}
 
 	// Print configuration
-	printf("Configuration used: cores = %d, boxes1d = %d\n", dim_cpu.cores_arg, dim_cpu.boxes1d_arg);
+	printf("Configuration used: boxes1d = %d\n", dim_cpu.boxes1d_arg);
 
 	time2 = get_time();
 
@@ -252,7 +215,7 @@ main(	int argc,
 	//====================================================================================================100
 
 	// random generator seed set to random value - time in this case
-	srand(time(NULL));
+	srand(7);
 
 	// input (distances)
 	rv_cpu = (FOUR_VECTOR*)malloc(dim_cpu.space_mem);
@@ -284,10 +247,6 @@ main(	int argc,
 	//	KERNEL
 	//======================================================================================================================================================150
 
-	//====================================================================================================100
-	//	CPU/MCPU
-	//====================================================================================================100
-
 	kernel_cpu(	par_cpu,
 				dim_cpu,
 				box_cpu,
@@ -302,15 +261,14 @@ main(	int argc,
 	//======================================================================================================================================================150
 
 	// dump results
-#ifdef OUTPUT
+    if(getenv("OUTPUT")) {
         FILE *fptr;
-	fptr = fopen("result.txt", "w");	
-	for(i=0; i<dim_cpu.space_elem; i=i+1){
-        	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu[i].v, fv_cpu[i].x, fv_cpu[i].y, fv_cpu[i].z);
-	}
-	fclose(fptr);
-#endif       	
-
+    	fptr = fopen("output.txt", "w");
+    	for(i=0; i<dim_cpu.space_elem; i=i+1){
+            	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu[i].v, fv_cpu[i].x, fv_cpu[i].y, fv_cpu[i].z);
+    	}
+    	fclose(fptr);
+    }
 
 
 	free(rv_cpu);

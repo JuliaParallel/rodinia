@@ -1,35 +1,3 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//========================================================================================================================================================================================================200
-//======================================================================================================================================================150
-//====================================================================================================100
-//==================================================50
-
-//========================================================================================================================================================================================================200
-//	INFORMATION
-//========================================================================================================================================================================================================200
-
-//======================================================================================================================================================150
-//	UPDATE
-//======================================================================================================================================================150
-
-//	2009.12 Lukasz G. Szafaryn
-//		-- entire code written
-
-//======================================================================================================================================================150
-//	DESCRIPTION
-//======================================================================================================================================================150
-
-// Description
-
-//======================================================================================================================================================150
-//	USE
-//======================================================================================================================================================150
-
-// How to run
-
 //========================================================================================================================================================================================================200
 //	DEFINE/INCLUDE
 //========================================================================================================================================================================================================200
@@ -102,7 +70,6 @@ main(	int argc,
 	FOUR_VECTOR* fv_cpu;
 	int nh;
 
-
 	printf("WG size of kernel = %d \n", NUMBER_THREADS);
 
 	time1 = get_time();
@@ -113,50 +80,43 @@ main(	int argc,
 
 	// assing default values
 	dim_cpu.arch_arg = 0;
-	dim_cpu.cores_arg = 1;
 	dim_cpu.boxes1d_arg = 1;
 
 	// go through arguments
-	if(argc==3){
-		for(dim_cpu.cur_arg=1; dim_cpu.cur_arg<argc; dim_cpu.cur_arg++){
-			// check if -boxes1d
-			if(strcmp(argv[dim_cpu.cur_arg], "-boxes1d")==0){
-				// check if value provided
-				if(argc>=dim_cpu.cur_arg+1){
-					// check if value is a number
-					if(isInteger(argv[dim_cpu.cur_arg+1])==1){
-						dim_cpu.boxes1d_arg = atoi(argv[dim_cpu.cur_arg+1]);
-						if(dim_cpu.boxes1d_arg<0){
-							printf("ERROR: Wrong value to -boxes1d argument, cannot be <=0\n");
-							return 0;
-						}
-						dim_cpu.cur_arg = dim_cpu.cur_arg+1;
-					}
-					// value is not a number
-					else{
-						printf("ERROR: Value to -boxes1d argument in not a number\n");
+	for(dim_cpu.cur_arg=1; dim_cpu.cur_arg<argc; dim_cpu.cur_arg++){
+		// check if -boxes1d
+		if(strcmp(argv[dim_cpu.cur_arg], "-boxes1d")==0){
+			// check if value provided
+			if(argc>=dim_cpu.cur_arg+1){
+				// check if value is a number
+				if(isInteger(argv[dim_cpu.cur_arg+1])==1){
+					dim_cpu.boxes1d_arg = atoi(argv[dim_cpu.cur_arg+1]);
+					if(dim_cpu.boxes1d_arg<0){
+						printf("ERROR: Wrong value to -boxes1d argument, cannot be <=0\n");
 						return 0;
 					}
+					dim_cpu.cur_arg = dim_cpu.cur_arg+1;
 				}
-				// value not provided
+				// value is not a number
 				else{
-					printf("ERROR: Missing value to -boxes1d argument\n");
+					printf("ERROR: Value to -boxes1d argument in not a number\n");
 					return 0;
 				}
 			}
-			// unknown
+			// value not provided
 			else{
-				printf("ERROR: Unknown argument\n");
+				printf("ERROR: Missing value to -boxes1d argument\n");
 				return 0;
 			}
 		}
-		// Print configuration
-		printf("Configuration used: arch = %d, cores = %d, boxes1d = %d\n", dim_cpu.arch_arg, dim_cpu.cores_arg, dim_cpu.boxes1d_arg);
+		// unknown
+		else{
+			printf("ERROR: Unknown argument\n");
+			return 0;
+		}
 	}
-	else{
-		printf("Provide boxes1d argument, example: -boxes1d 16");
-		return 0;
-	}
+	// Print configuration
+	printf("Configuration used: arch = %d, boxes1d = %d\n", dim_cpu.arch_arg, dim_cpu.boxes1d_arg);
 
 	time2 = get_time();
 
@@ -173,10 +133,10 @@ main(	int argc,
 	//======================================================================================================================================================150
 
 	// total number of boxes
-	dim_cpu.number_boxes = dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg; // 8*8*8=512
+	dim_cpu.number_boxes = dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg * dim_cpu.boxes1d_arg;
 
 	// how many particles space has in each direction
-	dim_cpu.space_elem = dim_cpu.number_boxes * NUMBER_PAR_PER_BOX;							//512*100=51,200
+	dim_cpu.space_elem = dim_cpu.number_boxes * NUMBER_PAR_PER_BOX;
 	dim_cpu.space_mem = dim_cpu.space_elem * sizeof(FOUR_VECTOR);
 	dim_cpu.space_mem2 = dim_cpu.space_elem * sizeof(fp);
 
@@ -257,26 +217,21 @@ main(	int argc,
 	//====================================================================================================100
 
 	// random generator seed set to random value - time in this case
-	srand(time(NULL));
+	srand(7);
 
 	// input (distances)
 	rv_cpu = (FOUR_VECTOR*)malloc(dim_cpu.space_mem);
 	for(i=0; i<dim_cpu.space_elem; i=i+1){
 		rv_cpu[i].v = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		// rv_cpu[i].v = 0.1;			// get a number in the range 0.1 - 1.0
 		rv_cpu[i].x = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		// rv_cpu[i].x = 0.2;			// get a number in the range 0.1 - 1.0
 		rv_cpu[i].y = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		// rv_cpu[i].y = 0.3;			// get a number in the range 0.1 - 1.0
 		rv_cpu[i].z = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		// rv_cpu[i].z = 0.4;			// get a number in the range 0.1 - 1.0
 	}
 
 	// input (charge)
 	qv_cpu = (fp*)malloc(dim_cpu.space_mem2);
 	for(i=0; i<dim_cpu.space_elem; i=i+1){
 		qv_cpu[i] = (rand()%10 + 1) / 10.0;			// get a number in the range 0.1 - 1.0
-		// qv_cpu[i] = 0.5;			// get a number in the range 0.1 - 1.0
 	}
 
 	// output (forces)
@@ -294,10 +249,6 @@ main(	int argc,
 	//	KERNEL
 	//======================================================================================================================================================150
 
-	//====================================================================================================100
-	//	GPU_OPENCL
-	//====================================================================================================100
-
 	kernel_gpu_opencl_wrapper(	par_cpu,
 								dim_cpu,
 								box_cpu,
@@ -312,14 +263,14 @@ main(	int argc,
 	//======================================================================================================================================================150
 
 	// dump results
-#ifdef OUTPUT
+    if(getenv("OUTPUT")) {
         FILE *fptr;
-	fptr = fopen("result.txt", "w");	
-	for(i=0; i<dim_cpu.space_elem; i=i+1){
-        	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu[i].v, fv_cpu[i].x, fv_cpu[i].y, fv_cpu[i].z);
-	}
-	fclose(fptr);
-#endif       	
+    	fptr = fopen("output.txt", "w");
+    	for(i=0; i<dim_cpu.space_elem; i=i+1){
+            	fprintf(fptr, "%f, %f, %f, %f\n", fv_cpu[i].v, fv_cpu[i].x, fv_cpu[i].y, fv_cpu[i].z);
+    	}
+    	fclose(fptr);
+    }
 
 
 	free(rv_cpu);
@@ -355,11 +306,3 @@ main(	int argc,
 	return 0.0;																					// always returns 0.0
 
 }
-
-//========================================================================================================================================================================================================200
-//	END
-//========================================================================================================================================================================================================200
-
-#ifdef __cplusplus
-}
-#endif
