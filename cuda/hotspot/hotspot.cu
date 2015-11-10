@@ -276,12 +276,12 @@ void run(int argc, char** argv)
     int size;
     int grid_rows,grid_cols;
     float *FilesavingTemp,*FilesavingPower,*MatrixOut; 
-    char *tfile, *pfile, *ofile;
+    char *tfile, *pfile;
     
     int total_iterations = 60;
     int pyramid_height = 1; // number of iterations
 	
-	if (argc != 7)
+	if (argc != 6)
 		usage(argc, argv);
 	if((grid_rows = atoi(argv[1]))<=0||
 	   (grid_cols = atoi(argv[1]))<=0||
@@ -291,7 +291,6 @@ void run(int argc, char** argv)
 		
 	tfile=argv[4];
     pfile=argv[5];
-    ofile=argv[6];
 	
     size=grid_rows*grid_cols;
 
@@ -330,7 +329,8 @@ void run(int argc, char** argv)
 	printf("Ending simulation\n");
     cudaMemcpy(MatrixOut, MatrixTemp[ret], sizeof(float)*size, cudaMemcpyDeviceToHost);
 
-    writeoutput(MatrixOut,grid_rows, grid_cols, ofile);
+    if(getenv("OUTPUT"))
+      writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt");
 
     cudaFree(MatrixPower);
     cudaFree(MatrixTemp[0]);

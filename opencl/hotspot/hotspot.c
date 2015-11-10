@@ -190,12 +190,12 @@ int main(int argc, char** argv) {
     int size;
     int grid_rows,grid_cols = 0;
     float *FilesavingTemp,*FilesavingPower; //,*MatrixOut; 
-    char *tfile, *pfile, *ofile;
+    char *tfile, *pfile;
     
     int total_iterations = 60;
     int pyramid_height = 1; // number of iterations
 	
-	if (argc < 7)
+	if (argc < 6)
 		usage(argc, argv);
 	if((grid_rows = atoi(argv[1]))<=0||
 	   (grid_cols = atoi(argv[1]))<=0||
@@ -205,7 +205,6 @@ int main(int argc, char** argv) {
 		
 	tfile=argv[4];
     pfile=argv[5];
-    ofile=argv[6];
 	
     size=grid_rows*grid_cols;
 
@@ -280,7 +279,8 @@ int main(int argc, char** argv) {
 	printf("Total time: %.3f seconds\n", ((float) (end_time - start_time)) / (1000*1000));
 	
 	// Write final output to output file
-    writeoutput(MatrixOut, grid_rows, grid_cols, ofile);
+    if(getenv("OUTPUT"))
+    	writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt");
     
 	error = clEnqueueUnmapMemObject(command_queue, MatrixTemp[ret], (void *) MatrixOut, 0, NULL, NULL);
 	if (error != CL_SUCCESS) fatal_CL(error, __LINE__);

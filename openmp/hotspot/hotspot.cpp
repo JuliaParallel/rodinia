@@ -23,8 +23,6 @@ double chip_width = 0.016;
 /* ambient temperature, assuming no package at all	*/
 double amb_temp = 80.0;
 
-int num_omp_threads;
-
 /* Single iteration of the transient solver in the grid model.
  * advances the solution of the discretized difference equations 
  * by one time step
@@ -35,12 +33,8 @@ void single_iteration(double *result, double *temp, double *power, int row, int 
 {
 	double delta;
 	int r, c;
-	//printf("num_omp_threads: %d\n", num_omp_threads);
-#ifdef OPEN
-	omp_set_num_threads(num_omp_threads);
-    #pragma omp parallel for shared(power, temp,result) private(r, c, delta) firstprivate(row, col) schedule(static)
-#endif
 
+    #pragma omp parallel for shared(power, temp,result) private(r, c, delta) firstprivate(row, col) schedule(static)
 	for (r = 0; r < row; r++) {
 		for (c = 0; c < col; c++) {
   			/*	Corner 1	*/
@@ -106,10 +100,7 @@ void single_iteration(double *result, double *temp, double *power, int row, int 
 		}
 	}
 
-#ifdef OPEN
-	omp_set_num_threads(num_omp_threads);
 	#pragma omp parallel for shared(result, temp) private(r, c) schedule(static)
-#endif
 	for (r = 0; r < row; r++) {
 		for (c = 0; c < col; c++) {
 			temp[r*col+c]=result[r*col+c];
@@ -205,12 +196,11 @@ int main(int argc, char **argv)
 	char *tfile, *pfile;
 	
 	/* check validity of inputs	*/
-	if (argc != 7)
+	if (argc != 6)
 		usage(argc, argv);
 	if ((grid_rows = atoi(argv[1])) <= 0 ||
 		(grid_cols = atoi(argv[2])) <= 0 ||
-		(sim_time = atoi(argv[3])) <= 0 || 
-		(num_omp_threads = atoi(argv[4])) <= 0
+		(sim_time = atoi(argv[3])) <= 0
 		)
 		usage(argc, argv);
 
@@ -222,23 +212,23 @@ int main(int argc, char **argv)
 		fatal("unable to allocate memory");
 
 	/* read initial temperatures and input power	*/
-	tfile = argv[5];
-	pfile = argv[6];
+	tfile = argv[4];
+	pfile = argv[5];
 	read_input(temp, grid_rows, grid_cols, tfile);
 	read_input(power, grid_rows, grid_cols, pfile);
 
 	printf("Start computing the transient temperature\n");
 	compute_tran_temp(result,sim_time, temp, power, grid_rows, grid_cols);
 	printf("Ending simulation\n");
-	/* output results	*/
-#ifdef VERBOSE
-	fprintf(stdout, "Final Temperatures:\n");
-#endif
 
-#ifdef OUTPUT
-	for(i=0; i < grid_rows * grid_cols; i++)
-	fprintf(stdout, "%d\t%g\n", i, temp[i]);
-#endif
+	/* output results	*/
+    if(getenv("OUTPUT")) {
+        FILE* file = fopen("output.txt", "w+");
+    	for(i=0; i < grid_rows * grid_cols; i++)
+    	   fprintf(file, "%d\t%g\n", i, temp[i]);
+        fclose(file);
+    }
+
 	/* cleanup	*/
 	free(temp);
 	free(power);
