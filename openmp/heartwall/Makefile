@@ -13,4 +13,4 @@ $(EXE): LDLIBS += -lm
 
 .PHONY: clean
 clean:
-	$(RM) $(EXE) $(OBJS)
+	$(RM) $(EXE) $(OBJS)  output.txt

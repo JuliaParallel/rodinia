@@ -114,8 +114,8 @@ int main(int argc, char *argv []){
 
  	
 	
-	if(argc!=4){
-		printf("ERROR: usage: heartwall <inputfile> <num of frames> <num of threads>\n");
+	if(argc!=3){
+		printf("ERROR: usage: heartwall <inputfile> <num of frames>\n");
 		exit(1);
 	}
 	
@@ -145,15 +145,6 @@ int main(int argc, char *argv []){
 		printf("ERROR: %d is an incorrect number of frames specified, select in the range of 0-%d\n", frames_processed, public.frames);
 		return 0;
 	}
-	
-	int omp_num_threads;
-	omp_num_threads = atoi(argv[3]);
-	if (omp_num_threads <=0){
-	   printf ("num of threads must be a positive integer");
-	   return 0;
-	}
-	
-	printf("num of threads: %d\n", omp_num_threads);
 	
 	//======================================================================================================================================================
 	//	INPUTS
@@ -542,8 +533,6 @@ int main(int argc, char *argv []){
 	//====================================================================================================
 	//	PROCESSING
 	//====================================================================================================
-
-		omp_set_num_threads(omp_num_threads);
 		
 
 		#pragma omp parallel for
@@ -582,18 +571,18 @@ int main(int argc, char *argv []){
 	//==================================================50
 	//	DUMP DATA TO FILE
 	//==================================================50
-#ifdef OUTPUT
-	write_data(	"result.txt",
-			public.frames,
-			frames_processed,		
-				public.endoPoints,
-				public.d_tEndoRowLoc,
-				public.d_tEndoColLoc,
-				public.epiPoints,
-				public.d_tEpiRowLoc,
-				public.d_tEpiColLoc);
+    if(getenv("OUTPUT")) {
+		write_data(	"output.txt",
+				public.frames,
+				frames_processed,		
+					public.endoPoints,
+					public.d_tEndoRowLoc,
+					public.d_tEndoColLoc,
+					public.epiPoints,
+					public.d_tEpiRowLoc,
+					public.d_tEpiColLoc);
+    }
 
-#endif
 
 
 

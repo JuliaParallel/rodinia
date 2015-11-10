@@ -689,26 +689,24 @@ int main(int argc, char *argv []){
 
 
 
-#ifdef OUTPUT
-
 	//==================================================50
 	//	DUMP DATA TO FILE
 	//==================================================50
-	write_data(	"result.txt",
-			common.no_frames,
-			frames_processed,		
-				common.endoPoints,
-				common.tEndoRowLoc,
-				common.tEndoColLoc,
-				common.epiPoints,
-				common.tEpiRowLoc,
-				common.tEpiColLoc);
+	if(getenv("OUTPUT")) {
+		write_data(	"output.txt",
+				common.no_frames,
+				frames_processed,		
+					common.endoPoints,
+					common.tEndoRowLoc,
+					common.tEndoColLoc,
+					common.epiPoints,
+					common.tEpiRowLoc,
+					common.tEpiColLoc);
+	}
 
 	//==================================================50
 	//	End
 	//==================================================50
-
-#endif
 
 
 

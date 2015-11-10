@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-./heartwall 20
+./heartwall ../../data/heartwall/test.avi 20
 

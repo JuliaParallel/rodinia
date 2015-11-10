@@ -77,11 +77,13 @@ main(	int argc,
 	// 	FRAME INFO
 	//======================================================================================================================================================150
 
-	// variables
-	char* video_file_name;
-
+	if(argc!=3){
+		printf("ERROR: usage: heartwall <inputfile> <num of frames>\n");
+		exit(1);
+	}
+	
 	// open movie file
- 	video_file_name = (char *) "../../data/heartwall/test.avi";
+ 	video_file_name = argv[1];
 	frames = (avi_t*)AVI_open_input_file(video_file_name, 1);														// added casting
 	if (frames == NULL)  {
 		   AVI_print_error((char *) "Error with AVI_open_input_file");
@@ -101,16 +103,11 @@ main(	int argc,
 	// 	CHECK INPUT ARGUMENTS
 	//======================================================================================================================================================150
 
-	if(argc!=2){
-		printf("ERROR: missing argument (number of frames to processed) or too many arguments\n");
+
+	common.frames_processed = atoi(argv[2]);
+	if(common.frames_processed<0 || common.frames_processed>common.no_frames){
+		printf("ERROR: %d is an incorrect number of frames specified, select in the range of 0-%d\n", common.frames_processed, common.no_frames);
 		return 0;
-	}
-	else{
-		common.frames_processed = atoi(argv[1]);
-		if(common.frames_processed<0 || common.frames_processed>common.no_frames){
-			printf("ERROR: %d is an incorrect number of frames specified, select in the range of 0-%d\n", common.frames_processed, common.no_frames);
-			return 0;
-		}
 	}
 
 	time2 = get_time();
@@ -215,18 +212,18 @@ main(	int argc,
 	//==================================================50
 	//	DUMP DATA TO FILE
 	//==================================================50
-#ifdef OUTPUT
-	write_data(	"result.txt",
-			common.no_frames,
-			common.frames_processed,		
-				common.endoPoints,
-				tEndoRowLoc,
-				tEndoColLoc,
-				common.epiPoints,
-				tEpiRowLoc,
-				tEpiColLoc);
+    if(getenv("OUTPUT")) {
+		write_data(	"output.txt",
+				common.no_frames,
+				common.frames_processed,		
+					common.endoPoints,
+					tEndoRowLoc,
+					tEndoColLoc,
+					common.epiPoints,
+					tEpiRowLoc,
+					tEpiColLoc);
+	}
 
-#endif
 	//==================================================50
 	//	End
 	//==================================================50
