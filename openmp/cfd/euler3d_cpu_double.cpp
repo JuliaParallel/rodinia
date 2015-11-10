@@ -338,7 +338,7 @@ int main(int argc, char** argv)
 	}
 	const char* data_file_name = argv[1];
 
-	int block_length = omp_get_num_threads();
+	int block_length = omp_get_max_threads();
 
 	// set far field conditions
 	{
