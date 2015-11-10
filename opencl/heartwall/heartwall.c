@@ -25,8 +25,8 @@
 //	UTILITIES
 //======================================================================================================================================================150
 
-#include "./util/avi/avilib.h"					// (in directory)							needed by avi functions
-#include "./util/avi/avimod.h"					// (in directory)							needed by avi functions
+#include "avilib.h"					// (in directory)							needed by avi functions
+#include "avimod.h"					// (in directory)							needed by avi functions
 
 //======================================================================================================================================================150
 //	KERNEL
@@ -83,7 +83,7 @@ main(	int argc,
 	}
 	
 	// open movie file
- 	video_file_name = argv[1];
+ 	char *video_file_name = argv[1];
 	frames = (avi_t*)AVI_open_input_file(video_file_name, 1);														// added casting
 	if (frames == NULL)  {
 		   AVI_print_error((char *) "Error with AVI_open_input_file");

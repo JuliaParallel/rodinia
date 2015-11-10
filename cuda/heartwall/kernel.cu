@@ -4,7 +4,7 @@
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
 
-__global__ void kernel(){
+__global__ void kernel(params_common_change *d_common_change, params_common *d_common, params_unique *d_unique){
 
 	//======================================================================================================================================================
 	//	COMMON VARIABLES
@@ -80,7 +80,7 @@ __global__ void kernel(){
 	//===============================================================================================================================================================================================================
 
 	// generate templates based on the first frame only
-	if(d_common_change.frame_no == 0){
+	if(d_common_change->frame_no == 0){
 
 		//======================================================================================================================================================
 		// GET POINTER TO TEMPLATE FOR THE POINT
@@ -98,7 +98,7 @@ __global__ void kernel(){
 		if(ei_new == 0){
 
 			// update temporary row/col coordinates
-			pointer = d_unique[bx].point_no*d_common.no_frames+d_common_change.frame_no;
+			pointer = d_unique[bx].point_no*d_common->no_frames+d_common_change->frame_no;
 			d_unique[bx].d_tRowLoc[pointer] = d_unique[bx].d_Row[d_unique[bx].point_no];
 			d_unique[bx].d_tColLoc[pointer] = d_unique[bx].d_Col[d_unique[bx].point_no];
 
@@ -110,23 +110,23 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in_elem){
+		while(ei_new < d_common->in_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in_rows == 0){
-				row = d_common.in_rows - 1;
+			row = (ei_new+1) % d_common->in_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in_rows == 0){
+				row = d_common->in_rows - 1;
 				col = col-1;
 			}
 
 			// figure out row/col location in corresponding new template area in image and give to every thread (get top left corner and progress down and right)
 			ori_row = d_unique[bx].d_Row[d_unique[bx].point_no] - 25 + row - 1;
 			ori_col = d_unique[bx].d_Col[d_unique[bx].point_no] - 25 + col - 1;
-			ori_pointer = ori_col*d_common.frame_rows+ori_row;
+			ori_pointer = ori_col*d_common->frame_rows+ori_row;
 
 			// update template
-			d_in[col*d_common.in_rows+row] = d_common_change.d_frame[ori_pointer];
+			d_in[col*d_common->in_rows+row] = d_common_change->d_frame[ori_pointer];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -142,31 +142,31 @@ __global__ void kernel(){
 	//===============================================================================================================================================================================================================
 
 	// process points in all frames except for the first one
-	if(d_common_change.frame_no != 0){
+	if(d_common_change->frame_no != 0){
 
 		//======================================================================================================================================================
 		//	SELECTION
 		//======================================================================================================================================================
 
-		in2_rowlow = d_unique[bx].d_Row[d_unique[bx].point_no] - d_common.sSize;													// (1 to n+1)
-		in2_collow = d_unique[bx].d_Col[d_unique[bx].point_no] - d_common.sSize;
+		in2_rowlow = d_unique[bx].d_Row[d_unique[bx].point_no] - d_common->sSize;													// (1 to n+1)
+		in2_collow = d_unique[bx].d_Col[d_unique[bx].point_no] - d_common->sSize;
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_elem){
+		while(ei_new < d_common->in2_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_rows == 0){
-				row = d_common.in2_rows - 1;
+			row = (ei_new+1) % d_common->in2_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_rows == 0){
+				row = d_common->in2_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
 			ori_row = row + in2_rowlow - 1;
 			ori_col = col + in2_collow - 1;
-			d_unique[bx].d_in2[ei_new] = d_common_change.d_frame[ori_col*d_common.frame_rows+ori_row];
+			d_unique[bx].d_in2[ei_new] = d_common_change->d_frame[ori_col*d_common->frame_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -192,20 +192,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in_elem){
+		while(ei_new < d_common->in_elem){
 
 			// figure out row/col location in padded array
-			row = (ei_new+1) % d_common.in_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in_rows == 0){
-				row = d_common.in_rows - 1;
+			row = (ei_new+1) % d_common->in_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in_rows == 0){
+				row = d_common->in_rows - 1;
 				col = col-1;
 			}
 		
 			// execution
-			rot_row = (d_common.in_rows-1) - row;
-			rot_col = (d_common.in_rows-1) - col;
-			d_in_mod_temp[ei_new] = d_in[rot_col*d_common.in_rows+rot_row];
+			rot_row = (d_common->in_rows-1) - row;
+			rot_col = (d_common->in_rows-1) - col;
+			d_in_mod_temp[ei_new] = d_in[rot_col*d_common->in_rows+rot_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -224,43 +224,43 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.conv_elem){
+		while(ei_new < d_common->conv_elem){
 
 			// figure out row/col location in array
-			ic = (ei_new+1) % d_common.conv_rows;												// (1-n)
-			jc = (ei_new+1) / d_common.conv_rows + 1;											// (1-n)
-			if((ei_new+1) % d_common.conv_rows == 0){
-				ic = d_common.conv_rows;
+			ic = (ei_new+1) % d_common->conv_rows;												// (1-n)
+			jc = (ei_new+1) / d_common->conv_rows + 1;											// (1-n)
+			if((ei_new+1) % d_common->conv_rows == 0){
+				ic = d_common->conv_rows;
 				jc = jc-1;
 			}
 
 			//
-			j = jc + d_common.joffset;
+			j = jc + d_common->joffset;
 			jp1 = j + 1;
-			if(d_common.in2_cols < jp1){
-				ja1 = jp1 - d_common.in2_cols;
+			if(d_common->in2_cols < jp1){
+				ja1 = jp1 - d_common->in2_cols;
 			}
 			else{
 				ja1 = 1;
 			}
-			if(d_common.in_cols < j){
-				ja2 = d_common.in_cols;
+			if(d_common->in_cols < j){
+				ja2 = d_common->in_cols;
 			}
 			else{
 				ja2 = j;
 			}
 
-			i = ic + d_common.ioffset;
+			i = ic + d_common->ioffset;
 			ip1 = i + 1;
 			
-			if(d_common.in2_rows < ip1){
-				ia1 = ip1 - d_common.in2_rows;
+			if(d_common->in2_rows < ip1){
+				ia1 = ip1 - d_common->in2_rows;
 			}
 			else{
 				ia1 = 1;
 			}
-			if(d_common.in_rows < i){
-				ia2 = d_common.in_rows;
+			if(d_common->in_rows < i){
+				ia2 = d_common->in_rows;
 			}
 			else{
 				ia2 = i;
@@ -272,11 +272,11 @@ __global__ void kernel(){
 				jb = jp1 - ja;
 				for(ia=ia1; ia<=ia2; ia++){
 					ib = ip1 - ia;
-					s = s + d_in_mod_temp[d_common.in_rows*(ja-1)+ia-1] * d_unique[bx].d_in2[d_common.in2_rows*(jb-1)+ib-1];
+					s = s + d_in_mod_temp[d_common->in_rows*(ja-1)+ia-1] * d_unique[bx].d_in2[d_common->in2_rows*(jb-1)+ib-1];
 				}
 			}
 
-			//d_unique[bx].d_conv[d_common.conv_rows*(jc-1)+ic-1] = s;
+			//d_unique[bx].d_conv[d_common->conv_rows*(jc-1)+ic-1] = s;
 			d_unique[bx].d_conv[ei_new] = s;
 
 			// go for second round
@@ -304,24 +304,24 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_elem){
+		while(ei_new < d_common->in2_pad_cumv_elem){
 
 			// figure out row/col location in padded array
-			row = (ei_new+1) % d_common.in2_pad_cumv_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_pad_cumv_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_pad_cumv_rows == 0){
-				row = d_common.in2_pad_cumv_rows - 1;
+			row = (ei_new+1) % d_common->in2_pad_cumv_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_pad_cumv_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_pad_cumv_rows == 0){
+				row = d_common->in2_pad_cumv_rows - 1;
 				col = col-1;
 			}
 
 			// execution
-			if(	row > (d_common.in2_pad_add_rows-1) &&														// do if has numbers in original array
-				row < (d_common.in2_pad_add_rows+d_common.in2_rows) && 
-				col > (d_common.in2_pad_add_cols-1) && 
-				col < (d_common.in2_pad_add_cols+d_common.in2_cols)){
-				ori_row = row - d_common.in2_pad_add_rows;
-				ori_col = col - d_common.in2_pad_add_cols;
-				d_unique[bx].d_in2_pad_cumv[ei_new] = d_unique[bx].d_in2[ori_col*d_common.in2_rows+ori_row];
+			if(	row > (d_common->in2_pad_add_rows-1) &&														// do if has numbers in original array
+				row < (d_common->in2_pad_add_rows+d_common->in2_rows) && 
+				col > (d_common->in2_pad_add_cols-1) && 
+				col < (d_common->in2_pad_add_cols+d_common->in2_cols)){
+				ori_row = row - d_common->in2_pad_add_rows;
+				ori_col = col - d_common->in2_pad_add_cols;
+				d_unique[bx].d_in2_pad_cumv[ei_new] = d_unique[bx].d_in2[ori_col*d_common->in2_rows+ori_row];
 			}
 			else{																			// do if otherwise
 				d_unique[bx].d_in2_pad_cumv[ei_new] = 0;
@@ -344,16 +344,16 @@ __global__ void kernel(){
 
 		//work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_cols){
+		while(ei_new < d_common->in2_pad_cumv_cols){
 
 			// figure out column position
-			pos_ori = ei_new*d_common.in2_pad_cumv_rows;
+			pos_ori = ei_new*d_common->in2_pad_cumv_rows;
 
 			// variables
 			sum = 0;
 			
 			// loop through all rows
-			for(position = pos_ori; position < pos_ori+d_common.in2_pad_cumv_rows; position = position + 1){
+			for(position = pos_ori; position < pos_ori+d_common->in2_pad_cumv_rows; position = position + 1){
 				d_unique[bx].d_in2_pad_cumv[position] = d_unique[bx].d_in2_pad_cumv[position] + sum;
 				sum = d_unique[bx].d_in2_pad_cumv[position];
 			}
@@ -375,20 +375,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_sel_elem){
+		while(ei_new < d_common->in2_pad_cumv_sel_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_pad_cumv_sel_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_pad_cumv_sel_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_pad_cumv_sel_rows == 0){
-				row = d_common.in2_pad_cumv_sel_rows - 1;
+			row = (ei_new+1) % d_common->in2_pad_cumv_sel_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_pad_cumv_sel_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_pad_cumv_sel_rows == 0){
+				row = d_common->in2_pad_cumv_sel_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_pad_cumv_sel_rowlow - 1;
-			ori_col = col + d_common.in2_pad_cumv_sel_collow - 1;
-			d_unique[bx].d_in2_pad_cumv_sel[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common.in2_pad_cumv_rows+ori_row];
+			ori_row = row + d_common->in2_pad_cumv_sel_rowlow - 1;
+			ori_col = col + d_common->in2_pad_cumv_sel_collow - 1;
+			d_unique[bx].d_in2_pad_cumv_sel[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common->in2_pad_cumv_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -411,20 +411,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_elem){
+		while(ei_new < d_common->in2_sub_cumh_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub_cumh_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub_cumh_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub_cumh_rows == 0){
-				row = d_common.in2_sub_cumh_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub_cumh_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub_cumh_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub_cumh_rows == 0){
+				row = d_common->in2_sub_cumh_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_pad_cumv_sel2_rowlow - 1;
-			ori_col = col + d_common.in2_pad_cumv_sel2_collow - 1;
-			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common.in2_pad_cumv_rows+ori_row];
+			ori_row = row + d_common->in2_pad_cumv_sel2_rowlow - 1;
+			ori_col = col + d_common->in2_pad_cumv_sel2_collow - 1;
+			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common->in2_pad_cumv_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -443,7 +443,7 @@ __global__ void kernel(){
 		
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_elem){
+		while(ei_new < d_common->in2_sub_cumh_elem){
 
 			// subtract
 			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv_sel[ei_new] - d_unique[bx].d_in2_sub_cumh[ei_new];
@@ -465,7 +465,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_rows){
+		while(ei_new < d_common->in2_sub_cumh_rows){
 
 			// figure out row position
 			pos_ori = ei_new;
@@ -474,7 +474,7 @@ __global__ void kernel(){
 			sum = 0;
 
 			// loop through all rows
-			for(position = pos_ori; position < pos_ori+d_common.in2_sub_cumh_elem; position = position + d_common.in2_sub_cumh_rows){
+			for(position = pos_ori; position < pos_ori+d_common->in2_sub_cumh_elem; position = position + d_common->in2_sub_cumh_rows){
 				d_unique[bx].d_in2_sub_cumh[position] = d_unique[bx].d_in2_sub_cumh[position] + sum;
 				sum = d_unique[bx].d_in2_sub_cumh[position];
 			}
@@ -496,20 +496,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_sel_elem){
+		while(ei_new < d_common->in2_sub_cumh_sel_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub_cumh_sel_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub_cumh_sel_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub_cumh_sel_rows == 0){
-				row = d_common.in2_sub_cumh_sel_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub_cumh_sel_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub_cumh_sel_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub_cumh_sel_rows == 0){
+				row = d_common->in2_sub_cumh_sel_rows - 1;
 				col = col - 1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_sub_cumh_sel_rowlow - 1;
-			ori_col = col + d_common.in2_sub_cumh_sel_collow - 1;
-			d_unique[bx].d_in2_sub_cumh_sel[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common.in2_sub_cumh_rows+ori_row];
+			ori_row = row + d_common->in2_sub_cumh_sel_rowlow - 1;
+			ori_col = col + d_common->in2_sub_cumh_sel_collow - 1;
+			d_unique[bx].d_in2_sub_cumh_sel[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common->in2_sub_cumh_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -532,20 +532,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub2_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub2_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub2_rows == 0){
-				row = d_common.in2_sub2_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub2_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub2_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub2_rows == 0){
+				row = d_common->in2_sub2_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_sub_cumh_sel2_rowlow - 1;
-			ori_col = col + d_common.in2_sub_cumh_sel2_collow - 1;
-			d_unique[bx].d_in2_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common.in2_sub_cumh_rows+ori_row];
+			ori_row = row + d_common->in2_sub_cumh_sel2_rowlow - 1;
+			ori_col = col + d_common->in2_sub_cumh_sel2_collow - 1;
+			d_unique[bx].d_in2_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common->in2_sub_cumh_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -564,7 +564,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			// subtract
 			d_unique[bx].d_in2_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh_sel[ei_new] - d_unique[bx].d_in2_sub2[ei_new];
@@ -590,7 +590,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sqr_elem){
+		while(ei_new < d_common->in2_sqr_elem){
 
 			temp = d_unique[bx].d_in2[ei_new];
 			d_unique[bx].d_in2_sqr[ei_new] = temp * temp;
@@ -616,24 +616,24 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_elem){
+		while(ei_new < d_common->in2_pad_cumv_elem){
 
 			// figure out row/col location in padded array
-			row = (ei_new+1) % d_common.in2_pad_cumv_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_pad_cumv_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_pad_cumv_rows == 0){
-				row = d_common.in2_pad_cumv_rows - 1;
+			row = (ei_new+1) % d_common->in2_pad_cumv_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_pad_cumv_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_pad_cumv_rows == 0){
+				row = d_common->in2_pad_cumv_rows - 1;
 				col = col-1;
 			}
 
 			// execution
-			if(	row > (d_common.in2_pad_add_rows-1) &&													// do if has numbers in original array
-				row < (d_common.in2_pad_add_rows+d_common.in2_sqr_rows) && 
-				col > (d_common.in2_pad_add_cols-1) && 
-				col < (d_common.in2_pad_add_cols+d_common.in2_sqr_cols)){
-				ori_row = row - d_common.in2_pad_add_rows;
-				ori_col = col - d_common.in2_pad_add_cols;
-				d_unique[bx].d_in2_pad_cumv[ei_new] = d_unique[bx].d_in2_sqr[ori_col*d_common.in2_sqr_rows+ori_row];
+			if(	row > (d_common->in2_pad_add_rows-1) &&													// do if has numbers in original array
+				row < (d_common->in2_pad_add_rows+d_common->in2_sqr_rows) && 
+				col > (d_common->in2_pad_add_cols-1) && 
+				col < (d_common->in2_pad_add_cols+d_common->in2_sqr_cols)){
+				ori_row = row - d_common->in2_pad_add_rows;
+				ori_col = col - d_common->in2_pad_add_cols;
+				d_unique[bx].d_in2_pad_cumv[ei_new] = d_unique[bx].d_in2_sqr[ori_col*d_common->in2_sqr_rows+ori_row];
 			}
 			else{																							// do if otherwise
 				d_unique[bx].d_in2_pad_cumv[ei_new] = 0;
@@ -656,16 +656,16 @@ __global__ void kernel(){
 
 		//work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_cols){
+		while(ei_new < d_common->in2_pad_cumv_cols){
 
 			// figure out column position
-			pos_ori = ei_new*d_common.in2_pad_cumv_rows;
+			pos_ori = ei_new*d_common->in2_pad_cumv_rows;
 
 			// variables
 			sum = 0;
 			
 			// loop through all rows
-			for(position = pos_ori; position < pos_ori+d_common.in2_pad_cumv_rows; position = position + 1){
+			for(position = pos_ori; position < pos_ori+d_common->in2_pad_cumv_rows; position = position + 1){
 				d_unique[bx].d_in2_pad_cumv[position] = d_unique[bx].d_in2_pad_cumv[position] + sum;
 				sum = d_unique[bx].d_in2_pad_cumv[position];
 			}
@@ -687,20 +687,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_pad_cumv_sel_elem){
+		while(ei_new < d_common->in2_pad_cumv_sel_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_pad_cumv_sel_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_pad_cumv_sel_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_pad_cumv_sel_rows == 0){
-				row = d_common.in2_pad_cumv_sel_rows - 1;
+			row = (ei_new+1) % d_common->in2_pad_cumv_sel_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_pad_cumv_sel_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_pad_cumv_sel_rows == 0){
+				row = d_common->in2_pad_cumv_sel_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_pad_cumv_sel_rowlow - 1;
-			ori_col = col + d_common.in2_pad_cumv_sel_collow - 1;
-			d_unique[bx].d_in2_pad_cumv_sel[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common.in2_pad_cumv_rows+ori_row];
+			ori_row = row + d_common->in2_pad_cumv_sel_rowlow - 1;
+			ori_col = col + d_common->in2_pad_cumv_sel_collow - 1;
+			d_unique[bx].d_in2_pad_cumv_sel[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common->in2_pad_cumv_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -723,20 +723,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_elem){
+		while(ei_new < d_common->in2_sub_cumh_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub_cumh_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub_cumh_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub_cumh_rows == 0){
-				row = d_common.in2_sub_cumh_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub_cumh_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub_cumh_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub_cumh_rows == 0){
+				row = d_common->in2_sub_cumh_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_pad_cumv_sel2_rowlow - 1;
-			ori_col = col + d_common.in2_pad_cumv_sel2_collow - 1;
-			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common.in2_pad_cumv_rows+ori_row];
+			ori_row = row + d_common->in2_pad_cumv_sel2_rowlow - 1;
+			ori_col = col + d_common->in2_pad_cumv_sel2_collow - 1;
+			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv[ori_col*d_common->in2_pad_cumv_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -755,7 +755,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_elem){
+		while(ei_new < d_common->in2_sub_cumh_elem){
 
 			// subtract
 			d_unique[bx].d_in2_sub_cumh[ei_new] = d_unique[bx].d_in2_pad_cumv_sel[ei_new] - d_unique[bx].d_in2_sub_cumh[ei_new];
@@ -771,7 +771,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_rows){
+		while(ei_new < d_common->in2_sub_cumh_rows){
 
 			// figure out row position
 			pos_ori = ei_new;
@@ -780,7 +780,7 @@ __global__ void kernel(){
 			sum = 0;
 
 			// loop through all rows
-			for(position = pos_ori; position < pos_ori+d_common.in2_sub_cumh_elem; position = position + d_common.in2_sub_cumh_rows){
+			for(position = pos_ori; position < pos_ori+d_common->in2_sub_cumh_elem; position = position + d_common->in2_sub_cumh_rows){
 				d_unique[bx].d_in2_sub_cumh[position] = d_unique[bx].d_in2_sub_cumh[position] + sum;
 				sum = d_unique[bx].d_in2_sub_cumh[position];
 			}
@@ -802,20 +802,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub_cumh_sel_elem){
+		while(ei_new < d_common->in2_sub_cumh_sel_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub_cumh_sel_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub_cumh_sel_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub_cumh_sel_rows == 0){
-				row = d_common.in2_sub_cumh_sel_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub_cumh_sel_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub_cumh_sel_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub_cumh_sel_rows == 0){
+				row = d_common->in2_sub_cumh_sel_rows - 1;
 				col = col - 1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_sub_cumh_sel_rowlow - 1;
-			ori_col = col + d_common.in2_sub_cumh_sel_collow - 1;
-			d_unique[bx].d_in2_sub_cumh_sel[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common.in2_sub_cumh_rows+ori_row];
+			ori_row = row + d_common->in2_sub_cumh_sel_rowlow - 1;
+			ori_col = col + d_common->in2_sub_cumh_sel_collow - 1;
+			d_unique[bx].d_in2_sub_cumh_sel[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common->in2_sub_cumh_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -838,20 +838,20 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in2_sub2_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in2_sub2_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in2_sub2_rows == 0){
-				row = d_common.in2_sub2_rows - 1;
+			row = (ei_new+1) % d_common->in2_sub2_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in2_sub2_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in2_sub2_rows == 0){
+				row = d_common->in2_sub2_rows - 1;
 				col = col-1;
 			}
 
 			// figure out corresponding location in old matrix and copy values to new matrix
-			ori_row = row + d_common.in2_sub_cumh_sel2_rowlow - 1;
-			ori_col = col + d_common.in2_sub_cumh_sel2_collow - 1;
-			d_unique[bx].d_in2_sqr_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common.in2_sub_cumh_rows+ori_row];
+			ori_row = row + d_common->in2_sub_cumh_sel2_rowlow - 1;
+			ori_col = col + d_common->in2_sub_cumh_sel2_collow - 1;
+			d_unique[bx].d_in2_sqr_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh[ori_col*d_common->in2_sub_cumh_rows+ori_row];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -870,7 +870,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			// subtract
 			d_unique[bx].d_in2_sqr_sub2[ei_new] = d_unique[bx].d_in2_sub_cumh_sel[ei_new] - d_unique[bx].d_in2_sqr_sub2[ei_new];
@@ -896,10 +896,10 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			temp = d_unique[bx].d_in2_sub2[ei_new];
-			temp2 = d_unique[bx].d_in2_sqr_sub2[ei_new] - (temp * temp / d_common.in_elem);
+			temp2 = d_unique[bx].d_in2_sqr_sub2[ei_new] - (temp * temp / d_common->in_elem);
 			if(temp2 < 0){
 				temp2 = 0;
 			}
@@ -923,7 +923,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in_sqr_elem){
+		while(ei_new < d_common->in_sqr_elem){
 
 			temp = d_in[ei_new];
 			d_unique[bx].d_in_sqr[ei_new] = temp * temp;
@@ -945,12 +945,12 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in_cols){
+		while(ei_new < d_common->in_cols){
 
 			sum = 0;
-			for(i = 0; i < d_common.in_rows; i++){
+			for(i = 0; i < d_common->in_rows; i++){
 
-				sum = sum + d_in[ei_new*d_common.in_rows+i];
+				sum = sum + d_in[ei_new*d_common->in_rows+i];
 
 			}
 			in_partial_sum[ei_new] = sum;
@@ -971,12 +971,12 @@ __global__ void kernel(){
 		//====================================================================================================
 
 		ei_new = tx;
-		while(ei_new < d_common.in_sqr_rows){
+		while(ei_new < d_common->in_sqr_rows){
 				
 			sum = 0;
-			for(i = 0; i < d_common.in_sqr_cols; i++){
+			for(i = 0; i < d_common->in_sqr_cols; i++){
 
-				sum = sum + d_unique[bx].d_in_sqr[ei_new+d_common.in_sqr_rows*i];
+				sum = sum + d_unique[bx].d_in_sqr[ei_new+d_common->in_sqr_rows*i];
 
 			}
 			in_sqr_partial_sum[ei_new] = sum;
@@ -999,14 +999,14 @@ __global__ void kernel(){
 		if(tx == 0){
 
 			in_final_sum = 0;
-			for(i = 0; i<d_common.in_cols; i++){
+			for(i = 0; i<d_common->in_cols; i++){
 				in_final_sum = in_final_sum + in_partial_sum[i];
 			}
 
 		}else if(tx == 1){
 
 			in_sqr_final_sum = 0;
-			for(i = 0; i<d_common.in_sqr_cols; i++){
+			for(i = 0; i<d_common->in_sqr_cols; i++){
 				in_sqr_final_sum = in_sqr_final_sum + in_sqr_partial_sum[i];
 			}
 
@@ -1024,12 +1024,12 @@ __global__ void kernel(){
 
 		if(tx == 0){
 
-			mean = in_final_sum / d_common.in_elem;													// gets mean (average) value of element in ROI
+			mean = in_final_sum / d_common->in_elem;													// gets mean (average) value of element in ROI
 			mean_sqr = mean * mean;
-			variance  = (in_sqr_final_sum / d_common.in_elem) - mean_sqr;							// gets variance of ROI
+			variance  = (in_sqr_final_sum / d_common->in_elem) - mean_sqr;							// gets variance of ROI
 			deviation = sqrt(variance);																// gets standard deviation of ROI
 
-			denomT = sqrt(float(d_common.in_elem-1))*deviation;
+			denomT = sqrt(float(d_common->in_elem-1))*deviation;
 
 		}
 
@@ -1045,7 +1045,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			d_unique[bx].d_in2_sqr_sub2[ei_new] = d_unique[bx].d_in2_sqr_sub2[ei_new] * denomT;
 
@@ -1066,9 +1066,9 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.conv_elem){
+		while(ei_new < d_common->conv_elem){
 
-			d_unique[bx].d_conv[ei_new] = d_unique[bx].d_conv[ei_new] - d_unique[bx].d_in2_sub2[ei_new] * in_final_sum / d_common.in_elem;
+			d_unique[bx].d_conv[ei_new] = d_unique[bx].d_conv[ei_new] - d_unique[bx].d_in2_sub2[ei_new] * in_final_sum / d_common->in_elem;
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;
@@ -1087,7 +1087,7 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in2_sub2_elem){
+		while(ei_new < d_common->in2_sub2_elem){
 
 			d_unique[bx].d_in2_sqr_sub2[ei_new] = d_unique[bx].d_conv[ei_new] / d_unique[bx].d_in2_sqr_sub2[ei_new];
 
@@ -1106,13 +1106,13 @@ __global__ void kernel(){
 		//	TEMPLATE MASK CREATE
 		//======================================================================================================================================================
 
-		cent = d_common.sSize + d_common.tSize + 1;
-		if(d_common_change.frame_no == 0){
+		cent = d_common->sSize + d_common->tSize + 1;
+		if(d_common_change->frame_no == 0){
 			tMask_row = cent + d_unique[bx].d_Row[d_unique[bx].point_no] - d_unique[bx].d_Row[d_unique[bx].point_no] - 1;
 			tMask_col = cent + d_unique[bx].d_Col[d_unique[bx].point_no] - d_unique[bx].d_Col[d_unique[bx].point_no] - 1;
 		}
 		else{
-			pointer = d_common_change.frame_no-1+d_unique[bx].point_no*d_common.no_frames;
+			pointer = d_common_change->frame_no-1+d_unique[bx].point_no*d_common->no_frames;
 			tMask_row = cent + d_unique[bx].d_tRowLoc[pointer] - d_unique[bx].d_Row[d_unique[bx].point_no] - 1;
 			tMask_col = cent + d_unique[bx].d_tColLoc[pointer] - d_unique[bx].d_Col[d_unique[bx].point_no] - 1;
 		}
@@ -1120,9 +1120,9 @@ __global__ void kernel(){
 
 		//work
 		ei_new = tx;
-		while(ei_new < d_common.tMask_elem){
+		while(ei_new < d_common->tMask_elem){
 
-			location = tMask_col*d_common.tMask_rows + tMask_row;
+			location = tMask_col*d_common->tMask_rows + tMask_row;
 
 			if(ei_new==location){
 				d_unique[bx].d_tMask[ei_new] = 1;
@@ -1148,43 +1148,43 @@ __global__ void kernel(){
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.mask_conv_elem){
+		while(ei_new < d_common->mask_conv_elem){
 
 			// figure out row/col location in array
-			ic = (ei_new+1) % d_common.mask_conv_rows;												// (1-n)
-			jc = (ei_new+1) / d_common.mask_conv_rows + 1;											// (1-n)
-			if((ei_new+1) % d_common.mask_conv_rows == 0){
-				ic = d_common.mask_conv_rows;
+			ic = (ei_new+1) % d_common->mask_conv_rows;												// (1-n)
+			jc = (ei_new+1) / d_common->mask_conv_rows + 1;											// (1-n)
+			if((ei_new+1) % d_common->mask_conv_rows == 0){
+				ic = d_common->mask_conv_rows;
 				jc = jc-1;
 			}
 
 			//
-			j = jc + d_common.mask_conv_joffset;
+			j = jc + d_common->mask_conv_joffset;
 			jp1 = j + 1;
-			if(d_common.mask_cols < jp1){
-				ja1 = jp1 - d_common.mask_cols;
+			if(d_common->mask_cols < jp1){
+				ja1 = jp1 - d_common->mask_cols;
 			}
 			else{
 				ja1 = 1;
 			}
-			if(d_common.tMask_cols < j){
-				ja2 = d_common.tMask_cols;
+			if(d_common->tMask_cols < j){
+				ja2 = d_common->tMask_cols;
 			}
 			else{
 				ja2 = j;
 			}
 
-			i = ic + d_common.mask_conv_ioffset;
+			i = ic + d_common->mask_conv_ioffset;
 			ip1 = i + 1;
 			
-			if(d_common.mask_rows < ip1){
-				ia1 = ip1 - d_common.mask_rows;
+			if(d_common->mask_rows < ip1){
+				ia1 = ip1 - d_common->mask_rows;
 			}
 			else{
 				ia1 = 1;
 			}
-			if(d_common.tMask_rows < i){
-				ia2 = d_common.tMask_rows;
+			if(d_common->tMask_rows < i){
+				ia2 = d_common->tMask_rows;
 			}
 			else{
 				ia2 = i;
@@ -1196,11 +1196,11 @@ __global__ void kernel(){
 				jb = jp1 - ja;
 				for(ia=ia1; ia<=ia2; ia++){
 					ib = ip1 - ia;
-					s = s + d_unique[bx].d_tMask[d_common.tMask_rows*(ja-1)+ia-1] * 1;
+					s = s + d_unique[bx].d_tMask[d_common->tMask_rows*(ja-1)+ia-1] * 1;
 				}
 			}
 
-			// //d_unique[bx].d_mask_conv[d_common.mask_conv_rows*(jc-1)+ic-1] = s;
+			// //d_unique[bx].d_mask_conv[d_common->mask_conv_rows*(jc-1)+ic-1] = s;
 			d_unique[bx].d_mask_conv[ei_new] = d_unique[bx].d_in2_sqr_sub2[ei_new] * s;
 
 			// go for second round
@@ -1223,10 +1223,10 @@ __global__ void kernel(){
 		//====================================================================================================
 
 		ei_new = tx;
-		while(ei_new < d_common.mask_conv_rows){
+		while(ei_new < d_common->mask_conv_rows){
 
-			for(i=0; i<d_common.mask_conv_cols; i++){
-				largest_coordinate_current = ei_new*d_common.mask_conv_rows+i;
+			for(i=0; i<d_common->mask_conv_cols; i++){
+				largest_coordinate_current = ei_new*d_common->mask_conv_rows+i;
 				largest_value_current = abs(d_unique[bx].d_mask_conv[largest_coordinate_current]);
 				if(largest_value_current > largest_value){
 					largest_coordinate = largest_coordinate_current;
@@ -1253,7 +1253,7 @@ __global__ void kernel(){
 
 		if(tx == 0){
 
-			for(i = 0; i < d_common.mask_conv_rows; i++){
+			for(i = 0; i < d_common->mask_conv_rows; i++){
 				if(par_max_val[i] > fin_max_val){
 					fin_max_val = par_max_val[i];
 					fin_max_coo = par_max_coo[i];
@@ -1261,19 +1261,19 @@ __global__ void kernel(){
 			}
 
 			// convert coordinate to row/col form
-			largest_row = (fin_max_coo+1) % d_common.mask_conv_rows - 1;											// (0-n) row
-			largest_col = (fin_max_coo+1) / d_common.mask_conv_rows;												// (0-n) column
-			if((fin_max_coo+1) % d_common.mask_conv_rows == 0){
-				largest_row = d_common.mask_conv_rows - 1;
+			largest_row = (fin_max_coo+1) % d_common->mask_conv_rows - 1;											// (0-n) row
+			largest_col = (fin_max_coo+1) / d_common->mask_conv_rows;												// (0-n) column
+			if((fin_max_coo+1) % d_common->mask_conv_rows == 0){
+				largest_row = d_common->mask_conv_rows - 1;
 				largest_col = largest_col - 1;
 			}
 
 			// calculate offset
 			largest_row = largest_row + 1;																	// compensate to match MATLAB format (1-n)
 			largest_col = largest_col + 1;																	// compensate to match MATLAB format (1-n)
-			offset_row = largest_row - d_common.in_rows - (d_common.sSize - d_common.tSize);
-			offset_col = largest_col - d_common.in_cols - (d_common.sSize - d_common.tSize);
-			pointer = d_common_change.frame_no+d_unique[bx].point_no*d_common.no_frames;
+			offset_row = largest_row - d_common->in_rows - (d_common->sSize - d_common->tSize);
+			offset_col = largest_col - d_common->in_cols - (d_common->sSize - d_common->tSize);
+			pointer = d_common_change->frame_no+d_unique[bx].point_no*d_common->no_frames;
 			d_unique[bx].d_tRowLoc[pointer] = d_unique[bx].d_Row[d_unique[bx].point_no] + offset_row;
 			d_unique[bx].d_tColLoc[pointer] = d_unique[bx].d_Col[d_unique[bx].point_no] + offset_col;
 
@@ -1296,32 +1296,32 @@ __global__ void kernel(){
 	// time19 = clock();
 
 	// if the last frame in the bath, update template
-	if(d_common_change.frame_no != 0 && (d_common_change.frame_no)%10 == 0){
+	if(d_common_change->frame_no != 0 && (d_common_change->frame_no)%10 == 0){
 
 		// update coordinate
-		loc_pointer = d_unique[bx].point_no*d_common.no_frames+d_common_change.frame_no;
+		loc_pointer = d_unique[bx].point_no*d_common->no_frames+d_common_change->frame_no;
 		d_unique[bx].d_Row[d_unique[bx].point_no] = d_unique[bx].d_tRowLoc[loc_pointer];
 		d_unique[bx].d_Col[d_unique[bx].point_no] = d_unique[bx].d_tColLoc[loc_pointer];
 
 		// work
 		ei_new = tx;
-		while(ei_new < d_common.in_elem){
+		while(ei_new < d_common->in_elem){
 
 			// figure out row/col location in new matrix
-			row = (ei_new+1) % d_common.in_rows - 1;												// (0-n) row
-			col = (ei_new+1) / d_common.in_rows + 1 - 1;											// (0-n) column
-			if((ei_new+1) % d_common.in_rows == 0){
-				row = d_common.in_rows - 1;
+			row = (ei_new+1) % d_common->in_rows - 1;												// (0-n) row
+			col = (ei_new+1) / d_common->in_rows + 1 - 1;											// (0-n) column
+			if((ei_new+1) % d_common->in_rows == 0){
+				row = d_common->in_rows - 1;
 				col = col-1;
 			}
 
 			// figure out row/col location in corresponding new template area in image and give to every thread (get top left corner and progress down and right)
 			ori_row = d_unique[bx].d_Row[d_unique[bx].point_no] - 25 + row - 1;
 			ori_col = d_unique[bx].d_Col[d_unique[bx].point_no] - 25 + col - 1;
-			ori_pointer = ori_col*d_common.frame_rows+ori_row;
+			ori_pointer = ori_col*d_common->frame_rows+ori_row;
 
 			// update template
-			d_in[ei_new] = d_common.alpha*d_in[ei_new] + (1.00-d_common.alpha)*d_common_change.d_frame[ori_pointer];
+			d_in[ei_new] = d_common->alpha*d_in[ei_new] + (1.00-d_common->alpha)*d_common_change->d_frame[ori_pointer];
 
 			// go for second round
 			ei_new = ei_new + NUMBER_THREADS;

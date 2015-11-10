@@ -8,6 +8,8 @@
 //	LIBRARIES
 //======================================================================================================================================================
 
+#include "../../common/cuda/helper_cuda.h"
+
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -16,6 +18,7 @@
 #include <avimod.h>
 #include <cuda.h>
 
+
 //======================================================================================================================================================
 //	STRUCTURES, GLOBAL STRUCTURE VARIABLES
 //======================================================================================================================================================
@@ -23,13 +26,13 @@
 #include "define.c"
 
 params_common_change common_change;
-__constant__ params_common_change d_common_change;
+params_common_change *d_common_change;
 
 params_common common;
-__constant__ params_common d_common;
+params_common *d_common;
 
 params_unique unique[ALL_POINTS];								// cannot determine size dynamically so choose more than usually needed
-__constant__ params_unique d_unique[ALL_POINTS];
+params_unique *d_unique;
 
 //======================================================================================================================================================
 // KERNEL CODE
@@ -162,7 +165,7 @@ int main(int argc, char *argv []){
 	common.frame_mem = sizeof(fp) * common.frame_elem;
 
 	// pointers
-	cudaMalloc((void **)&common_change.d_frame, common.frame_mem);
+	checkCudaErrors(cudaMalloc((void **)&common_change.d_frame, common.frame_mem));
 
 	//======================================================================================================================================================
 	// 	CHECK INPUT ARGUMENTS
@@ -216,8 +219,8 @@ int main(int argc, char *argv []){
 	common.endoRow[17] = 287;
 	common.endoRow[18] = 311;
 	common.endoRow[19] = 339;
-	cudaMalloc((void **)&common.d_endoRow, common.endo_mem);
-	cudaMemcpy(common.d_endoRow, common.endoRow, common.endo_mem, cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaMalloc((void **)&common.d_endoRow, common.endo_mem));
+	checkCudaErrors(cudaMemcpy(common.d_endoRow, common.endoRow, common.endo_mem, cudaMemcpyHostToDevice));
 
 	common.endoCol = (int *)malloc(common.endo_mem);
 	common.endoCol[ 0] = 408;
@@ -240,14 +243,14 @@ int main(int argc, char *argv []){
 	common.endoCol[17] = 383;
 	common.endoCol[18] = 401;
 	common.endoCol[19] = 411;
-	cudaMalloc((void **)&common.d_endoCol, common.endo_mem);
-	cudaMemcpy(common.d_endoCol, common.endoCol, common.endo_mem, cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaMalloc((void **)&common.d_endoCol, common.endo_mem));
+	checkCudaErrors(cudaMemcpy(common.d_endoCol, common.endoCol, common.endo_mem, cudaMemcpyHostToDevice));
 
 	common.tEndoRowLoc = (int *)malloc(common.endo_mem * common.no_frames);
-	cudaMalloc((void **)&common.d_tEndoRowLoc, common.endo_mem * common.no_frames);
+	checkCudaErrors(cudaMalloc((void **)&common.d_tEndoRowLoc, common.endo_mem * common.no_frames));
 
 	common.tEndoColLoc = (int *)malloc(common.endo_mem * common.no_frames);
-	cudaMalloc((void **)&common.d_tEndoColLoc, common.endo_mem * common.no_frames);
+	checkCudaErrors(cudaMalloc((void **)&common.d_tEndoColLoc, common.endo_mem * common.no_frames));
 
 	//====================================================================================================
 	//	EPI POINTS
@@ -288,8 +291,8 @@ int main(int argc, char *argv []){
 	common.epiRow[28] = 305;
 	common.epiRow[29] = 331;
 	common.epiRow[30] = 360;
-	cudaMalloc((void **)&common.d_epiRow, common.epi_mem);
-	cudaMemcpy(common.d_epiRow, common.epiRow, common.epi_mem, cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaMalloc((void **)&common.d_epiRow, common.epi_mem));
+	checkCudaErrors(cudaMemcpy(common.d_epiRow, common.epiRow, common.epi_mem, cudaMemcpyHostToDevice));
 
 	common.epiCol = (int *)malloc(common.epi_mem);
 	common.epiCol[ 0] = 457;
@@ -323,14 +326,14 @@ int main(int argc, char *argv []){
 	common.epiCol[28] = 434;
 	common.epiCol[29] = 448;
 	common.epiCol[30] = 455;
-	cudaMalloc((void **)&common.d_epiCol, common.epi_mem);
-	cudaMemcpy(common.d_epiCol, common.epiCol, common.epi_mem, cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaMalloc((void **)&common.d_epiCol, common.epi_mem));
+	checkCudaErrors(cudaMemcpy(common.d_epiCol, common.epiCol, common.epi_mem, cudaMemcpyHostToDevice));
 
 	common.tEpiRowLoc = (int *)malloc(common.epi_mem * common.no_frames);
-	cudaMalloc((void **)&common.d_tEpiRowLoc, common.epi_mem * common.no_frames);
+	checkCudaErrors(cudaMalloc((void **)&common.d_tEpiRowLoc, common.epi_mem * common.no_frames));
 
 	common.tEpiColLoc = (int *)malloc(common.epi_mem * common.no_frames);
-	cudaMalloc((void **)&common.d_tEpiColLoc, common.epi_mem * common.no_frames);
+	checkCudaErrors(cudaMalloc((void **)&common.d_tEpiColLoc, common.epi_mem * common.no_frames));
 
 	//====================================================================================================
 	//	ALL POINTS
@@ -353,8 +356,8 @@ int main(int argc, char *argv []){
 	//======================================================================================================================================================
 
 	// common
-	cudaMalloc((void **)&common.d_endoT, common.in_mem * common.endoPoints);
-	cudaMalloc((void **)&common.d_epiT, common.in_mem * common.epiPoints);
+	checkCudaErrors(cudaMalloc((void **)&common.d_endoT, common.in_mem * common.endoPoints));
+	checkCudaErrors(cudaMalloc((void **)&common.d_epiT, common.in_mem * common.epiPoints));
 
 	//======================================================================================================================================================
 	//	SPECIFIC TO ENDO OR EPI TO BE SET HERE
@@ -398,7 +401,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2, common.in2_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2, common.in2_mem));
 	}
 
 	//======================================================================================================================================================
@@ -415,7 +418,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_conv, common.conv_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_conv, common.conv_mem));
 	}
 
 	//======================================================================================================================================================
@@ -437,7 +440,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_pad_cumv, common.in2_pad_cumv_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv, common.in2_pad_cumv_mem));
 	}
 
 	//====================================================================================================
@@ -456,7 +459,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_pad_cumv_sel, common.in2_pad_cumv_sel_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv_sel, common.in2_pad_cumv_sel_mem));
 	}
 
 	//====================================================================================================
@@ -475,7 +478,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_sub_cumh, common.in2_sub_cumh_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh, common.in2_sub_cumh_mem));
 	}
 
 	//====================================================================================================
@@ -494,7 +497,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_sub_cumh_sel, common.in2_sub_cumh_sel_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh_sel, common.in2_sub_cumh_sel_mem));
 	}
 
 	//====================================================================================================
@@ -513,7 +516,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_sub2, common.in2_sub2_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub2, common.in2_sub2_mem));
 	}
 
 	//======================================================================================================================================================
@@ -532,7 +535,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_sqr, common.in2_sqr_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sqr, common.in2_sqr_mem));
 	}
 
 	//====================================================================================================
@@ -547,7 +550,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in2_sqr_sub2, common.in2_sqr_sub2_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sqr_sub2, common.in2_sqr_sub2_mem));
 	}
 
 	//======================================================================================================================================================
@@ -562,7 +565,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_in_sqr, common.in_sqr_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in_sqr, common.in_sqr_mem));
 	}
 
 	//======================================================================================================================================================
@@ -577,7 +580,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_tMask, common.tMask_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_tMask, common.tMask_mem));
 	}
 
 	//======================================================================================================================================================
@@ -610,7 +613,7 @@ int main(int argc, char *argv []){
 
 	// pointers
 	for(i=0; i<common.allPoints; i++){
-		cudaMalloc((void **)&unique[i].d_mask_conv, common.mask_conv_mem);
+		checkCudaErrors(cudaMalloc((void **)&unique[i].d_mask_conv, common.mask_conv_mem));
 	}
 
 	//======================================================================================================================================================
@@ -631,8 +634,10 @@ int main(int argc, char *argv []){
 	//	COPY ARGUMENTS
 	//====================================================================================================
 
-	cudaMemcpyToSymbol(d_common, &common, sizeof(params_common));
-	cudaMemcpyToSymbol(d_unique, &unique, sizeof(params_unique)*ALL_POINTS);
+    checkCudaErrors(cudaMalloc(&d_common, sizeof(params_common)));
+	checkCudaErrors(cudaMemcpy(d_common, &common, sizeof(params_common), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&d_unique, sizeof(params_unique)*ALL_POINTS));
+	checkCudaErrors(cudaMemcpy(d_unique, &unique, sizeof(params_unique)*ALL_POINTS, cudaMemcpyHostToDevice));
 
 	//====================================================================================================
 	//	PRINT FRAME PROGRESS START
@@ -655,11 +660,12 @@ int main(int argc, char *argv []){
 										1);							// converted
 
 		// copy frame to GPU memory
-		cudaMemcpy(common_change.d_frame, frame, common.frame_mem, cudaMemcpyHostToDevice);
-		cudaMemcpyToSymbol(d_common_change, &common_change, sizeof(params_common_change));
+		checkCudaErrors(cudaMemcpy(common_change.d_frame, frame, common.frame_mem, cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMalloc(&d_common_change, sizeof(params_common_change)));
+		checkCudaErrors(cudaMemcpy(d_common_change, &common_change, sizeof(params_common_change), cudaMemcpyHostToDevice));
 
 		// launch GPU kernel
-		kernel<<<blocks, threads>>>();
+		kernel<<<blocks, threads>>>(d_common_change, d_common, d_unique);
 
 		// free frame after each loop iteration, since AVI library allocates memory for every frame fetched
 		free(frame);
@@ -681,11 +687,11 @@ int main(int argc, char *argv []){
 	//	OUTPUT
 	//====================================================================================================
 
-	cudaMemcpy(common.tEndoRowLoc, common.d_tEndoRowLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost);
-	cudaMemcpy(common.tEndoColLoc, common.d_tEndoColLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost);
+	checkCudaErrors(cudaMemcpy(common.tEndoRowLoc, common.d_tEndoRowLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(common.tEndoColLoc, common.d_tEndoColLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost));
 
-	cudaMemcpy(common.tEpiRowLoc, common.d_tEpiRowLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost);
-	cudaMemcpy(common.tEpiColLoc, common.d_tEpiColLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost);
+	checkCudaErrors(cudaMemcpy(common.tEpiRowLoc, common.d_tEpiRowLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(common.tEpiColLoc, common.d_tEpiColLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost));
 
 
 
@@ -719,7 +725,7 @@ int main(int argc, char *argv []){
 	//====================================================================================================
 
 	// frame
-	cudaFree(common_change.d_frame);
+	checkCudaErrors(cudaFree(common_change.d_frame));
 
 	// endo points
 	free(common.endoRow);
@@ -727,12 +733,12 @@ int main(int argc, char *argv []){
 	free(common.tEndoRowLoc);
 	free(common.tEndoColLoc);
 
-	cudaFree(common.d_endoRow);
-	cudaFree(common.d_endoCol);
-	cudaFree(common.d_tEndoRowLoc);
-	cudaFree(common.d_tEndoColLoc);
+	checkCudaErrors(cudaFree(common.d_endoRow));
+	checkCudaErrors(cudaFree(common.d_endoCol));
+	checkCudaErrors(cudaFree(common.d_tEndoRowLoc));
+	checkCudaErrors(cudaFree(common.d_tEndoColLoc));
 
-	cudaFree(common.d_endoT);
+	checkCudaErrors(cudaFree(common.d_endoT));
 
 	// epi points
 	free(common.epiRow);
@@ -740,32 +746,32 @@ int main(int argc, char *argv []){
 	free(common.tEpiRowLoc);
 	free(common.tEpiColLoc);
 
-	cudaFree(common.d_epiRow);
-	cudaFree(common.d_epiCol);
-	cudaFree(common.d_tEpiRowLoc);
-	cudaFree(common.d_tEpiColLoc);
+	checkCudaErrors(cudaFree(common.d_epiRow));
+	checkCudaErrors(cudaFree(common.d_epiCol));
+	checkCudaErrors(cudaFree(common.d_tEpiRowLoc));
+	checkCudaErrors(cudaFree(common.d_tEpiColLoc));
 
-	cudaFree(common.d_epiT);
+	checkCudaErrors(cudaFree(common.d_epiT));
 
 	//====================================================================================================
 	//	POINTERS
 	//====================================================================================================
 
 	for(i=0; i<common.allPoints; i++){
-		cudaFree(unique[i].d_in2);
+		checkCudaErrors(cudaFree(unique[i].d_in2));
 
-		cudaFree(unique[i].d_conv);
-		cudaFree(unique[i].d_in2_pad_cumv);
-		cudaFree(unique[i].d_in2_pad_cumv_sel);
-		cudaFree(unique[i].d_in2_sub_cumh);
-		cudaFree(unique[i].d_in2_sub_cumh_sel);
-		cudaFree(unique[i].d_in2_sub2);
-		cudaFree(unique[i].d_in2_sqr);
-		cudaFree(unique[i].d_in2_sqr_sub2);
-		cudaFree(unique[i].d_in_sqr);
+		checkCudaErrors(cudaFree(unique[i].d_conv));
+		checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv));
+		checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv_sel));
+		checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh));
+		checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh_sel));
+		checkCudaErrors(cudaFree(unique[i].d_in2_sub2));
+		checkCudaErrors(cudaFree(unique[i].d_in2_sqr));
+		checkCudaErrors(cudaFree(unique[i].d_in2_sqr_sub2));
+		checkCudaErrors(cudaFree(unique[i].d_in_sqr));
 
-		cudaFree(unique[i].d_tMask);
-		cudaFree(unique[i].d_mask_conv);
+		checkCudaErrors(cudaFree(unique[i].d_tMask));
+		checkCudaErrors(cudaFree(unique[i].d_mask_conv));
 	}
 
 }

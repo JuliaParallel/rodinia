@@ -23,8 +23,8 @@
 //======================================================================================================================================================150
 
 #include "./../util/opencl/opencl.h"				// (in directory)							needed by device functions
-#include "./../util/avi/avilib.h"					// (in directory)							needed by avi functions
-#include "./../util/avi/avimod.h"					// (in directory)							needed by avi functions
+#include "avilib.h"					// (in directory)							needed by avi functions
+#include "avimod.h"					// (in directory)							needed by avi functions
 
 //======================================================================================================================================================150
 //	KERNEL_GPU_CUDA_WRAPPER FUNCTION HEADER
