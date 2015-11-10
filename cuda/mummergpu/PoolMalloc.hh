@@ -24,29 +24,26 @@ struct PoolNode_t;
  ** object is destroyed.
  **/
 
-class PoolMalloc_t
-{
+class PoolMalloc_t {
 
-public:
-  /// Initialize the pool
-  PoolMalloc_t();
+  public:
+    /// Initialize the pool
+    PoolMalloc_t();
 
-  /// Free all of the memory associated with this object
-  ~PoolMalloc_t();
+    /// Free all of the memory associated with this object
+    ~PoolMalloc_t();
 
-  /// Explicitly free all of the memory associated with this object
-  void pfree();
+    /// Explicitly free all of the memory associated with this object
+    void pfree();
 
-  /// Allocate an array from the pool
-  void * pmalloc(size_t size);
+    /// Allocate an array from the pool
+    void *pmalloc(size_t size);
 
-  /// Copy a string using memory from the pool
-  char * pstrdup(const char *s);
+    /// Copy a string using memory from the pool
+    char *pstrdup(const char *s);
 
-private:
-
-  PoolNode_t *head_m;
-
+  private:
+    PoolNode_t *head_m;
 };
 
 

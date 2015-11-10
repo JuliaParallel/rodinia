@@ -6,20 +6,11 @@ extern "C" {
 //	GRAPHICS HEADER
 //===============================================================================================================================================================================================================200
 
-void 
-write_graphics(	char* filename,
-				fp* input, 
-				int data_rows, 
-				int data_cols, 
-				int major,
-				int data_range);
+void write_graphics(char *filename, fp *input, int data_rows, int data_cols,
+                    int major, int data_range);
 
-void 
-read_graphics(	char* filename,
-				fp* input,
-				int data_rows, 
-				int data_cols,
-				int major);
+void read_graphics(char *filename, fp *input, int data_rows, int data_cols,
+                   int major);
 
 //===============================================================================================================================================================================================================200
 //	END

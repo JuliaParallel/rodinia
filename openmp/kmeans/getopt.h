@@ -2,34 +2,31 @@
 
 /* getopt.h */
 /* Declarations for getopt.
-   Copyright (C) 1989-1994, 1996-1999, 2001 Free Software 
+   Copyright (C) 1989-1994, 1996-1999, 2001 Free Software
    Foundation, Inc. This file is part of the GNU C Library.
 
-   The GNU C Library is free software; you can redistribute 
-   it and/or modify it under the terms of the GNU Lesser 
-   General Public License as published by the Free Software 
-   Foundation; either version 2.1 of the License, or 
+   The GNU C Library is free software; you can redistribute
+   it and/or modify it under the terms of the GNU Lesser
+   General Public License as published by the Free Software
+   Foundation; either version 2.1 of the License, or
    (at your option) any later version.
 
-   The GNU C Library is distributed in the hope that it will 
-   be useful, but WITHOUT ANY WARRANTY; without even the 
-   implied warranty of MERCHANTABILITY or FITNESS FOR A 
-   PARTICULAR PURPOSE.  See the GNU Lesser General Public 
+   The GNU C Library is distributed in the hope that it will
+   be useful, but WITHOUT ANY WARRANTY; without even the
+   implied warranty of MERCHANTABILITY or FITNESS FOR A
+   PARTICULAR PURPOSE.  See the GNU Lesser General Public
    License for more details.
 
-   You should have received a copy of the GNU Lesser General 
-   Public License along with the GNU C Library; if not, write 
+   You should have received a copy of the GNU Lesser General
+   Public License along with the GNU C Library; if not, write
    to the Free Software Foundation, Inc., 59 Temple Place,
    Suite 330, Boston, MA 02111-1307 USA.  */
 
-  
-
-  
 
 #ifndef _GETOPT_H
 
 #ifndef __need_getopt
-# define _GETOPT_H 1
+#define _GETOPT_H 1
 #endif
 
 /* If __GNU_LIBRARY__ is not already defined, either we are being used
@@ -40,10 +37,10 @@
    if it's from glibc.  (Why ctype.h?  It's guaranteed to exist and it
    doesn't flood the namespace with stuff the way some other headers do.)  */
 #if !defined __GNU_LIBRARY__
-# include <ctype.h>
+#include <ctype.h>
 #endif
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -100,26 +97,25 @@ extern int optopt;
    one).  For long options that have a zero `flag' field, `getopt'
    returns the contents of the `val' field.  */
 
-struct option
-{
-# if (defined __STDC__ && __STDC__) || defined __cplusplus
-  const char *name;
-# else
-  char *name;
-# endif
-  /* has_arg can't be an enum because some compilers complain about
-     type mismatches in all the code that assumes it is an int.  */
-  int has_arg;
-  int *flag;
-  int val;
+struct option {
+#if (defined __STDC__ && __STDC__) || defined __cplusplus
+    const char *name;
+#else
+    char *name;
+#endif
+    /* has_arg can't be an enum because some compilers complain about
+       type mismatches in all the code that assumes it is an int.  */
+    int has_arg;
+    int *flag;
+    int val;
 };
 
 /* Names for the values of the `has_arg' field of `struct option'.  */
 
-# define no_argument            0
-# define required_argument      1
-# define optional_argument      2
-#endif  /* need getopt */
+#define no_argument 0
+#define required_argument 1
+#define optional_argument 2
+#endif /* need getopt */
 
 
 /* Get definitions and prototypes for functions to process the
@@ -147,40 +143,40 @@ struct option
    `getopt'.  */
 
 #if (defined __STDC__ && __STDC__) || defined __cplusplus
-# ifdef __GNU_LIBRARY__
+#ifdef __GNU_LIBRARY__
 /* Many other libraries have conflicting prototypes for getopt, with
    differences in the consts, in stdlib.h.  To avoid compilation
    errors, only prototype getopt for the GNU C library.  */
-extern int getopt (int ___argc, char *const *___argv, const char *__shortopts);
-# else /* not __GNU_LIBRARY__ */
-extern int getopt ();
-# endif /* __GNU_LIBRARY__ */
+extern int getopt(int ___argc, char *const *___argv, const char *__shortopts);
+#else  /* not __GNU_LIBRARY__ */
+extern int getopt();
+#endif /* __GNU_LIBRARY__ */
 
-# ifndef __need_getopt
-extern int getopt_long (int ___argc, char *const *___argv,
-                        const char *__shortopts,
-                        const struct option *__longopts, int *__longind);
-extern int getopt_long_only (int ___argc, char *const *___argv,
-                             const char *__shortopts,
-                             const struct option *__longopts, int *__longind);
+#ifndef __need_getopt
+extern int getopt_long(int ___argc, char *const *___argv,
+                       const char *__shortopts, const struct option *__longopts,
+                       int *__longind);
+extern int getopt_long_only(int ___argc, char *const *___argv,
+                            const char *__shortopts,
+                            const struct option *__longopts, int *__longind);
 
 /* Internal only.  Users should not call this directly.  */
-extern int _getopt_internal (int ___argc, char *const *___argv,
-                             const char *__shortopts,
-                             const struct option *__longopts, int *__longind,
-                             int __long_only);
-# endif
+extern int _getopt_internal(int ___argc, char *const *___argv,
+                            const char *__shortopts,
+                            const struct option *__longopts, int *__longind,
+                            int __long_only);
+#endif
 #else /* not __STDC__ */
-extern int getopt ();
-# ifndef __need_getopt
-extern int getopt_long ();
-extern int getopt_long_only ();
+extern int getopt();
+#ifndef __need_getopt
+extern int getopt_long();
+extern int getopt_long_only();
 
-extern int _getopt_internal ();
-# endif
+extern int _getopt_internal();
+#endif
 #endif /* __STDC__ */
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
@@ -188,4 +184,3 @@ extern int _getopt_internal ();
 #undef __need_getopt
 
 #endif /* getopt.h */
-

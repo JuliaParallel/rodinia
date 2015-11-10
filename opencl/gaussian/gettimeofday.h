@@ -13,5 +13,3 @@ int gettimeofday(struct timeval *tv, struct timezone *tz);
 #else
 #include <sys/time.h>
 #endif
-
-

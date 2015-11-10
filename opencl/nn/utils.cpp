@@ -1,4 +1,4 @@
-/****************************************************************************\ 
+/****************************************************************************\
  * Copyright (c) 2011, Advanced Micro Devices, Inc.                           *
  * All rights reserved.                                                       *
  *                                                                            *
@@ -31,7 +31,7 @@
  *                                                                            *
  * If you use the software (in whole or in part), you shall adhere to all     *
  * applicable U.S., European, and other export laws, including but not        *
- * limited to the U.S. Export Administration Regulations (EAR), (15 C.F.R.  *
+ * limited to the U.S. Export Administration Regulations (EAR), (15 C.F.R. *
  * Sections 730 through 774), and E.U. Council Regulation (EC) No 1334/2000   *
  * of 22 June 2000.  Further, pursuant to Section 740.6 of the EAR, you       *
  * hereby certify that, except pursuant to a license granted by the United    *
@@ -59,11 +59,11 @@
 static bool usingImages = true;
 
 //! A wrapper for malloc that checks the return value
-void* alloc(size_t size) {
+void *alloc(size_t size) {
 
-    void* ptr = NULL;
+    void *ptr = NULL;
     ptr = malloc(size);
-    if(ptr == NULL) {
+    if (ptr == NULL) {
         perror("malloc");
         exit(-1);
     }
@@ -72,16 +72,14 @@ void* alloc(size_t size) {
 }
 
 // This function checks to make sure a file exists before we open it
-void checkFile(char* filename) 
-{
-    
+void checkFile(char *filename) {
+
     struct stat fileStatus;
-    if(stat(filename, &fileStatus) != 0) {
+    if (stat(filename, &fileStatus) != 0) {
         printf("Error opening file: %s\n", filename);
         exit(-1);
-    }
-    else {
-        if(!(S_IFREG & fileStatus.st_mode)) {
+    } else {
+        if (!(S_IFREG & fileStatus.st_mode)) {
             printf("File %s is not a regular file\n", filename);
             exit(-1);
         }
@@ -89,17 +87,15 @@ void checkFile(char* filename)
 }
 
 
-// This function checks to make sure a directory exists 
-void checkDir(char* dirpath) 
-{
-    
+// This function checks to make sure a directory exists
+void checkDir(char *dirpath) {
+
     struct stat fileStatus;
-    if(stat(dirpath, &fileStatus) != 0) {
+    if (stat(dirpath, &fileStatus) != 0) {
         printf("Directory does not exist: %s\n", dirpath);
         exit(-1);
-    }
-    else {
-        if(!(S_IFDIR & fileStatus.st_mode)) {
+    } else {
+        if (!(S_IFDIR & fileStatus.st_mode)) {
             printf("Directory was not provided: %s\n", dirpath);
             exit(-1);
         }
@@ -107,52 +103,51 @@ void checkDir(char* dirpath)
 }
 
 // Parse the command line arguments
-void parseArguments(int argc, char** argv, char** input, char** events, 
-    char** ipts, char* devicePref, bool* verifyResults) 
-{
-    
-    for(int i = 2; i < argc; i++) {
-        if(strcmp(argv[i], "-d") == 0) {   // Event dump found
-            if(i == argc-1) {
+void parseArguments(int argc, char **argv, char **input, char **events,
+                    char **ipts, char *devicePref, bool *verifyResults) {
+
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0) { // Event dump found
+            if (i == argc - 1) {
                 printf("Usage: -e Needs directory path\n");
                 exit(-1);
             }
-            devicePref[0] = argv[i+1][0];
+            devicePref[0] = argv[i + 1][0];
             i++;
             continue;
         }
-        if(strcmp(argv[i], "-e") == 0) {   // Event dump found
-            if(i == argc-1) {
+        if (strcmp(argv[i], "-e") == 0) { // Event dump found
+            if (i == argc - 1) {
                 printf("Usage: -e Needs directory path\n");
                 exit(-1);
             }
-            *events = argv[i+1];
+            *events = argv[i + 1];
             i++;
             continue;
         }
-        if(strcmp(argv[i], "-i") == 0) {   // Input found
-            if(i == argc-1) {
+        if (strcmp(argv[i], "-i") == 0) { // Input found
+            if (i == argc - 1) {
                 printf("Usage: -i Needs directory path\n");
                 exit(-1);
             }
-            *input = argv[i+1];
+            *input = argv[i + 1];
             i++;
             continue;
         }
-        if(strcmp(argv[i], "-l") == 0) {   // Ipts dump found
-            if(i == argc-1) {
+        if (strcmp(argv[i], "-l") == 0) { // Ipts dump found
+            if (i == argc - 1) {
                 printf("Usage: -l Needs directory path\n");
                 exit(-1);
             }
-            *ipts = argv[i+1];
+            *ipts = argv[i + 1];
             i++;
             continue;
         }
-        if(strcmp(argv[i], "-n") == 0) {   // Don't use OpenCL images
+        if (strcmp(argv[i], "-n") == 0) { // Don't use OpenCL images
             setUsingImages(false);
             continue;
         }
-        if(strcmp(argv[i], "-v") == 0) {   // Verify results
+        if (strcmp(argv[i], "-v") == 0) { // Verify results
             *verifyResults = true;
             continue;
         }
@@ -164,23 +159,22 @@ void parseArguments(int argc, char** argv, char** input, char** events,
 // the nearest multiple of 'multiple' (used for padding columns)
 unsigned int roundUp(unsigned int value, unsigned int multiple) {
 
-   unsigned int remainder = value % multiple;
-   
-   // Make the value a multiple of multiple
-   if(remainder != 0) {
-      value += (multiple-remainder);
-   }
+    unsigned int remainder = value % multiple;
 
-   return value;
+    // Make the value a multiple of multiple
+    if (remainder != 0) {
+        value += (multiple - remainder);
+    }
+
+    return value;
 }
 
 
 // Concatenate two strings and return a pointer to the new string
-char* smartStrcat(char* str1, char* str2) 
-{
-    char* newStr = NULL;
+char *smartStrcat(char *str1, char *str2) {
+    char *newStr = NULL;
 
-    newStr = (char*)alloc((strlen(str1)+strlen(str2)+1)*sizeof(char));
+    newStr = (char *)alloc((strlen(str1) + strlen(str2) + 1) * sizeof(char));
 
     strcpy(newStr, str1);
     strcat(newStr, str2);
@@ -191,14 +185,8 @@ char* smartStrcat(char* str1, char* str2)
 
 // Set the value of using images to true if they are being
 // used, or false if they are not
-void setUsingImages(bool val) 
-{
-    usingImages = val;
-}
+void setUsingImages(bool val) { usingImages = val; }
 
 
 // Return whether or not images are being used
-bool isUsingImages() 
-{
-    return usingImages;
-}
+bool isUsingImages() { return usingImages; }

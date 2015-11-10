@@ -1,4 +1,4 @@
-/*********************************************************** 
+/***********************************************************
 *  --- OpenSURF ---                                        *
 *  This library is distributed under the GNU GPL. Please   *
 *  contact chris.evans@irisys.co.uk for more information.  *
@@ -15,15 +15,14 @@
 #include <math.h>
 
 
+//-------------------------------------------------------
+typedef struct {
+    int x;
+    int y;
+    float descriptor[64];
+} Ipoint;
 
 //-------------------------------------------------------
-typedef struct{
-        int x;
-        int y;
-		float descriptor[64];
-	} Ipoint;
 
-//-------------------------------------------------------
-
-  typedef std::vector<Ipoint> IpVec;
+typedef std::vector<Ipoint> IpVec;
 #endif

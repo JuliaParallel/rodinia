@@ -1,4 +1,4 @@
-/****************************************************************************\ 
+/****************************************************************************\
  * Copyright (c) 2011, Advanced Micro Devices, Inc.                           *
  * All rights reserved.                                                       *
  *                                                                            *
@@ -31,7 +31,7 @@
  *                                                                            *
  * If you use the software (in whole or in part), you shall adhere to all     *
  * applicable U.S., European, and other export laws, including but not        *
- * limited to the U.S. Export Administration Regulations (EAR), (15 C.F.R.  *
+ * limited to the U.S. Export Administration Regulations (EAR), (15 C.F.R. *
  * Sections 730 through 774), and E.U. Council Regulation (EC) No 1334/2000   *
  * of 22 June 2000.  Further, pursuant to Section 740.6 of the EAR, you       *
  * hereby certify that, except pursuant to a license granted by the United    *
@@ -53,17 +53,17 @@
 #define _UTILS_
 
 // Wrapper for malloc
-void* alloc(size_t size);
+void *alloc(size_t size);
 
 // Checks for existence of directory
-void checkDir(char* dirpath);
+void checkDir(char *dirpath);
 
 // Check for existence of file
-void checkFile(char* filename);
+void checkFile(char *filename);
 
 // Parse the input command line options to the program
-void parseArguments(int argc, char** argv, char** input, char** events, 
-    char** ipts, char* devicePref, bool* verifyResults);
+void parseArguments(int argc, char **argv, char **input, char **events,
+                    char **ipts, char *devicePref, bool *verifyResults);
 
 
 // Print the program usage information
@@ -73,12 +73,12 @@ void printUsage();
 unsigned int roundUp(unsigned int value, unsigned int multiple);
 
 // Concatenate two strings, creating a new one
-char* smartStrcat(char* str1, char* str2);
+char *smartStrcat(char *str1, char *str2);
 
 // Set the value of usingImages
 void setUsingImages(bool val);
 
 // Return whether or not images are being used
-bool isUsingImages(); 
+bool isUsingImages();
 
 #endif

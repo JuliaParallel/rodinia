@@ -17,7 +17,7 @@
 /*                                                                           */
 /*2       Redistributions in binary form must reproduce the above copyright   */
 /*        notice, this list of conditions and the following disclaimer in the */
-/*        documentation and/or other materials provided with the distribution.*/ 
+/*        documentation and/or other materials provided with the distribution.*/
 /*                                                                            */
 /*3       Neither the name of Northwestern University nor the names of its    */
 /*        contributors may be used to endorse or promote products derived     */
@@ -44,11 +44,11 @@
 #endif
 
 /* cluster.c */
-int     cluster(int, int, float**, int, float, float***);
+int cluster(int, int, float **, int, float, float ***);
 
 /* kmeans_clustering.c */
-float **kmeans_clustering(float**, int, int, int, float, int*);
-float   euclid_dist_2        (float*, float*, int);
-int     find_nearest_point   (float* , int, float**, int);
+float **kmeans_clustering(float **, int, int, int, float, int *);
+float euclid_dist_2(float *, float *, int);
+int find_nearest_point(float *, int, float **, int);
 
 #endif

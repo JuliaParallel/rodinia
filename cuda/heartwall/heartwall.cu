@@ -31,7 +31,8 @@ params_common_change *d_common_change;
 params_common common;
 params_common *d_common;
 
-params_unique unique[ALL_POINTS];								// cannot determine size dynamically so choose more than usually needed
+params_unique unique[ALL_POINTS]; // cannot determine size dynamically so choose
+                                  // more than usually needed
 params_unique *d_unique;
 
 //======================================================================================================================================================
@@ -41,77 +42,66 @@ params_unique *d_unique;
 #include "kernel.cu"
 
 
-
-
-
 //	WRITE DATA FUNCTION
 //===============================================================================================================================================================================================================200
 
-void write_data(	char* filename,
-			int frameNo,
-			int frames_processed,
-			int endoPoints,
-			int* input_a,
-			int* input_b,
-			int epiPoints,
-			int* input_2a,
-			int* input_2b){
+void write_data(char *filename, int frameNo, int frames_processed,
+                int endoPoints, int *input_a, int *input_b, int epiPoints,
+                int *input_2a, int *input_2b) {
 
-	//================================================================================80
-	//	VARIABLES
-	//================================================================================80
+    //================================================================================80
+    //	VARIABLES
+    //================================================================================80
 
-	FILE* fid;
-	int i,j;
-	char c;
+    FILE *fid;
+    int i, j;
+    char c;
 
-	//================================================================================80
-	//	OPEN FILE FOR READING
-	//================================================================================80
+    //================================================================================80
+    //	OPEN FILE FOR READING
+    //================================================================================80
 
-	fid = fopen(filename, "w+");
-	if( fid == NULL ){
-		printf( "The file was not opened for writing\n" );
-		return;
-	}
+    fid = fopen(filename, "w+");
+    if (fid == NULL) {
+        printf("The file was not opened for writing\n");
+        return;
+    }
 
 
-	//================================================================================80
-	//	WRITE VALUES TO THE FILE
-	//================================================================================80
-      fprintf(fid, "Total AVI Frames: %d\n", frameNo);	
-      fprintf(fid, "Frames Processed: %d\n", frames_processed);	
-      fprintf(fid, "endoPoints: %d\n", endoPoints);
-      fprintf(fid, "epiPoints: %d", epiPoints);
-	for(j=0; j<frames_processed;j++)
-	  {
-	    fprintf(fid, "\n---Frame %d---",j);
-	    fprintf(fid, "\n--endo--\n",j);
-	    for(i=0; i<endoPoints; i++){
-	      fprintf(fid, "%d\t", input_a[j+i*frameNo]);
-	    }
-	    fprintf(fid, "\n");
-	    for(i=0; i<endoPoints; i++){
-	      // if(input_b[j*size+i] > 2000) input_b[j*size+i]=0;
-	      fprintf(fid, "%d\t", input_b[j+i*frameNo]);
-	    }
-	    fprintf(fid, "\n--epi--\n",j);
-	    for(i=0; i<epiPoints; i++){
-	      //if(input_2a[j*size_2+i] > 2000) input_2a[j*size_2+i]=0;
-	      fprintf(fid, "%d\t", input_2a[j+i*frameNo]);
-	    }
-	    fprintf(fid, "\n");
-	    for(i=0; i<epiPoints; i++){
-	      //if(input_2b[j*size_2+i] > 2000) input_2b[j*size_2+i]=0;
-	      fprintf(fid, "%d\t", input_2b[j+i*frameNo]);
-	    }
-	  }
-	// 	================================================================================80
-	//		CLOSE FILE
-		  //	================================================================================80
+    //================================================================================80
+    //	WRITE VALUES TO THE FILE
+    //================================================================================80
+    fprintf(fid, "Total AVI Frames: %d\n", frameNo);
+    fprintf(fid, "Frames Processed: %d\n", frames_processed);
+    fprintf(fid, "endoPoints: %d\n", endoPoints);
+    fprintf(fid, "epiPoints: %d", epiPoints);
+    for (j = 0; j < frames_processed; j++) {
+        fprintf(fid, "\n---Frame %d---", j);
+        fprintf(fid, "\n--endo--\n", j);
+        for (i = 0; i < endoPoints; i++) {
+            fprintf(fid, "%d\t", input_a[j + i * frameNo]);
+        }
+        fprintf(fid, "\n");
+        for (i = 0; i < endoPoints; i++) {
+            // if(input_b[j*size+i] > 2000) input_b[j*size+i]=0;
+            fprintf(fid, "%d\t", input_b[j + i * frameNo]);
+        }
+        fprintf(fid, "\n--epi--\n", j);
+        for (i = 0; i < epiPoints; i++) {
+            // if(input_2a[j*size_2+i] > 2000) input_2a[j*size_2+i]=0;
+            fprintf(fid, "%d\t", input_2a[j + i * frameNo]);
+        }
+        fprintf(fid, "\n");
+        for (i = 0; i < epiPoints; i++) {
+            // if(input_2b[j*size_2+i] > 2000) input_2b[j*size_2+i]=0;
+            fprintf(fid, "%d\t", input_2b[j + i * frameNo]);
+        }
+    }
+    // 	================================================================================80
+    //		CLOSE FILE
+    //	================================================================================80
 
-	fclose(fid);
-
+    fclose(fid);
 }
 
 
@@ -120,660 +110,712 @@ void write_data(	char* filename,
 //	MAIN FUNCTION
 //===============================================================================================================================================================================================================
 //===============================================================================================================================================================================================================
-int main(int argc, char *argv []){
-
-  printf("WG size of kernel = %d \n", NUMBER_THREADS);
-	//======================================================================================================================================================
-	//	VARIABLES
-	//======================================================================================================================================================
-
-	// CUDA kernel execution parameters
-	dim3 threads;
-	dim3 blocks;
-
-	// counter
-	int i;
-	int frames_processed;
-
-	// frames
-	char* video_file_name;
-	avi_t* frames;
-	fp* frame;
-
-	//======================================================================================================================================================
-	// 	FRAME
-	//======================================================================================================================================================
-
-	if(argc!=3){
-		printf("ERROR: usage: heartwall <inputfile> <num of frames>\n");
-		exit(1);
-	}
-	
-	// open movie file
- 	video_file_name = argv[1];
-	frames = (avi_t*)AVI_open_input_file(video_file_name, 1);														// added casting
-	if (frames == NULL)  {
-		   AVI_print_error((char *) "Error with AVI_open_input_file");
-		   return -1;
-	}
-
-	// common
-	common.no_frames = AVI_video_frames(frames);
-	common.frame_rows = AVI_video_height(frames);
-	common.frame_cols = AVI_video_width(frames);
-	common.frame_elem = common.frame_rows * common.frame_cols;
-	common.frame_mem = sizeof(fp) * common.frame_elem;
-
-	// pointers
-	checkCudaErrors(cudaMalloc((void **)&common_change.d_frame, common.frame_mem));
-
-	//======================================================================================================================================================
-	// 	CHECK INPUT ARGUMENTS
-	//======================================================================================================================================================
-	
-	frames_processed = atoi(argv[2]);
-		if(frames_processed<0 || frames_processed>common.no_frames){
-			printf("ERROR: %d is an incorrect number of frames specified, select in the range of 0-%d\n", frames_processed, common.no_frames);
-			return 0;
-	}
-	
-
-	//======================================================================================================================================================
-	//	HARDCODED INPUTS FROM MATLAB
-	//======================================================================================================================================================
-
-	//====================================================================================================
-	//	CONSTANTS
-	//====================================================================================================
-
-	common.sSize = 40;
-	common.tSize = 25;
-	common.maxMove = 10;
-	common.alpha = 0.87;
-
-	//====================================================================================================
-	//	ENDO POINTS
-	//====================================================================================================
-
-	common.endoPoints = ENDO_POINTS;
-	common.endo_mem = sizeof(int) * common.endoPoints;
-
-	common.endoRow = (int *)malloc(common.endo_mem);
-	common.endoRow[ 0] = 369;
-	common.endoRow[ 1] = 400;
-	common.endoRow[ 2] = 429;
-	common.endoRow[ 3] = 452;
-	common.endoRow[ 4] = 476;
-	common.endoRow[ 5] = 486;
-	common.endoRow[ 6] = 479;
-	common.endoRow[ 7] = 458;
-	common.endoRow[ 8] = 433;
-	common.endoRow[ 9] = 404;
-	common.endoRow[10] = 374;
-	common.endoRow[11] = 346;
-	common.endoRow[12] = 318;
-	common.endoRow[13] = 294;
-	common.endoRow[14] = 277;
-	common.endoRow[15] = 269;
-	common.endoRow[16] = 275;
-	common.endoRow[17] = 287;
-	common.endoRow[18] = 311;
-	common.endoRow[19] = 339;
-	checkCudaErrors(cudaMalloc((void **)&common.d_endoRow, common.endo_mem));
-	checkCudaErrors(cudaMemcpy(common.d_endoRow, common.endoRow, common.endo_mem, cudaMemcpyHostToDevice));
-
-	common.endoCol = (int *)malloc(common.endo_mem);
-	common.endoCol[ 0] = 408;
-	common.endoCol[ 1] = 406;
-	common.endoCol[ 2] = 397;
-	common.endoCol[ 3] = 383;
-	common.endoCol[ 4] = 354;
-	common.endoCol[ 5] = 322;
-	common.endoCol[ 6] = 294;
-	common.endoCol[ 7] = 270;
-	common.endoCol[ 8] = 250;
-	common.endoCol[ 9] = 237;
-	common.endoCol[10] = 235;
-	common.endoCol[11] = 241;
-	common.endoCol[12] = 254;
-	common.endoCol[13] = 273;
-	common.endoCol[14] = 300;
-	common.endoCol[15] = 328;
-	common.endoCol[16] = 356;
-	common.endoCol[17] = 383;
-	common.endoCol[18] = 401;
-	common.endoCol[19] = 411;
-	checkCudaErrors(cudaMalloc((void **)&common.d_endoCol, common.endo_mem));
-	checkCudaErrors(cudaMemcpy(common.d_endoCol, common.endoCol, common.endo_mem, cudaMemcpyHostToDevice));
-
-	common.tEndoRowLoc = (int *)malloc(common.endo_mem * common.no_frames);
-	checkCudaErrors(cudaMalloc((void **)&common.d_tEndoRowLoc, common.endo_mem * common.no_frames));
-
-	common.tEndoColLoc = (int *)malloc(common.endo_mem * common.no_frames);
-	checkCudaErrors(cudaMalloc((void **)&common.d_tEndoColLoc, common.endo_mem * common.no_frames));
-
-	//====================================================================================================
-	//	EPI POINTS
-	//====================================================================================================
-
-	common.epiPoints = EPI_POINTS;
-	common.epi_mem = sizeof(int) * common.epiPoints;
-
-	common.epiRow = (int *)malloc(common.epi_mem);
-	common.epiRow[ 0] = 390;
-	common.epiRow[ 1] = 419;
-	common.epiRow[ 2] = 448;
-	common.epiRow[ 3] = 474;
-	common.epiRow[ 4] = 501;
-	common.epiRow[ 5] = 519;
-	common.epiRow[ 6] = 535;
-	common.epiRow[ 7] = 542;
-	common.epiRow[ 8] = 543;
-	common.epiRow[ 9] = 538;
-	common.epiRow[10] = 528;
-	common.epiRow[11] = 511;
-	common.epiRow[12] = 491;
-	common.epiRow[13] = 466;
-	common.epiRow[14] = 438;
-	common.epiRow[15] = 406;
-	common.epiRow[16] = 376;
-	common.epiRow[17] = 347;
-	common.epiRow[18] = 318;
-	common.epiRow[19] = 291;
-	common.epiRow[20] = 275;
-	common.epiRow[21] = 259;
-	common.epiRow[22] = 256;
-	common.epiRow[23] = 252;
-	common.epiRow[24] = 252;
-	common.epiRow[25] = 257;
-	common.epiRow[26] = 266;
-	common.epiRow[27] = 283;
-	common.epiRow[28] = 305;
-	common.epiRow[29] = 331;
-	common.epiRow[30] = 360;
-	checkCudaErrors(cudaMalloc((void **)&common.d_epiRow, common.epi_mem));
-	checkCudaErrors(cudaMemcpy(common.d_epiRow, common.epiRow, common.epi_mem, cudaMemcpyHostToDevice));
-
-	common.epiCol = (int *)malloc(common.epi_mem);
-	common.epiCol[ 0] = 457;
-	common.epiCol[ 1] = 454;
-	common.epiCol[ 2] = 446;
-	common.epiCol[ 3] = 431;
-	common.epiCol[ 4] = 411;
-	common.epiCol[ 5] = 388;
-	common.epiCol[ 6] = 361;
-	common.epiCol[ 7] = 331;
-	common.epiCol[ 8] = 301;
-	common.epiCol[ 9] = 273;
-	common.epiCol[10] = 243;
-	common.epiCol[11] = 218;
-	common.epiCol[12] = 196;
-	common.epiCol[13] = 178;
-	common.epiCol[14] = 166;
-	common.epiCol[15] = 157;
-	common.epiCol[16] = 155;
-	common.epiCol[17] = 165;
-	common.epiCol[18] = 177;
-	common.epiCol[19] = 197;
-	common.epiCol[20] = 218;
-	common.epiCol[21] = 248;
-	common.epiCol[22] = 276;
-	common.epiCol[23] = 304;
-	common.epiCol[24] = 333;
-	common.epiCol[25] = 361;
-	common.epiCol[26] = 391;
-	common.epiCol[27] = 415;
-	common.epiCol[28] = 434;
-	common.epiCol[29] = 448;
-	common.epiCol[30] = 455;
-	checkCudaErrors(cudaMalloc((void **)&common.d_epiCol, common.epi_mem));
-	checkCudaErrors(cudaMemcpy(common.d_epiCol, common.epiCol, common.epi_mem, cudaMemcpyHostToDevice));
-
-	common.tEpiRowLoc = (int *)malloc(common.epi_mem * common.no_frames);
-	checkCudaErrors(cudaMalloc((void **)&common.d_tEpiRowLoc, common.epi_mem * common.no_frames));
-
-	common.tEpiColLoc = (int *)malloc(common.epi_mem * common.no_frames);
-	checkCudaErrors(cudaMalloc((void **)&common.d_tEpiColLoc, common.epi_mem * common.no_frames));
-
-	//====================================================================================================
-	//	ALL POINTS
-	//====================================================================================================
-
-	common.allPoints = ALL_POINTS;
-
-	//======================================================================================================================================================
-	// 	TEMPLATE SIZES
-	//======================================================================================================================================================
-
-	// common
-	common.in_rows = common.tSize + 1 + common.tSize;
-	common.in_cols = common.in_rows;
-	common.in_elem = common.in_rows * common.in_cols;
-	common.in_mem = sizeof(fp) * common.in_elem;
-
-	//======================================================================================================================================================
-	// 	CREATE ARRAY OF TEMPLATES FOR ALL POINTS
-	//======================================================================================================================================================
-
-	// common
-	checkCudaErrors(cudaMalloc((void **)&common.d_endoT, common.in_mem * common.endoPoints));
-	checkCudaErrors(cudaMalloc((void **)&common.d_epiT, common.in_mem * common.epiPoints));
-
-	//======================================================================================================================================================
-	//	SPECIFIC TO ENDO OR EPI TO BE SET HERE
-	//======================================================================================================================================================
-
-	for(i=0; i<common.endoPoints; i++){
-		unique[i].point_no = i;
-		unique[i].d_Row = common.d_endoRow;
-		unique[i].d_Col = common.d_endoCol;
-		unique[i].d_tRowLoc = common.d_tEndoRowLoc;
-		unique[i].d_tColLoc = common.d_tEndoColLoc;
-		unique[i].d_T = common.d_endoT;
-	}
-	for(i=common.endoPoints; i<common.allPoints; i++){
-		unique[i].point_no = i-common.endoPoints;
-		unique[i].d_Row = common.d_epiRow;
-		unique[i].d_Col = common.d_epiCol;
-		unique[i].d_tRowLoc = common.d_tEpiRowLoc;
-		unique[i].d_tColLoc = common.d_tEpiColLoc;
-		unique[i].d_T = common.d_epiT;
-	}
-
-	//======================================================================================================================================================
-	// 	RIGHT TEMPLATE 	FROM 	TEMPLATE ARRAY
-	//======================================================================================================================================================
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		unique[i].in_pointer = unique[i].point_no * common.in_elem;
-	}
-
-	//======================================================================================================================================================
-	// 	AREA AROUND POINT		FROM	FRAME
-	//======================================================================================================================================================
-
-	// common
-	common.in2_rows = 2 * common.sSize + 1;
-	common.in2_cols = 2 * common.sSize + 1;
-	common.in2_elem = common.in2_rows * common.in2_cols;
-	common.in2_mem = sizeof(float) * common.in2_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2, common.in2_mem));
-	}
-
-	//======================================================================================================================================================
-	// 	CONVOLUTION
-	//======================================================================================================================================================
-
-	// common
-	common.conv_rows = common.in_rows + common.in2_rows - 1;												// number of rows in I
-	common.conv_cols = common.in_cols + common.in2_cols - 1;												// number of columns in I
-	common.conv_elem = common.conv_rows * common.conv_cols;												// number of elements
-	common.conv_mem = sizeof(float) * common.conv_elem;
-	common.ioffset = 0;
-	common.joffset = 0;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_conv, common.conv_mem));
-	}
-
-	//======================================================================================================================================================
-	// 	CUMULATIVE SUM
-	//======================================================================================================================================================
-
-	//====================================================================================================
-	// 	PADDING OF ARRAY, VERTICAL CUMULATIVE SUM
-	//====================================================================================================
-
-	// common
-	common.in2_pad_add_rows = common.in_rows;
-	common.in2_pad_add_cols = common.in_cols;
-
-	common.in2_pad_cumv_rows = common.in2_rows + 2*common.in2_pad_add_rows;
-	common.in2_pad_cumv_cols = common.in2_cols + 2*common.in2_pad_add_cols;
-	common.in2_pad_cumv_elem = common.in2_pad_cumv_rows * common.in2_pad_cumv_cols;
-	common.in2_pad_cumv_mem = sizeof(float) * common.in2_pad_cumv_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv, common.in2_pad_cumv_mem));
-	}
-
-	//====================================================================================================
-	// 	SELECTION
-	//====================================================================================================
-
-	// common
-	common.in2_pad_cumv_sel_rowlow = 1 + common.in_rows;													// (1 to n+1)
-	common.in2_pad_cumv_sel_rowhig = common.in2_pad_cumv_rows - 1;
-	common.in2_pad_cumv_sel_collow = 1;
-	common.in2_pad_cumv_sel_colhig = common.in2_pad_cumv_cols;
-	common.in2_pad_cumv_sel_rows = common.in2_pad_cumv_sel_rowhig - common.in2_pad_cumv_sel_rowlow + 1;
-	common.in2_pad_cumv_sel_cols = common.in2_pad_cumv_sel_colhig - common.in2_pad_cumv_sel_collow + 1;
-	common.in2_pad_cumv_sel_elem = common.in2_pad_cumv_sel_rows * common.in2_pad_cumv_sel_cols;
-	common.in2_pad_cumv_sel_mem = sizeof(float) * common.in2_pad_cumv_sel_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv_sel, common.in2_pad_cumv_sel_mem));
-	}
-
-	//====================================================================================================
-	// 	SELECTION	2, SUBTRACTION, HORIZONTAL CUMULATIVE SUM
-	//====================================================================================================
-
-	// common
-	common.in2_pad_cumv_sel2_rowlow = 1;
-	common.in2_pad_cumv_sel2_rowhig = common.in2_pad_cumv_rows - common.in_rows - 1;
-	common.in2_pad_cumv_sel2_collow = 1;
-	common.in2_pad_cumv_sel2_colhig = common.in2_pad_cumv_cols;
-	common.in2_sub_cumh_rows = common.in2_pad_cumv_sel2_rowhig - common.in2_pad_cumv_sel2_rowlow + 1;
-	common.in2_sub_cumh_cols = common.in2_pad_cumv_sel2_colhig - common.in2_pad_cumv_sel2_collow + 1;
-	common.in2_sub_cumh_elem = common.in2_sub_cumh_rows * common.in2_sub_cumh_cols;
-	common.in2_sub_cumh_mem = sizeof(float) * common.in2_sub_cumh_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh, common.in2_sub_cumh_mem));
-	}
-
-	//====================================================================================================
-	// 	SELECTION
-	//====================================================================================================
-
-	// common
-	common.in2_sub_cumh_sel_rowlow = 1;
-	common.in2_sub_cumh_sel_rowhig = common.in2_sub_cumh_rows;
-	common.in2_sub_cumh_sel_collow = 1 + common.in_cols;
-	common.in2_sub_cumh_sel_colhig = common.in2_sub_cumh_cols - 1;
-	common.in2_sub_cumh_sel_rows = common.in2_sub_cumh_sel_rowhig - common.in2_sub_cumh_sel_rowlow + 1;
-	common.in2_sub_cumh_sel_cols = common.in2_sub_cumh_sel_colhig - common.in2_sub_cumh_sel_collow + 1;
-	common.in2_sub_cumh_sel_elem = common.in2_sub_cumh_sel_rows * common.in2_sub_cumh_sel_cols;
-	common.in2_sub_cumh_sel_mem = sizeof(float) * common.in2_sub_cumh_sel_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh_sel, common.in2_sub_cumh_sel_mem));
-	}
-
-	//====================================================================================================
-	//	SELECTION 2, SUBTRACTION
-	//====================================================================================================
-
-	// common
-	common.in2_sub_cumh_sel2_rowlow = 1;
-	common.in2_sub_cumh_sel2_rowhig = common.in2_sub_cumh_rows;
-	common.in2_sub_cumh_sel2_collow = 1;
-	common.in2_sub_cumh_sel2_colhig = common.in2_sub_cumh_cols - common.in_cols - 1;
-	common.in2_sub2_rows = common.in2_sub_cumh_sel2_rowhig - common.in2_sub_cumh_sel2_rowlow + 1;
-	common.in2_sub2_cols = common.in2_sub_cumh_sel2_colhig - common.in2_sub_cumh_sel2_collow + 1;
-	common.in2_sub2_elem = common.in2_sub2_rows * common.in2_sub2_cols;
-	common.in2_sub2_mem = sizeof(float) * common.in2_sub2_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub2, common.in2_sub2_mem));
-	}
-
-	//======================================================================================================================================================
-	//	CUMULATIVE SUM 2
-	//======================================================================================================================================================
-
-	//====================================================================================================
-	//	MULTIPLICATION
-	//====================================================================================================
-
-	// common
-	common.in2_sqr_rows = common.in2_rows;
-	common.in2_sqr_cols = common.in2_cols;
-	common.in2_sqr_elem = common.in2_elem;
-	common.in2_sqr_mem = common.in2_mem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sqr, common.in2_sqr_mem));
-	}
-
-	//====================================================================================================
-	//	SELECTION 2, SUBTRACTION
-	//====================================================================================================
-
-	// common
-	common.in2_sqr_sub2_rows = common.in2_sub2_rows;
-	common.in2_sqr_sub2_cols = common.in2_sub2_cols;
-	common.in2_sqr_sub2_elem = common.in2_sub2_elem;
-	common.in2_sqr_sub2_mem = common.in2_sub2_mem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sqr_sub2, common.in2_sqr_sub2_mem));
-	}
-
-	//======================================================================================================================================================
-	//	FINAL
-	//======================================================================================================================================================
-
-	// common
-	common.in_sqr_rows = common.in_rows;
-	common.in_sqr_cols = common.in_cols;
-	common.in_sqr_elem = common.in_elem;
-	common.in_sqr_mem = common.in_mem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_in_sqr, common.in_sqr_mem));
-	}
-
-	//======================================================================================================================================================
-	//	TEMPLATE MASK CREATE
-	//======================================================================================================================================================
-
-	// common
-	common.tMask_rows = common.in_rows + (common.sSize+1+common.sSize) - 1;
-	common.tMask_cols = common.tMask_rows;
-	common.tMask_elem = common.tMask_rows * common.tMask_cols;
-	common.tMask_mem = sizeof(float) * common.tMask_elem;
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_tMask, common.tMask_mem));
-	}
-
-	//======================================================================================================================================================
-	//	POINT MASK INITIALIZE
-	//======================================================================================================================================================
-
-	// common
-	common.mask_rows = common.maxMove;
-	common.mask_cols = common.mask_rows;
-	common.mask_elem = common.mask_rows * common.mask_cols;
-	common.mask_mem = sizeof(float) * common.mask_elem;
-
-	//======================================================================================================================================================
-	//	MASK CONVOLUTION
-	//======================================================================================================================================================
-
-	// common
-	common.mask_conv_rows = common.tMask_rows;												// number of rows in I
-	common.mask_conv_cols = common.tMask_cols;												// number of columns in I
-	common.mask_conv_elem = common.mask_conv_rows * common.mask_conv_cols;												// number of elements
-	common.mask_conv_mem = sizeof(float) * common.mask_conv_elem;
-	common.mask_conv_ioffset = (common.mask_rows-1)/2;
-	if((common.mask_rows-1) % 2 > 0.5){
-		common.mask_conv_ioffset = common.mask_conv_ioffset + 1;
-	}
-	common.mask_conv_joffset = (common.mask_cols-1)/2;
-	if((common.mask_cols-1) % 2 > 0.5){
-		common.mask_conv_joffset = common.mask_conv_joffset + 1;
-	}
-
-	// pointers
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaMalloc((void **)&unique[i].d_mask_conv, common.mask_conv_mem));
-	}
-
-	//======================================================================================================================================================
-	//	KERNEL
-	//======================================================================================================================================================
-
-	//====================================================================================================
-	//	THREAD BLOCK
-	//====================================================================================================
-
-	// All kernels operations within kernel use same max size of threads. Size of block size is set to the size appropriate for max size operation (on padded matrix). Other use subsets of that.
-	threads.x = NUMBER_THREADS;											// define the number of threads in the block
-	threads.y = 1;
-	blocks.x = common.allPoints;							// define the number of blocks in the grid
-	blocks.y = 1;
-
-	//====================================================================================================
-	//	COPY ARGUMENTS
-	//====================================================================================================
+int main(int argc, char *argv[]) {
+
+    printf("WG size of kernel = %d \n", NUMBER_THREADS);
+    //======================================================================================================================================================
+    //	VARIABLES
+    //======================================================================================================================================================
+
+    // CUDA kernel execution parameters
+    dim3 threads;
+    dim3 blocks;
+
+    // counter
+    int i;
+    int frames_processed;
+
+    // frames
+    char *video_file_name;
+    avi_t *frames;
+    fp *frame;
+
+    //======================================================================================================================================================
+    // 	FRAME
+    //======================================================================================================================================================
+
+    if (argc != 3) {
+        printf("ERROR: usage: heartwall <inputfile> <num of frames>\n");
+        exit(1);
+    }
+
+    // open movie file
+    video_file_name = argv[1];
+    frames = (avi_t *)AVI_open_input_file(video_file_name, 1); // added casting
+    if (frames == NULL) {
+        AVI_print_error((char *)"Error with AVI_open_input_file");
+        return -1;
+    }
+
+    // common
+    common.no_frames = AVI_video_frames(frames);
+    common.frame_rows = AVI_video_height(frames);
+    common.frame_cols = AVI_video_width(frames);
+    common.frame_elem = common.frame_rows * common.frame_cols;
+    common.frame_mem = sizeof(fp) * common.frame_elem;
+
+    // pointers
+    checkCudaErrors(
+        cudaMalloc((void **)&common_change.d_frame, common.frame_mem));
+
+    //======================================================================================================================================================
+    // 	CHECK INPUT ARGUMENTS
+    //======================================================================================================================================================
+
+    frames_processed = atoi(argv[2]);
+    if (frames_processed < 0 || frames_processed > common.no_frames) {
+        printf("ERROR: %d is an incorrect number of frames specified, select "
+               "in the range of 0-%d\n",
+               frames_processed, common.no_frames);
+        return 0;
+    }
+
+
+    //======================================================================================================================================================
+    //	HARDCODED INPUTS FROM MATLAB
+    //======================================================================================================================================================
+
+    //====================================================================================================
+    //	CONSTANTS
+    //====================================================================================================
+
+    common.sSize = 40;
+    common.tSize = 25;
+    common.maxMove = 10;
+    common.alpha = 0.87;
+
+    //====================================================================================================
+    //	ENDO POINTS
+    //====================================================================================================
+
+    common.endoPoints = ENDO_POINTS;
+    common.endo_mem = sizeof(int) * common.endoPoints;
+
+    common.endoRow = (int *)malloc(common.endo_mem);
+    common.endoRow[0] = 369;
+    common.endoRow[1] = 400;
+    common.endoRow[2] = 429;
+    common.endoRow[3] = 452;
+    common.endoRow[4] = 476;
+    common.endoRow[5] = 486;
+    common.endoRow[6] = 479;
+    common.endoRow[7] = 458;
+    common.endoRow[8] = 433;
+    common.endoRow[9] = 404;
+    common.endoRow[10] = 374;
+    common.endoRow[11] = 346;
+    common.endoRow[12] = 318;
+    common.endoRow[13] = 294;
+    common.endoRow[14] = 277;
+    common.endoRow[15] = 269;
+    common.endoRow[16] = 275;
+    common.endoRow[17] = 287;
+    common.endoRow[18] = 311;
+    common.endoRow[19] = 339;
+    checkCudaErrors(cudaMalloc((void **)&common.d_endoRow, common.endo_mem));
+    checkCudaErrors(cudaMemcpy(common.d_endoRow, common.endoRow,
+                               common.endo_mem, cudaMemcpyHostToDevice));
+
+    common.endoCol = (int *)malloc(common.endo_mem);
+    common.endoCol[0] = 408;
+    common.endoCol[1] = 406;
+    common.endoCol[2] = 397;
+    common.endoCol[3] = 383;
+    common.endoCol[4] = 354;
+    common.endoCol[5] = 322;
+    common.endoCol[6] = 294;
+    common.endoCol[7] = 270;
+    common.endoCol[8] = 250;
+    common.endoCol[9] = 237;
+    common.endoCol[10] = 235;
+    common.endoCol[11] = 241;
+    common.endoCol[12] = 254;
+    common.endoCol[13] = 273;
+    common.endoCol[14] = 300;
+    common.endoCol[15] = 328;
+    common.endoCol[16] = 356;
+    common.endoCol[17] = 383;
+    common.endoCol[18] = 401;
+    common.endoCol[19] = 411;
+    checkCudaErrors(cudaMalloc((void **)&common.d_endoCol, common.endo_mem));
+    checkCudaErrors(cudaMemcpy(common.d_endoCol, common.endoCol,
+                               common.endo_mem, cudaMemcpyHostToDevice));
+
+    common.tEndoRowLoc = (int *)malloc(common.endo_mem * common.no_frames);
+    checkCudaErrors(cudaMalloc((void **)&common.d_tEndoRowLoc,
+                               common.endo_mem * common.no_frames));
+
+    common.tEndoColLoc = (int *)malloc(common.endo_mem * common.no_frames);
+    checkCudaErrors(cudaMalloc((void **)&common.d_tEndoColLoc,
+                               common.endo_mem * common.no_frames));
+
+    //====================================================================================================
+    //	EPI POINTS
+    //====================================================================================================
+
+    common.epiPoints = EPI_POINTS;
+    common.epi_mem = sizeof(int) * common.epiPoints;
+
+    common.epiRow = (int *)malloc(common.epi_mem);
+    common.epiRow[0] = 390;
+    common.epiRow[1] = 419;
+    common.epiRow[2] = 448;
+    common.epiRow[3] = 474;
+    common.epiRow[4] = 501;
+    common.epiRow[5] = 519;
+    common.epiRow[6] = 535;
+    common.epiRow[7] = 542;
+    common.epiRow[8] = 543;
+    common.epiRow[9] = 538;
+    common.epiRow[10] = 528;
+    common.epiRow[11] = 511;
+    common.epiRow[12] = 491;
+    common.epiRow[13] = 466;
+    common.epiRow[14] = 438;
+    common.epiRow[15] = 406;
+    common.epiRow[16] = 376;
+    common.epiRow[17] = 347;
+    common.epiRow[18] = 318;
+    common.epiRow[19] = 291;
+    common.epiRow[20] = 275;
+    common.epiRow[21] = 259;
+    common.epiRow[22] = 256;
+    common.epiRow[23] = 252;
+    common.epiRow[24] = 252;
+    common.epiRow[25] = 257;
+    common.epiRow[26] = 266;
+    common.epiRow[27] = 283;
+    common.epiRow[28] = 305;
+    common.epiRow[29] = 331;
+    common.epiRow[30] = 360;
+    checkCudaErrors(cudaMalloc((void **)&common.d_epiRow, common.epi_mem));
+    checkCudaErrors(cudaMemcpy(common.d_epiRow, common.epiRow, common.epi_mem,
+                               cudaMemcpyHostToDevice));
+
+    common.epiCol = (int *)malloc(common.epi_mem);
+    common.epiCol[0] = 457;
+    common.epiCol[1] = 454;
+    common.epiCol[2] = 446;
+    common.epiCol[3] = 431;
+    common.epiCol[4] = 411;
+    common.epiCol[5] = 388;
+    common.epiCol[6] = 361;
+    common.epiCol[7] = 331;
+    common.epiCol[8] = 301;
+    common.epiCol[9] = 273;
+    common.epiCol[10] = 243;
+    common.epiCol[11] = 218;
+    common.epiCol[12] = 196;
+    common.epiCol[13] = 178;
+    common.epiCol[14] = 166;
+    common.epiCol[15] = 157;
+    common.epiCol[16] = 155;
+    common.epiCol[17] = 165;
+    common.epiCol[18] = 177;
+    common.epiCol[19] = 197;
+    common.epiCol[20] = 218;
+    common.epiCol[21] = 248;
+    common.epiCol[22] = 276;
+    common.epiCol[23] = 304;
+    common.epiCol[24] = 333;
+    common.epiCol[25] = 361;
+    common.epiCol[26] = 391;
+    common.epiCol[27] = 415;
+    common.epiCol[28] = 434;
+    common.epiCol[29] = 448;
+    common.epiCol[30] = 455;
+    checkCudaErrors(cudaMalloc((void **)&common.d_epiCol, common.epi_mem));
+    checkCudaErrors(cudaMemcpy(common.d_epiCol, common.epiCol, common.epi_mem,
+                               cudaMemcpyHostToDevice));
+
+    common.tEpiRowLoc = (int *)malloc(common.epi_mem * common.no_frames);
+    checkCudaErrors(cudaMalloc((void **)&common.d_tEpiRowLoc,
+                               common.epi_mem * common.no_frames));
+
+    common.tEpiColLoc = (int *)malloc(common.epi_mem * common.no_frames);
+    checkCudaErrors(cudaMalloc((void **)&common.d_tEpiColLoc,
+                               common.epi_mem * common.no_frames));
+
+    //====================================================================================================
+    //	ALL POINTS
+    //====================================================================================================
+
+    common.allPoints = ALL_POINTS;
+
+    //======================================================================================================================================================
+    // 	TEMPLATE SIZES
+    //======================================================================================================================================================
+
+    // common
+    common.in_rows = common.tSize + 1 + common.tSize;
+    common.in_cols = common.in_rows;
+    common.in_elem = common.in_rows * common.in_cols;
+    common.in_mem = sizeof(fp) * common.in_elem;
+
+    //======================================================================================================================================================
+    // 	CREATE ARRAY OF TEMPLATES FOR ALL POINTS
+    //======================================================================================================================================================
+
+    // common
+    checkCudaErrors(cudaMalloc((void **)&common.d_endoT,
+                               common.in_mem * common.endoPoints));
+    checkCudaErrors(
+        cudaMalloc((void **)&common.d_epiT, common.in_mem * common.epiPoints));
+
+    //======================================================================================================================================================
+    //	SPECIFIC TO ENDO OR EPI TO BE SET HERE
+    //======================================================================================================================================================
+
+    for (i = 0; i < common.endoPoints; i++) {
+        unique[i].point_no = i;
+        unique[i].d_Row = common.d_endoRow;
+        unique[i].d_Col = common.d_endoCol;
+        unique[i].d_tRowLoc = common.d_tEndoRowLoc;
+        unique[i].d_tColLoc = common.d_tEndoColLoc;
+        unique[i].d_T = common.d_endoT;
+    }
+    for (i = common.endoPoints; i < common.allPoints; i++) {
+        unique[i].point_no = i - common.endoPoints;
+        unique[i].d_Row = common.d_epiRow;
+        unique[i].d_Col = common.d_epiCol;
+        unique[i].d_tRowLoc = common.d_tEpiRowLoc;
+        unique[i].d_tColLoc = common.d_tEpiColLoc;
+        unique[i].d_T = common.d_epiT;
+    }
+
+    //======================================================================================================================================================
+    // 	RIGHT TEMPLATE 	FROM 	TEMPLATE ARRAY
+    //======================================================================================================================================================
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        unique[i].in_pointer = unique[i].point_no * common.in_elem;
+    }
+
+    //======================================================================================================================================================
+    // 	AREA AROUND POINT		FROM	FRAME
+    //======================================================================================================================================================
+
+    // common
+    common.in2_rows = 2 * common.sSize + 1;
+    common.in2_cols = 2 * common.sSize + 1;
+    common.in2_elem = common.in2_rows * common.in2_cols;
+    common.in2_mem = sizeof(float) * common.in2_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2, common.in2_mem));
+    }
+
+    //======================================================================================================================================================
+    // 	CONVOLUTION
+    //======================================================================================================================================================
+
+    // common
+    common.conv_rows =
+        common.in_rows + common.in2_rows - 1; // number of rows in I
+    common.conv_cols =
+        common.in_cols + common.in2_cols - 1; // number of columns in I
+    common.conv_elem =
+        common.conv_rows * common.conv_cols; // number of elements
+    common.conv_mem = sizeof(float) * common.conv_elem;
+    common.ioffset = 0;
+    common.joffset = 0;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_conv, common.conv_mem));
+    }
+
+    //======================================================================================================================================================
+    // 	CUMULATIVE SUM
+    //======================================================================================================================================================
+
+    //====================================================================================================
+    // 	PADDING OF ARRAY, VERTICAL CUMULATIVE SUM
+    //====================================================================================================
+
+    // common
+    common.in2_pad_add_rows = common.in_rows;
+    common.in2_pad_add_cols = common.in_cols;
+
+    common.in2_pad_cumv_rows = common.in2_rows + 2 * common.in2_pad_add_rows;
+    common.in2_pad_cumv_cols = common.in2_cols + 2 * common.in2_pad_add_cols;
+    common.in2_pad_cumv_elem =
+        common.in2_pad_cumv_rows * common.in2_pad_cumv_cols;
+    common.in2_pad_cumv_mem = sizeof(float) * common.in2_pad_cumv_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv,
+                                   common.in2_pad_cumv_mem));
+    }
+
+    //====================================================================================================
+    // 	SELECTION
+    //====================================================================================================
+
+    // common
+    common.in2_pad_cumv_sel_rowlow = 1 + common.in_rows; // (1 to n+1)
+    common.in2_pad_cumv_sel_rowhig = common.in2_pad_cumv_rows - 1;
+    common.in2_pad_cumv_sel_collow = 1;
+    common.in2_pad_cumv_sel_colhig = common.in2_pad_cumv_cols;
+    common.in2_pad_cumv_sel_rows =
+        common.in2_pad_cumv_sel_rowhig - common.in2_pad_cumv_sel_rowlow + 1;
+    common.in2_pad_cumv_sel_cols =
+        common.in2_pad_cumv_sel_colhig - common.in2_pad_cumv_sel_collow + 1;
+    common.in2_pad_cumv_sel_elem =
+        common.in2_pad_cumv_sel_rows * common.in2_pad_cumv_sel_cols;
+    common.in2_pad_cumv_sel_mem = sizeof(float) * common.in2_pad_cumv_sel_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_pad_cumv_sel,
+                                   common.in2_pad_cumv_sel_mem));
+    }
+
+    //====================================================================================================
+    // 	SELECTION	2, SUBTRACTION, HORIZONTAL CUMULATIVE SUM
+    //====================================================================================================
+
+    // common
+    common.in2_pad_cumv_sel2_rowlow = 1;
+    common.in2_pad_cumv_sel2_rowhig =
+        common.in2_pad_cumv_rows - common.in_rows - 1;
+    common.in2_pad_cumv_sel2_collow = 1;
+    common.in2_pad_cumv_sel2_colhig = common.in2_pad_cumv_cols;
+    common.in2_sub_cumh_rows =
+        common.in2_pad_cumv_sel2_rowhig - common.in2_pad_cumv_sel2_rowlow + 1;
+    common.in2_sub_cumh_cols =
+        common.in2_pad_cumv_sel2_colhig - common.in2_pad_cumv_sel2_collow + 1;
+    common.in2_sub_cumh_elem =
+        common.in2_sub_cumh_rows * common.in2_sub_cumh_cols;
+    common.in2_sub_cumh_mem = sizeof(float) * common.in2_sub_cumh_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh,
+                                   common.in2_sub_cumh_mem));
+    }
+
+    //====================================================================================================
+    // 	SELECTION
+    //====================================================================================================
+
+    // common
+    common.in2_sub_cumh_sel_rowlow = 1;
+    common.in2_sub_cumh_sel_rowhig = common.in2_sub_cumh_rows;
+    common.in2_sub_cumh_sel_collow = 1 + common.in_cols;
+    common.in2_sub_cumh_sel_colhig = common.in2_sub_cumh_cols - 1;
+    common.in2_sub_cumh_sel_rows =
+        common.in2_sub_cumh_sel_rowhig - common.in2_sub_cumh_sel_rowlow + 1;
+    common.in2_sub_cumh_sel_cols =
+        common.in2_sub_cumh_sel_colhig - common.in2_sub_cumh_sel_collow + 1;
+    common.in2_sub_cumh_sel_elem =
+        common.in2_sub_cumh_sel_rows * common.in2_sub_cumh_sel_cols;
+    common.in2_sub_cumh_sel_mem = sizeof(float) * common.in2_sub_cumh_sel_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sub_cumh_sel,
+                                   common.in2_sub_cumh_sel_mem));
+    }
+
+    //====================================================================================================
+    //	SELECTION 2, SUBTRACTION
+    //====================================================================================================
+
+    // common
+    common.in2_sub_cumh_sel2_rowlow = 1;
+    common.in2_sub_cumh_sel2_rowhig = common.in2_sub_cumh_rows;
+    common.in2_sub_cumh_sel2_collow = 1;
+    common.in2_sub_cumh_sel2_colhig =
+        common.in2_sub_cumh_cols - common.in_cols - 1;
+    common.in2_sub2_rows =
+        common.in2_sub_cumh_sel2_rowhig - common.in2_sub_cumh_sel2_rowlow + 1;
+    common.in2_sub2_cols =
+        common.in2_sub_cumh_sel2_colhig - common.in2_sub_cumh_sel2_collow + 1;
+    common.in2_sub2_elem = common.in2_sub2_rows * common.in2_sub2_cols;
+    common.in2_sub2_mem = sizeof(float) * common.in2_sub2_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_in2_sub2, common.in2_sub2_mem));
+    }
+
+    //======================================================================================================================================================
+    //	CUMULATIVE SUM 2
+    //======================================================================================================================================================
+
+    //====================================================================================================
+    //	MULTIPLICATION
+    //====================================================================================================
+
+    // common
+    common.in2_sqr_rows = common.in2_rows;
+    common.in2_sqr_cols = common.in2_cols;
+    common.in2_sqr_elem = common.in2_elem;
+    common.in2_sqr_mem = common.in2_mem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_in2_sqr, common.in2_sqr_mem));
+    }
+
+    //====================================================================================================
+    //	SELECTION 2, SUBTRACTION
+    //====================================================================================================
+
+    // common
+    common.in2_sqr_sub2_rows = common.in2_sub2_rows;
+    common.in2_sqr_sub2_cols = common.in2_sub2_cols;
+    common.in2_sqr_sub2_elem = common.in2_sub2_elem;
+    common.in2_sqr_sub2_mem = common.in2_sub2_mem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaMalloc((void **)&unique[i].d_in2_sqr_sub2,
+                                   common.in2_sqr_sub2_mem));
+    }
+
+    //======================================================================================================================================================
+    //	FINAL
+    //======================================================================================================================================================
+
+    // common
+    common.in_sqr_rows = common.in_rows;
+    common.in_sqr_cols = common.in_cols;
+    common.in_sqr_elem = common.in_elem;
+    common.in_sqr_mem = common.in_mem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_in_sqr, common.in_sqr_mem));
+    }
+
+    //======================================================================================================================================================
+    //	TEMPLATE MASK CREATE
+    //======================================================================================================================================================
+
+    // common
+    common.tMask_rows = common.in_rows + (common.sSize + 1 + common.sSize) - 1;
+    common.tMask_cols = common.tMask_rows;
+    common.tMask_elem = common.tMask_rows * common.tMask_cols;
+    common.tMask_mem = sizeof(float) * common.tMask_elem;
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_tMask, common.tMask_mem));
+    }
+
+    //======================================================================================================================================================
+    //	POINT MASK INITIALIZE
+    //======================================================================================================================================================
+
+    // common
+    common.mask_rows = common.maxMove;
+    common.mask_cols = common.mask_rows;
+    common.mask_elem = common.mask_rows * common.mask_cols;
+    common.mask_mem = sizeof(float) * common.mask_elem;
+
+    //======================================================================================================================================================
+    //	MASK CONVOLUTION
+    //======================================================================================================================================================
+
+    // common
+    common.mask_conv_rows = common.tMask_rows; // number of rows in I
+    common.mask_conv_cols = common.tMask_cols; // number of columns in I
+    common.mask_conv_elem =
+        common.mask_conv_rows * common.mask_conv_cols; // number of elements
+    common.mask_conv_mem = sizeof(float) * common.mask_conv_elem;
+    common.mask_conv_ioffset = (common.mask_rows - 1) / 2;
+    if ((common.mask_rows - 1) % 2 > 0.5) {
+        common.mask_conv_ioffset = common.mask_conv_ioffset + 1;
+    }
+    common.mask_conv_joffset = (common.mask_cols - 1) / 2;
+    if ((common.mask_cols - 1) % 2 > 0.5) {
+        common.mask_conv_joffset = common.mask_conv_joffset + 1;
+    }
+
+    // pointers
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(
+            cudaMalloc((void **)&unique[i].d_mask_conv, common.mask_conv_mem));
+    }
+
+    //======================================================================================================================================================
+    //	KERNEL
+    //======================================================================================================================================================
+
+    //====================================================================================================
+    //	THREAD BLOCK
+    //====================================================================================================
+
+    // All kernels operations within kernel use same max size of threads. Size
+    // of block size is set to the size appropriate for max size operation (on
+    // padded matrix). Other use subsets of that.
+    threads.x = NUMBER_THREADS; // define the number of threads in the block
+    threads.y = 1;
+    blocks.x = common.allPoints; // define the number of blocks in the grid
+    blocks.y = 1;
+
+    //====================================================================================================
+    //	COPY ARGUMENTS
+    //====================================================================================================
 
     checkCudaErrors(cudaMalloc(&d_common, sizeof(params_common)));
-	checkCudaErrors(cudaMemcpy(d_common, &common, sizeof(params_common), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMalloc(&d_unique, sizeof(params_unique)*ALL_POINTS));
-	checkCudaErrors(cudaMemcpy(d_unique, &unique, sizeof(params_unique)*ALL_POINTS, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_common, &common, sizeof(params_common),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&d_unique, sizeof(params_unique) * ALL_POINTS));
+    checkCudaErrors(cudaMemcpy(d_unique, &unique,
+                               sizeof(params_unique) * ALL_POINTS,
+                               cudaMemcpyHostToDevice));
 
-	//====================================================================================================
-	//	PRINT FRAME PROGRESS START
-	//====================================================================================================
+    //====================================================================================================
+    //	PRINT FRAME PROGRESS START
+    //====================================================================================================
 
-	printf("frame progress: ");
-	fflush(NULL);
+    printf("frame progress: ");
+    fflush(NULL);
 
-	//====================================================================================================
-	//	LAUNCH
-	//====================================================================================================
+    //====================================================================================================
+    //	LAUNCH
+    //====================================================================================================
 
-	for(common_change.frame_no=0; common_change.frame_no<frames_processed; common_change.frame_no++){
+    for (common_change.frame_no = 0; common_change.frame_no < frames_processed;
+         common_change.frame_no++) {
 
-		// Extract a cropped version of the first frame from the video file
-		frame = get_frame(	frames,						// pointer to video file
-										common_change.frame_no,				// number of frame that needs to be returned
-										0,								// cropped?
-										0,								// scaled?
-										1);							// converted
+        // Extract a cropped version of the first frame from the video file
+        frame = get_frame(
+            frames,                 // pointer to video file
+            common_change.frame_no, // number of frame that needs to be returned
+            0,                      // cropped?
+            0,                      // scaled?
+            1);                     // converted
 
-		// copy frame to GPU memory
-		checkCudaErrors(cudaMemcpy(common_change.d_frame, frame, common.frame_mem, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMalloc(&d_common_change, sizeof(params_common_change)));
-		checkCudaErrors(cudaMemcpy(d_common_change, &common_change, sizeof(params_common_change), cudaMemcpyHostToDevice));
+        // copy frame to GPU memory
+        checkCudaErrors(cudaMemcpy(common_change.d_frame, frame,
+                                   common.frame_mem, cudaMemcpyHostToDevice));
+        checkCudaErrors(
+            cudaMalloc(&d_common_change, sizeof(params_common_change)));
+        checkCudaErrors(cudaMemcpy(d_common_change, &common_change,
+                                   sizeof(params_common_change),
+                                   cudaMemcpyHostToDevice));
 
-		// launch GPU kernel
-		kernel<<<blocks, threads>>>(d_common_change, d_common, d_unique);
+        // launch GPU kernel
+        kernel<<<blocks, threads>>>(d_common_change, d_common, d_unique);
 
-		// free frame after each loop iteration, since AVI library allocates memory for every frame fetched
-		free(frame);
+        // free frame after each loop iteration, since AVI library allocates
+        // memory for every frame fetched
+        free(frame);
 
-		// print frame progress
-		printf("%d ", common_change.frame_no);
-		fflush(NULL);
+        // print frame progress
+        printf("%d ", common_change.frame_no);
+        fflush(NULL);
+    }
 
-	}
+    //====================================================================================================
+    //	PRINT FRAME PROGRESS END
+    //====================================================================================================
 
-	//====================================================================================================
-	//	PRINT FRAME PROGRESS END
-	//====================================================================================================
+    printf("\n");
+    fflush(NULL);
 
-	printf("\n");
-	fflush(NULL);
+    //====================================================================================================
+    //	OUTPUT
+    //====================================================================================================
 
-	//====================================================================================================
-	//	OUTPUT
-	//====================================================================================================
+    checkCudaErrors(cudaMemcpy(common.tEndoRowLoc, common.d_tEndoRowLoc,
+                               common.endo_mem * common.no_frames,
+                               cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(common.tEndoColLoc, common.d_tEndoColLoc,
+                               common.endo_mem * common.no_frames,
+                               cudaMemcpyDeviceToHost));
 
-	checkCudaErrors(cudaMemcpy(common.tEndoRowLoc, common.d_tEndoRowLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(common.tEndoColLoc, common.d_tEndoColLoc, common.endo_mem * common.no_frames, cudaMemcpyDeviceToHost));
-
-	checkCudaErrors(cudaMemcpy(common.tEpiRowLoc, common.d_tEpiRowLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(common.tEpiColLoc, common.d_tEpiColLoc, common.epi_mem * common.no_frames, cudaMemcpyDeviceToHost));
-
-
-
-	//==================================================50
-	//	DUMP DATA TO FILE
-	//==================================================50
-	if(getenv("OUTPUT")) {
-		write_data(	"output.txt",
-				common.no_frames,
-				frames_processed,		
-					common.endoPoints,
-					common.tEndoRowLoc,
-					common.tEndoColLoc,
-					common.epiPoints,
-					common.tEpiRowLoc,
-					common.tEpiColLoc);
-	}
-
-	//==================================================50
-	//	End
-	//==================================================50
+    checkCudaErrors(cudaMemcpy(common.tEpiRowLoc, common.d_tEpiRowLoc,
+                               common.epi_mem * common.no_frames,
+                               cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(common.tEpiColLoc, common.d_tEpiColLoc,
+                               common.epi_mem * common.no_frames,
+                               cudaMemcpyDeviceToHost));
 
 
+    //==================================================50
+    //	DUMP DATA TO FILE
+    //==================================================50
+    if (getenv("OUTPUT")) {
+        write_data("output.txt", common.no_frames, frames_processed,
+                   common.endoPoints, common.tEndoRowLoc, common.tEndoColLoc,
+                   common.epiPoints, common.tEpiRowLoc, common.tEpiColLoc);
+    }
 
-	//======================================================================================================================================================
-	//	DEALLOCATION
-	//======================================================================================================================================================
+    //==================================================50
+    //	End
+    //==================================================50
 
-	//====================================================================================================
-	//	COMMON
-	//====================================================================================================
 
-	// frame
-	checkCudaErrors(cudaFree(common_change.d_frame));
+    //======================================================================================================================================================
+    //	DEALLOCATION
+    //======================================================================================================================================================
 
-	// endo points
-	free(common.endoRow);
-	free(common.endoCol);
-	free(common.tEndoRowLoc);
-	free(common.tEndoColLoc);
+    //====================================================================================================
+    //	COMMON
+    //====================================================================================================
 
-	checkCudaErrors(cudaFree(common.d_endoRow));
-	checkCudaErrors(cudaFree(common.d_endoCol));
-	checkCudaErrors(cudaFree(common.d_tEndoRowLoc));
-	checkCudaErrors(cudaFree(common.d_tEndoColLoc));
+    // frame
+    checkCudaErrors(cudaFree(common_change.d_frame));
 
-	checkCudaErrors(cudaFree(common.d_endoT));
+    // endo points
+    free(common.endoRow);
+    free(common.endoCol);
+    free(common.tEndoRowLoc);
+    free(common.tEndoColLoc);
 
-	// epi points
-	free(common.epiRow);
-	free(common.epiCol);
-	free(common.tEpiRowLoc);
-	free(common.tEpiColLoc);
+    checkCudaErrors(cudaFree(common.d_endoRow));
+    checkCudaErrors(cudaFree(common.d_endoCol));
+    checkCudaErrors(cudaFree(common.d_tEndoRowLoc));
+    checkCudaErrors(cudaFree(common.d_tEndoColLoc));
 
-	checkCudaErrors(cudaFree(common.d_epiRow));
-	checkCudaErrors(cudaFree(common.d_epiCol));
-	checkCudaErrors(cudaFree(common.d_tEpiRowLoc));
-	checkCudaErrors(cudaFree(common.d_tEpiColLoc));
+    checkCudaErrors(cudaFree(common.d_endoT));
 
-	checkCudaErrors(cudaFree(common.d_epiT));
+    // epi points
+    free(common.epiRow);
+    free(common.epiCol);
+    free(common.tEpiRowLoc);
+    free(common.tEpiColLoc);
 
-	//====================================================================================================
-	//	POINTERS
-	//====================================================================================================
+    checkCudaErrors(cudaFree(common.d_epiRow));
+    checkCudaErrors(cudaFree(common.d_epiCol));
+    checkCudaErrors(cudaFree(common.d_tEpiRowLoc));
+    checkCudaErrors(cudaFree(common.d_tEpiColLoc));
 
-	for(i=0; i<common.allPoints; i++){
-		checkCudaErrors(cudaFree(unique[i].d_in2));
+    checkCudaErrors(cudaFree(common.d_epiT));
 
-		checkCudaErrors(cudaFree(unique[i].d_conv));
-		checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv));
-		checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv_sel));
-		checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh));
-		checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh_sel));
-		checkCudaErrors(cudaFree(unique[i].d_in2_sub2));
-		checkCudaErrors(cudaFree(unique[i].d_in2_sqr));
-		checkCudaErrors(cudaFree(unique[i].d_in2_sqr_sub2));
-		checkCudaErrors(cudaFree(unique[i].d_in_sqr));
+    //====================================================================================================
+    //	POINTERS
+    //====================================================================================================
 
-		checkCudaErrors(cudaFree(unique[i].d_tMask));
-		checkCudaErrors(cudaFree(unique[i].d_mask_conv));
-	}
+    for (i = 0; i < common.allPoints; i++) {
+        checkCudaErrors(cudaFree(unique[i].d_in2));
 
+        checkCudaErrors(cudaFree(unique[i].d_conv));
+        checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv));
+        checkCudaErrors(cudaFree(unique[i].d_in2_pad_cumv_sel));
+        checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh));
+        checkCudaErrors(cudaFree(unique[i].d_in2_sub_cumh_sel));
+        checkCudaErrors(cudaFree(unique[i].d_in2_sub2));
+        checkCudaErrors(cudaFree(unique[i].d_in2_sqr));
+        checkCudaErrors(cudaFree(unique[i].d_in2_sqr_sub2));
+        checkCudaErrors(cudaFree(unique[i].d_in_sqr));
+
+        checkCudaErrors(cudaFree(unique[i].d_tMask));
+        checkCudaErrors(cudaFree(unique[i].d_mask_conv));
+    }
 }
 
 //===============================================================================================================================================================================================================

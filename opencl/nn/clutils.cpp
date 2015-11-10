@@ -1,4 +1,4 @@
-/****************************************************************************\ 
+/****************************************************************************\
  * Copyright (c) 2011, Advanced Micro Devices, Inc.                           *
  * All rights reserved.                                                       *
  *                                                                            *
@@ -64,12 +64,12 @@
 // the utility functions
 
 //! All discoverable OpenCL platforms
-static cl_platform_id* platforms = NULL;
+static cl_platform_id *platforms = NULL;
 static cl_uint numPlatforms;
 
 //! All discoverable OpenCL devices (one pointer per platform)
-static cl_device_id** devices = NULL;
-static cl_uint* numDevices;
+static cl_device_id **devices = NULL;
+static cl_uint *numDevices;
 
 //! The chosen OpenCL platform
 static cl_platform_id platform = NULL;
@@ -78,10 +78,10 @@ static cl_platform_id platform = NULL;
 static cl_device_id device = NULL;
 
 //! OpenCL context
-static cl_context context = NULL;        
+static cl_context context = NULL;
 
 //! OpenCL command queue
-static cl_command_queue commandQueue = NULL;  
+static cl_command_queue commandQueue = NULL;
 static cl_command_queue commandQueueProf = NULL;
 static cl_command_queue commandQueueNoProf = NULL;
 
@@ -95,61 +95,59 @@ static bool eventsEnabled = false;
 
 //! Initialize OpenCl environment on one device
 /*!
-    Init function for one device. Looks for supported devices and creates a context
-    \return returns a context initialized 
+    Init function for one device. Looks for supported devices and creates a
+   context
+    \return returns a context initialized
 */
-cl_context cl_init(char devicePreference) 
-{
-    cl_int status;   
+cl_context cl_init(char devicePreference) {
+    cl_int status;
 
     // Discover and populate the platforms
     status = clGetPlatformIDs(0, NULL, &numPlatforms);
     cl_errChk(status, "Getting platform IDs", true);
-    if (numPlatforms > 0) 
-    {
+    if (numPlatforms > 0) {
         // Get all the platforms
-        platforms = (cl_platform_id*)alloc(numPlatforms * 
-            sizeof(cl_platform_id));
+        platforms =
+            (cl_platform_id *)alloc(numPlatforms * sizeof(cl_platform_id));
 
         status = clGetPlatformIDs(numPlatforms, platforms, NULL);
         cl_errChk(status, "Getting platform IDs", true);
-    }
-    else 
-    {
+    } else {
         // If no platforms are available, we shouldn't continue
         printf("No OpenCL platforms found\n");
         exit(-1);
     }
 
     // Allocate space for the device lists and lengths
-    numDevices = (cl_uint*)alloc(sizeof(cl_uint)*numPlatforms);
-    devices = (cl_device_id**)alloc(sizeof(cl_device_id*)*numPlatforms);
+    numDevices = (cl_uint *)alloc(sizeof(cl_uint) * numPlatforms);
+    devices = (cl_device_id **)alloc(sizeof(cl_device_id *) * numPlatforms);
 
     // If a device preference was supplied, we'll limit the search of devices
     // based on type
     cl_device_type deviceType = CL_DEVICE_TYPE_ALL;
-    if(devicePreference == 'c') {
+    if (devicePreference == 'c') {
         deviceType = CL_DEVICE_TYPE_CPU;
     }
-    if(devicePreference == 'g') {
+    if (devicePreference == 'g') {
         deviceType = CL_DEVICE_TYPE_GPU;
     }
 
     // Traverse the platforms array printing information and
     // populating devices
-    for(unsigned int i = 0; i < numPlatforms ; i++) 
-    {
+    for (unsigned int i = 0; i < numPlatforms; i++) {
         // Print out some basic info about the platform
-        char* platformName = NULL;
-        char* platformVendor = NULL;
-            
+        char *platformName = NULL;
+        char *platformVendor = NULL;
+
         platformName = cl_getPlatformName(platforms[i]);
         platformVendor = cl_getPlatformVendor(platforms[i]);
 
-        status = clGetDeviceIDs(platforms[i], deviceType, 0, NULL, &numDevices[i]);     
+        status =
+            clGetDeviceIDs(platforms[i], deviceType, 0, NULL, &numDevices[i]);
         cl_errChk(status, "Getting device IDs", false);
-        if(status != CL_SUCCESS) {
-            printf("This is a known NVIDIA bug (if platform == AMD then die)\n");
+        if (status != CL_SUCCESS) {
+            printf(
+                "This is a known NVIDIA bug (if platform == AMD then die)\n");
             printf("Setting number of devices to 0 and continuing\n");
             numDevices[i] = 0;
         }
@@ -162,48 +160,47 @@ cl_context cl_init(char devicePreference)
         free(platformVendor);
 
         // Populate OpenCL devices if any exist
-        if(numDevices[i] != 0) 
-        {
-            // Allocate an array of devices of size "numDevices" 
-            devices[i] = (cl_device_id*)alloc(sizeof(cl_device_id)*numDevices[i]);
+        if (numDevices[i] != 0) {
+            // Allocate an array of devices of size "numDevices"
+            devices[i] =
+                (cl_device_id *)alloc(sizeof(cl_device_id) * numDevices[i]);
 
             // Populate Arrray with devices
-            status = clGetDeviceIDs(platforms[i], deviceType, numDevices[i],            
-                devices[i], NULL);      
-            cl_errChk(status, "Getting device IDs", true);                                      
+            status = clGetDeviceIDs(platforms[i], deviceType, numDevices[i],
+                                    devices[i], NULL);
+            cl_errChk(status, "Getting device IDs", true);
         }
 
         // Print some information about each device
-        for( unsigned int j = 0; j < numDevices[i]; j++) 
-        {
-            char* deviceName = NULL;
-            char* deviceVendor = NULL;
+        for (unsigned int j = 0; j < numDevices[i]; j++) {
+            char *deviceName = NULL;
+            char *deviceVendor = NULL;
 
             printf("\tDevice %d:\n", j);
 
             deviceName = cl_getDeviceName(devices[i][j]);
             deviceVendor = cl_getDeviceVendor(devices[i][j]);
-                
+
             printf("\t\tName: %s\n", deviceName);
-            printf("\t\tVendor: %s\n", deviceVendor);   
+            printf("\t\tVendor: %s\n", deviceVendor);
 
             free(deviceName);
             free(deviceVendor);
-        }                       
-    }   
+        }
+    }
 
-    // Hard-code in the platform/device to use, or uncomment 'scanf' 
+    // Hard-code in the platform/device to use, or uncomment 'scanf'
     // to decide at runtime
     cl_uint chosen_platform, chosen_device;
     // UNCOMMENT the following two lines to manually select device each time
-    //printf("Enter Platform and Device No (Seperated by Space) \n");
-    //scanf("%d %d", &chosen_platform, &chosen_device); 
-    chosen_platform = 0; 
+    // printf("Enter Platform and Device No (Seperated by Space) \n");
+    // scanf("%d %d", &chosen_platform, &chosen_device);
+    chosen_platform = 0;
     chosen_device = 0;
     printf("Using Platform %d, Device %d \n", chosen_platform, chosen_device);
 
     // Do a sanity check of platform/device selection
-    if(chosen_platform >= numPlatforms || 
+    if (chosen_platform >= numPlatforms ||
         chosen_device >= numDevices[chosen_platform]) {
         printf("Invalid platform/device combination\n");
         exit(-1);
@@ -214,195 +211,202 @@ cl_context cl_init(char devicePreference)
     device = devices[chosen_platform][chosen_device];
 
     // Create the context
-    cl_context_properties cps[3] = {CL_CONTEXT_PLATFORM, 
-        (cl_context_properties)(platform), 0};
-    context = clCreateContext(cps, 1, &device, NULL, NULL, &status);    
+    cl_context_properties cps[3] = {CL_CONTEXT_PLATFORM,
+                                    (cl_context_properties)(platform), 0};
+    context = clCreateContext(cps, 1, &device, NULL, NULL, &status);
     cl_errChk(status, "Creating context", true);
- 
+
     // Create the command queue
-    commandQueueProf = clCreateCommandQueue(context, device, 
-                            CL_QUEUE_PROFILING_ENABLE, &status);
+    commandQueueProf = clCreateCommandQueue(context, device,
+                                            CL_QUEUE_PROFILING_ENABLE, &status);
     cl_errChk(status, "creating command queue", true);
 
     commandQueueNoProf = clCreateCommandQueue(context, device, 0, &status);
     cl_errChk(status, "creating command queue", true);
 
-    if(eventsEnabled) {
+    if (eventsEnabled) {
         printf("Profiling enabled\n");
         commandQueue = commandQueueProf;
-    }
-    else {
+    } else {
         printf("Profiling disabled\n");
         commandQueue = commandQueueNoProf;
     }
 
     return context;
 }
-cl_context cl_init_context(int platform, int dev,int quiet) {
-    int printInfo=1;
-    if (platform >= 0 && dev >= 0) printInfo = 0;
-	cl_int status;
-	// Used to iterate through the platforms and devices, respectively
-	cl_uint numPlatforms;
-	cl_uint numDevices;
+cl_context cl_init_context(int platform, int dev, int quiet) {
+    int printInfo = 1;
+    if (platform >= 0 && dev >= 0)
+        printInfo = 0;
+    cl_int status;
+    // Used to iterate through the platforms and devices, respectively
+    cl_uint numPlatforms;
+    cl_uint numDevices;
 
-	// These will hold the platform and device we select (can potentially be
-	// multiple, but we're just doing one for now)
-	// cl_platform_id platform = NULL;
+    // These will hold the platform and device we select (can potentially be
+    // multiple, but we're just doing one for now)
+    // cl_platform_id platform = NULL;
 
-	status = clGetPlatformIDs(0, NULL, &numPlatforms);
-	if (printInfo) printf("Number of platforms detected:%d\n", numPlatforms);
+    status = clGetPlatformIDs(0, NULL, &numPlatforms);
+    if (printInfo)
+        printf("Number of platforms detected:%d\n", numPlatforms);
 
-	// Print some information about the available platforms
-	cl_platform_id *platforms = NULL;
-	cl_device_id * devices = NULL;
-	if (numPlatforms > 0)
-	{
-		// get all the platforms
-		platforms = (cl_platform_id*)malloc(numPlatforms *
-			sizeof(cl_platform_id));
-		status = clGetPlatformIDs(numPlatforms, platforms, NULL);
+    // Print some information about the available platforms
+    cl_platform_id *platforms = NULL;
+    cl_device_id *devices = NULL;
+    if (numPlatforms > 0) {
+        // get all the platforms
+        platforms =
+            (cl_platform_id *)malloc(numPlatforms * sizeof(cl_platform_id));
+        status = clGetPlatformIDs(numPlatforms, platforms, NULL);
 
-		// Traverse the platforms array
-		if (printInfo) printf("Checking For OpenCl Compatible Devices\n");
-		for(unsigned int i = 0; i < numPlatforms ; i++)
-		{
-			char pbuf[100];
-			if (printInfo) printf("Platform %d:\t", i);
-			status = clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-				sizeof(pbuf), pbuf, NULL);
-			if (printInfo) printf("Vendor: %s\n", pbuf);
+        // Traverse the platforms array
+        if (printInfo)
+            printf("Checking For OpenCl Compatible Devices\n");
+        for (unsigned int i = 0; i < numPlatforms; i++) {
+            char pbuf[100];
+            if (printInfo)
+                printf("Platform %d:\t", i);
+            status = clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
+                                       sizeof(pbuf), pbuf, NULL);
+            if (printInfo)
+                printf("Vendor: %s\n", pbuf);
 
-			//unsigned int numDevices;
+            // unsigned int numDevices;
 
-			status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
-			if(cl_errChk(status, "checking for devices",true))
-				exit(1);
-			if(numDevices == 0) {
-				printf("There are no devices for Platform %d\n",i);
-				exit(0);
-			}
-			else
-			{
-				if (printInfo) printf("\tNo of devices for Platform %d is %u\n",i, numDevices);
-				//! Allocate an array of devices of size "numDevices"
-				devices = (cl_device_id*)malloc(sizeof(cl_device_id)*numDevices);
-				//! Populate Arrray with devices
-				status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, numDevices,
-					devices, NULL);
-				if(cl_errChk(status, "getting device IDs",true)) {
-					exit(1);
-				}
-			}
-			for( unsigned int j = 0; j < numDevices; j++)
-			{
-				char dbuf[100];
-				char deviceStr[100];
-				if (printInfo) printf("\tDevice: %d\t", j);
-				status = clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR, sizeof(dbuf),
-					deviceStr, NULL);
-				cl_errChk(status, "Getting Device Info\n",true);
-			    if (printInfo) printf("Vendor: %s", deviceStr);
-				status = clGetDeviceInfo(devices[j], CL_DEVICE_NAME, sizeof(dbuf),
-					dbuf, NULL);
-				if (printInfo) printf("\n\t\tName: %s\n", dbuf);
-			}
-		}
-	}
-	else
-	{
-		// If no platforms are available, we're sunk!
-		printf("No OpenCL platforms found\n");
-		exit(0);
-	}
+            status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL,
+                                    &numDevices);
+            if (cl_errChk(status, "checking for devices", true))
+                exit(1);
+            if (numDevices == 0) {
+                printf("There are no devices for Platform %d\n", i);
+                exit(0);
+            } else {
+                if (printInfo)
+                    printf("\tNo of devices for Platform %d is %u\n", i,
+                           numDevices);
+                //! Allocate an array of devices of size "numDevices"
+                devices =
+                    (cl_device_id *)malloc(sizeof(cl_device_id) * numDevices);
+                //! Populate Arrray with devices
+                status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL,
+                                        numDevices, devices, NULL);
+                if (cl_errChk(status, "getting device IDs", true)) {
+                    exit(1);
+                }
+            }
+            for (unsigned int j = 0; j < numDevices; j++) {
+                char dbuf[100];
+                char deviceStr[100];
+                if (printInfo)
+                    printf("\tDevice: %d\t", j);
+                status = clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR,
+                                         sizeof(dbuf), deviceStr, NULL);
+                cl_errChk(status, "Getting Device Info\n", true);
+                if (printInfo)
+                    printf("Vendor: %s", deviceStr);
+                status = clGetDeviceInfo(devices[j], CL_DEVICE_NAME,
+                                         sizeof(dbuf), dbuf, NULL);
+                if (printInfo)
+                    printf("\n\t\tName: %s\n", dbuf);
+            }
+        }
+    } else {
+        // If no platforms are available, we're sunk!
+        printf("No OpenCL platforms found\n");
+        exit(0);
+    }
 
-	int platform_touse;
-	unsigned int device_touse;
-	if (printInfo) printf("Enter Platform and Device No (Seperated by Space) \n");
-	if (printInfo) scanf("%d %d", &platform_touse, &device_touse);
-	else {
-	  platform_touse = platform;
-	  device_touse = dev;
-	}
-	if (!quiet) printf("Using Platform %d \t Device No %d \n",platform_touse, device_touse);
+    int platform_touse;
+    unsigned int device_touse;
+    if (printInfo)
+        printf("Enter Platform and Device No (Seperated by Space) \n");
+    if (printInfo)
+        scanf("%d %d", &platform_touse, &device_touse);
+    else {
+        platform_touse = platform;
+        device_touse = dev;
+    }
+    if (!quiet)
+        printf("Using Platform %d \t Device No %d \n", platform_touse,
+               device_touse);
 
-	//! Recheck how many devices does our chosen platform have
-	status = clGetDeviceIDs(platforms[platform_touse], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
+    //! Recheck how many devices does our chosen platform have
+    status = clGetDeviceIDs(platforms[platform_touse], CL_DEVICE_TYPE_ALL, 0,
+                            NULL, &numDevices);
 
-	if(device_touse > numDevices)
-	{
-		printf("Invalid Device Number\n");
-		exit(1);
-	}
-	
-	//! Populate devices array with all the visible devices of our chosen platform
-	devices = (cl_device_id *)malloc(sizeof(cl_device_id)*numDevices);
-	status = clGetDeviceIDs(platforms[platform_touse],
-					CL_DEVICE_TYPE_ALL, numDevices,
-					devices, NULL);
-	if(cl_errChk(status,"Error in Getting Devices\n",true)) exit(1);
+    if (device_touse > numDevices) {
+        printf("Invalid Device Number\n");
+        exit(1);
+    }
+
+    //! Populate devices array with all the visible devices of our chosen
+    //! platform
+    devices = (cl_device_id *)malloc(sizeof(cl_device_id) * numDevices);
+    status = clGetDeviceIDs(platforms[platform_touse], CL_DEVICE_TYPE_ALL,
+                            numDevices, devices, NULL);
+    if (cl_errChk(status, "Error in Getting Devices\n", true))
+        exit(1);
 
 
-	//!Check if Device requested is a CPU or a GPU
-	cl_device_type dtype;
-	device = devices[device_touse];
-	status = clGetDeviceInfo(devices[device_touse],
-					CL_DEVICE_TYPE,
-					sizeof(dtype),
-					(void *)&dtype,
-					NULL);
-	if(cl_errChk(status,"Error in Getting Device Info\n",true)) exit(1);
-	if(dtype == CL_DEVICE_TYPE_GPU) {
-	  if (!quiet) printf("Creating GPU Context\n\n");
-	}
-	else if (dtype == CL_DEVICE_TYPE_CPU) {
-      if (!quiet) printf("Creating CPU Context\n\n");
-	}
-	else perror("This Context Type Not Supported\n");
+    //! Check if Device requested is a CPU or a GPU
+    cl_device_type dtype;
+    device = devices[device_touse];
+    status = clGetDeviceInfo(devices[device_touse], CL_DEVICE_TYPE,
+                             sizeof(dtype), (void *)&dtype, NULL);
+    if (cl_errChk(status, "Error in Getting Device Info\n", true))
+        exit(1);
+    if (dtype == CL_DEVICE_TYPE_GPU) {
+        if (!quiet)
+            printf("Creating GPU Context\n\n");
+    } else if (dtype == CL_DEVICE_TYPE_CPU) {
+        if (!quiet)
+            printf("Creating CPU Context\n\n");
+    } else
+        perror("This Context Type Not Supported\n");
 
-	cl_context_properties cps[3] = {CL_CONTEXT_PLATFORM,
-		(cl_context_properties)(platforms[platform_touse]), 0};
+    cl_context_properties cps[3] = {
+        CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[platform_touse]),
+        0};
 
-	cl_context_properties *cprops = cps;
+    cl_context_properties *cprops = cps;
 
-	context = clCreateContextFromType(
-					cprops, (cl_device_type)dtype,
-					NULL, NULL, &status);
-	if(cl_errChk(status, "creating Context",true)) {
-		exit(1);
-	}
+    context = clCreateContextFromType(cprops, (cl_device_type)dtype, NULL, NULL,
+                                      &status);
+    if (cl_errChk(status, "creating Context", true)) {
+        exit(1);
+    }
 
 #define PROFILING
 
 #ifdef PROFILING
 
-	commandQueue = clCreateCommandQueue(context,
-						devices[device_touse], CL_QUEUE_PROFILING_ENABLE, &status);
+    commandQueue = clCreateCommandQueue(context, devices[device_touse],
+                                        CL_QUEUE_PROFILING_ENABLE, &status);
 
 #else
 
-	clCommandQueue = clCreateCommandQueue(clGPUContext,
-						devices[device_touse], NULL, &status);
+    clCommandQueue = clCreateCommandQueue(clGPUContext, devices[device_touse],
+                                          NULL, &status);
 
 #endif // PROFILING
 
-	if(cl_errChk(status, "creating command queue",true)) {
-		exit(1);
-	}
-	return context;
+    if (cl_errChk(status, "creating command queue", true)) {
+        exit(1);
+    }
+    return context;
 }
 /*!
     Release all resources that the user doesn't have access to.
 */
-void  cl_cleanup()
-{
+void cl_cleanup() {
     // Free the command queue
-    if(commandQueue) {
+    if (commandQueue) {
         clReleaseCommandQueue(commandQueue);
     }
-    
+
     // Free the context
-    if(context) {
+    if (context) {
         clReleaseContext(context);
     }
 
@@ -417,11 +421,10 @@ void  cl_cleanup()
 /*!
     \param mem The kernel object to release
 */
-void cl_freeKernel(cl_kernel kernel)
-{  
+void cl_freeKernel(cl_kernel kernel) {
     cl_int status;
 
-    if(kernel != NULL) {
+    if (kernel != NULL) {
         status = clReleaseKernel(kernel);
         cl_errChk(status, "Releasing kernel object", true);
     }
@@ -431,11 +434,10 @@ void cl_freeKernel(cl_kernel kernel)
 /*!
     \param mem The device pointer to release
 */
-void cl_freeMem(cl_mem mem)
-{  
+void cl_freeMem(cl_mem mem) {
     cl_int status;
 
-    if(mem != NULL) {
+    if (mem != NULL) {
         status = clReleaseMemObject(mem);
         cl_errChk(status, "Releasing mem object", true);
     }
@@ -445,11 +447,10 @@ void cl_freeMem(cl_mem mem)
 /*!
     \param mem The program object to release
 */
-void cl_freeProgram(cl_program program)
-{  
+void cl_freeProgram(cl_program program) {
     cl_int status;
 
-    if(program != NULL) {
+    if (program != NULL) {
         status = clReleaseProgram(program);
         cl_errChk(status, "Releasing program object", true);
     }
@@ -457,13 +458,11 @@ void cl_freeProgram(cl_program program)
 
 //! Returns a reference to the command queue
 /*!
-	Returns a reference to the command queue \n
-	Used for any OpenCl call that needs the command queue declared in clutils.cpp
+        Returns a reference to the command queue \n
+        Used for any OpenCl call that needs the command queue declared in
+   clutils.cpp
 */
-cl_command_queue cl_getCommandQueue()
-{
-	return commandQueue;
-}
+cl_command_queue cl_getCommandQueue() { return commandQueue; }
 
 //-------------------------------------------------------
 //          Synchronization functions
@@ -472,10 +471,7 @@ cl_command_queue cl_getCommandQueue()
 /*!
     Wait till all pending commands in queue are finished
 */
-void cl_sync() 
-{
-    clFinish(commandQueue);
-}
+void cl_sync() { clFinish(commandQueue); }
 
 
 //-------------------------------------------------------
@@ -488,10 +484,9 @@ void cl_sync()
     \param flags Optional cl_mem_flags
     \return Returns a cl_mem object that points to device memory
 */
-cl_mem cl_allocBuffer(size_t mem_size, cl_mem_flags flags)
-{
+cl_mem cl_allocBuffer(size_t mem_size, cl_mem_flags flags) {
     cl_mem mem;
-    cl_int status;          
+    cl_int status;
 
     /*!
         Logging information for keeping track of device memory
@@ -501,7 +496,7 @@ cl_mem cl_allocBuffer(size_t mem_size, cl_mem_flags flags)
 
     allocationCount++;
     allocationSize += mem_size;
-    
+
     mem = clCreateBuffer(context, flags, mem_size, NULL, &status);
 
     cl_errChk(status, "creating buffer", true);
@@ -515,32 +510,30 @@ cl_mem cl_allocBuffer(size_t mem_size, cl_mem_flags flags)
     \param host_ptr Host pointer that contains the data
     \return Returns a cl_mem object that points to device memory
 */
-cl_mem cl_allocBufferConst(size_t mem_size, void* host_ptr)
-{
+cl_mem cl_allocBufferConst(size_t mem_size, void *host_ptr) {
     cl_mem mem;
-    cl_int status;          
+    cl_int status;
 
     mem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                          mem_size, host_ptr, &status);
     cl_errChk(status, "Error creating const mem buffer", true);
-    
+
     return mem;
 }
 
-//! Allocate a buffer on device pinning the host memory at host_ptr 
+//! Allocate a buffer on device pinning the host memory at host_ptr
 /*!
     \param mem_size Size of memory in bytes
     \return Returns a cl_mem object that points to pinned memory on the host
 */
-cl_mem cl_allocBufferPinned(size_t mem_size)
-{
+cl_mem cl_allocBufferPinned(size_t mem_size) {
     cl_mem mem;
     cl_int status;
 
     mem = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
                          mem_size, NULL, &status);
     cl_errChk(status, "Error allocating pinned memory", true);
-    
+
     return mem;
 }
 
@@ -552,17 +545,17 @@ cl_mem cl_allocBufferPinned(size_t mem_size)
     \param flags Optional cl_mem_flags
     \return Returns a cl_mem object that points to device memory
 */
-cl_mem cl_allocImage(size_t height, size_t width, char type, cl_mem_flags flags)
-{
+cl_mem cl_allocImage(size_t height, size_t width, char type,
+                     cl_mem_flags flags) {
     cl_mem mem;
-    cl_int status;          
+    cl_int status;
 
     size_t elemSize = 0;
 
     cl_image_format format;
     format.image_channel_order = CL_R;
 
-    switch(type) {
+    switch (type) {
     case 'f':
         elemSize = sizeof(float);
         format.image_channel_data_type = CL_FLOAT;
@@ -583,14 +576,16 @@ cl_mem cl_allocImage(size_t height, size_t width, char type, cl_mem_flags flags)
     static size_t allocationSize = 0;
 
     allocationCount++;
-    allocationSize += height*width*elemSize;
+    allocationSize += height * width * elemSize;
 
     // Create the image
-    mem = clCreateImage2D(context, flags, &format, width, height, 0, NULL, &status);
+    mem = clCreateImage2D(context, flags, &format, width, height, 0, NULL,
+                          &status);
 
-    //cl_errChk(status, "creating image", true);
-    if(status != CL_SUCCESS) {
-        printf("Error creating image: Images may not be supported for this device.\n");
+    // cl_errChk(status, "creating image", true);
+    if (status != CL_SUCCESS) {
+        printf("Error creating image: Images may not be supported for this "
+               "device.\n");
         printSupportedImageFormats();
         getchar();
         exit(-1);
@@ -605,10 +600,10 @@ cl_mem cl_allocImage(size_t height, size_t width, char type, cl_mem_flags flags)
 //-------------------------------------------------------
 
 
-// Copy and map a buffer 
-void* cl_copyAndMapBuffer(cl_mem dst, cl_mem src, size_t size) {
+// Copy and map a buffer
+void *cl_copyAndMapBuffer(cl_mem dst, cl_mem src, size_t size) {
 
-    void* ptr;  // Pointer to the pinned memory that will be returned
+    void *ptr; // Pointer to the pinned memory that will be returned
 
     cl_copyBufferToBuffer(dst, src, size);
 
@@ -618,13 +613,11 @@ void* cl_copyAndMapBuffer(cl_mem dst, cl_mem src, size_t size) {
 }
 
 // Copy a buffer
-void cl_copyBufferToBuffer(cl_mem dst, cl_mem src, size_t size) 
-{    
+void cl_copyBufferToBuffer(cl_mem dst, cl_mem src, size_t size) {
     cl_int status;
-    status = clEnqueueCopyBuffer(commandQueue, src, dst, 0, 0, size, 0, NULL,
-        NULL);
+    status =
+        clEnqueueCopyBuffer(commandQueue, src, dst, 0, 0, size, 0, NULL, NULL);
     cl_errChk(status, "Copying buffer", true);
-
 }
 
 //! Copy a buffer to the device
@@ -634,13 +627,12 @@ void cl_copyBufferToBuffer(cl_mem dst, cl_mem src, size_t size)
     \param mem_size Size of data to copy
         \param blocking Blocking or non-blocking operation
 */
-void cl_copyBufferToDevice(cl_mem dst, void* src, size_t mem_size, cl_bool blocking)
-{
-    cl_int status;     
-    status = clEnqueueWriteBuffer(commandQueue, dst, blocking, 0, 
-        mem_size, src, 0, NULL, NULL); 
+void cl_copyBufferToDevice(cl_mem dst, void *src, size_t mem_size,
+                           cl_bool blocking) {
+    cl_int status;
+    status = clEnqueueWriteBuffer(commandQueue, dst, blocking, 0, mem_size, src,
+                                  0, NULL, NULL);
     cl_errChk(status, "Writing buffer", true);
-
 }
 
 //! Copy a buffer to the host
@@ -650,13 +642,12 @@ void cl_copyBufferToDevice(cl_mem dst, void* src, size_t mem_size, cl_bool block
     \param mem_size Size of data to copy
         \param blocking Blocking or non-blocking operation
 */
-void cl_copyBufferToHost(void* dst, cl_mem src, size_t mem_size, cl_bool blocking) 
-{
-    cl_int status;          
-    status = clEnqueueReadBuffer(commandQueue, src, blocking, 0, 
-        mem_size, dst, 0, NULL, NULL);
+void cl_copyBufferToHost(void *dst, cl_mem src, size_t mem_size,
+                         cl_bool blocking) {
+    cl_int status;
+    status = clEnqueueReadBuffer(commandQueue, src, blocking, 0, mem_size, dst,
+                                 0, NULL, NULL);
     cl_errChk(status, "Reading buffer", true);
-
 }
 
 //! Copy a buffer to a 2D image
@@ -665,16 +656,14 @@ void cl_copyBufferToHost(void* dst, cl_mem src, size_t mem_size, cl_bool blockin
     \param dst Empty device image
     \param mem_size Size of data to copy
 */
-void cl_copyBufferToImage(cl_mem buffer, cl_mem image, int height, int width) 
-{
+void cl_copyBufferToImage(cl_mem buffer, cl_mem image, int height, int width) {
     size_t origin[3] = {0, 0, 0};
     size_t region[3] = {width, height, 1};
 
-    cl_int status;          
-    status = clEnqueueCopyBufferToImage(commandQueue, buffer, image, 0, 
-        origin, region, 0, NULL, NULL);
+    cl_int status;
+    status = clEnqueueCopyBufferToImage(commandQueue, buffer, image, 0, origin,
+                                        region, 0, NULL, NULL);
     cl_errChk(status, "Copying buffer to image", true);
-
 }
 
 // Copy data to an image on the device
@@ -684,14 +673,13 @@ void cl_copyBufferToImage(cl_mem buffer, cl_mem image, int height, int width)
     \param height Height of the image
     \param width Width of the image
 */
-void cl_copyImageToDevice(cl_mem dst, void* src, size_t height, size_t width) 
-{
-    cl_int status;          
+void cl_copyImageToDevice(cl_mem dst, void *src, size_t height, size_t width) {
+    cl_int status;
     size_t origin[3] = {0, 0, 0};
     size_t region[3] = {width, height, 1};
 
-    status = clEnqueueWriteImage(commandQueue, dst, CL_TRUE, origin, 
-        region, 0, 0, src, 0, NULL, NULL);
+    status = clEnqueueWriteImage(commandQueue, dst, CL_TRUE, origin, region, 0,
+                                 0, src, 0, NULL, NULL);
     cl_errChk(status, "Writing image", true);
 }
 
@@ -702,14 +690,13 @@ void cl_copyImageToDevice(cl_mem dst, void* src, size_t height, size_t width)
     \param height Height of the image
     \param width Width of the image
 */
-void cl_copyImageToHost(void* dst, cl_mem src, size_t height, size_t width) 
-{
-    cl_int status;          
+void cl_copyImageToHost(void *dst, cl_mem src, size_t height, size_t width) {
+    cl_int status;
     size_t origin[3] = {0, 0, 0};
     size_t region[3] = {width, height, 1};
 
-    status = clEnqueueReadImage(commandQueue, src, CL_TRUE, origin, 
-        region, 0, 0, dst, 0, NULL, NULL);
+    status = clEnqueueReadImage(commandQueue, src, CL_TRUE, origin, region, 0,
+                                0, dst, 0, NULL, NULL);
     cl_errChk(status, "Reading image", true);
 }
 
@@ -720,13 +707,12 @@ void cl_copyImageToHost(void* dst, cl_mem src, size_t height, size_t width)
     \param flags Optional cl_mem_flags
     \return Returns a host pointer that points to the mapped region
 */
-void *cl_mapBuffer(cl_mem mem, size_t mem_size, cl_mem_flags flags)
-{
-    cl_int status;          
+void *cl_mapBuffer(cl_mem mem, size_t mem_size, cl_mem_flags flags) {
+    cl_int status;
     void *ptr;
 
-    ptr = (void *)clEnqueueMapBuffer(commandQueue, mem, CL_TRUE, flags, 
-                                             0, mem_size, 0, NULL, NULL, &status);
+    ptr = (void *)clEnqueueMapBuffer(commandQueue, mem, CL_TRUE, flags, 0,
+                                     mem_size, 0, NULL, NULL, &status);
 
     cl_errChk(status, "Error mapping a buffer", true);
 
@@ -738,23 +724,22 @@ void *cl_mapBuffer(cl_mem mem, size_t mem_size, cl_mem_flags flags)
     \param mem cl_mem object
     \param ptr A host pointer that points to the mapped region
 */
-void cl_unmapBuffer(cl_mem mem, void *ptr)
-{
+void cl_unmapBuffer(cl_mem mem, void *ptr) {
 
-    // TODO It looks like AMD doesn't support profiling unmapping yet. Leaving the
+    // TODO It looks like AMD doesn't support profiling unmapping yet. Leaving
+    // the
     //      commented code here until it's supported
 
-    cl_int status;          
-    
+    cl_int status;
+
     status = clEnqueueUnmapMemObject(commandQueue, mem, ptr, 0, NULL, NULL);
 
     cl_errChk(status, "Error unmapping a buffer or image", true);
 }
 
-void cl_writeToZCBuffer(cl_mem mem, void* data, size_t size)
-{
-    
-    void* ptr;
+void cl_writeToZCBuffer(cl_mem mem, void *data, size_t size) {
+
+    void *ptr;
 
     ptr = cl_mapBuffer(mem, size, CL_MAP_WRITE);
 
@@ -769,38 +754,39 @@ void cl_writeToZCBuffer(cl_mem mem, void* data, size_t size)
 
 //! Convert source code file into cl_program
 /*!
-Compile Opencl source file into a cl_program. The cl_program will be made into a kernel in PrecompileKernels()
+Compile Opencl source file into a cl_program. The cl_program will be made into a
+kernel in PrecompileKernels()
 
 \param kernelPath  Filename of OpenCl code
 \param compileoptions Compilation options
 \param verbosebuild Switch to enable verbose Output
 */
-cl_program cl_compileProgram(char* kernelPath, char* compileoptions, bool verbosebuild )
-{
-    cl_int status;          
+cl_program cl_compileProgram(char *kernelPath, char *compileoptions,
+                             bool verbosebuild) {
+    cl_int status;
     FILE *fp = NULL;
     char *source = NULL;
     long int size;
 
     printf("\t%s\n", kernelPath);
 
-    // Determine the size of the source file
+// Determine the size of the source file
 #ifdef _WIN32
     fopen_s(&fp, kernelPath, "rb");
 #else
     fp = fopen(kernelPath, "rb");
 #endif
-    if(!fp) {
+    if (!fp) {
         printf("Could not open kernel file\n");
         exit(-1);
     }
     status = fseek(fp, 0, SEEK_END);
-    if(status != 0) {
+    if (status != 0) {
         printf("Error seeking to end of file\n");
         exit(-1);
     }
     size = ftell(fp);
-    if(size < 0) {
+    if (size < 0) {
         printf("Error getting file position\n");
         exit(-1);
     }
@@ -810,7 +796,7 @@ cl_program cl_compileProgram(char* kernelPath, char* compileoptions, bool verbos
     source = (char *)alloc(size + 1);
 
     // fill with NULLs (just for fun)
-    for (int i = 0; i < size+1; i++)  {
+    for (int i = 0; i < size + 1; i++) {
         source[i] = '\0';
     }
 
@@ -819,50 +805,49 @@ cl_program cl_compileProgram(char* kernelPath, char* compileoptions, bool verbos
     source[size] = '\0';
 
     // Create the program object
-    cl_program clProgramReturn = clCreateProgramWithSource(context, 1, 
-        (const char **)&source, NULL, &status);
+    cl_program clProgramReturn = clCreateProgramWithSource(
+        context, 1, (const char **)&source, NULL, &status);
     cl_errChk(status, "Creating program", true);
 
     free(source);
     fclose(fp);
 
     // Try to compile the program
-    status = clBuildProgram(clProgramReturn, 0, NULL, compileoptions, NULL, NULL);
-    if(cl_errChk(status, "Building program", false) || verbosebuild == 1) 
-    {
+    status =
+        clBuildProgram(clProgramReturn, 0, NULL, compileoptions, NULL, NULL);
+    if (cl_errChk(status, "Building program", false) || verbosebuild == 1) {
 
         cl_build_status build_status;
 
-        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_STATUS, 
-            sizeof(cl_build_status), &build_status, NULL);
+        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_STATUS,
+                              sizeof(cl_build_status), &build_status, NULL);
 
-        if(build_status == CL_SUCCESS && verbosebuild == 0) {
-            return clProgramReturn;      
-        }       
+        if (build_status == CL_SUCCESS && verbosebuild == 0) {
+            return clProgramReturn;
+        }
 
-        //char *build_log;
+        // char *build_log;
         size_t ret_val_size;
-        printf("Device: %p",device);
-        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_LOG, 0, 
-            NULL, &ret_val_size);
+        printf("Device: %p", device);
+        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_LOG, 0,
+                              NULL, &ret_val_size);
 
-        char *build_log = (char*)alloc(ret_val_size+1);
+        char *build_log = (char *)alloc(ret_val_size + 1);
 
-        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_LOG, 
-            ret_val_size+1, build_log, NULL);
+        clGetProgramBuildInfo(clProgramReturn, device, CL_PROGRAM_BUILD_LOG,
+                              ret_val_size + 1, build_log, NULL);
 
         // to be careful, terminate with \0
-        // there's no information in the reference whether the string is 0 
+        // there's no information in the reference whether the string is 0
         // terminated or not
         build_log[ret_val_size] = '\0';
 
         printf("Build log:\n %s...\n", build_log);
-        if(build_status != CL_SUCCESS) {
+        if (build_status != CL_SUCCESS) {
             getchar();
             exit(-1);
-        }       
-        else
-            return clProgramReturn;       
+        } else
+            return clProgramReturn;
     }
 
     // print the ptx information
@@ -879,8 +864,8 @@ Create a kernel from compiled source
 \param kernel_name  Name of the kernel in the program
 \return Returns a cl_kernel object for the specified kernel
 */
-cl_kernel cl_createKernel(cl_program program, const char* kernel_name) {
-    
+cl_kernel cl_createKernel(cl_program program, const char *kernel_name) {
+
     cl_kernel kernel;
     cl_int status;
 
@@ -899,9 +884,8 @@ Set an argument for a OpenCL kernel
 \param size The size of the argument
 \param data A pointer to the argument
 */
-void cl_setKernelArg(cl_kernel kernel, unsigned int index, size_t size, 
-                     void* data)
-{
+void cl_setKernelArg(cl_kernel kernel, unsigned int index, size_t size,
+                     void *data) {
     cl_int status;
     status = clSetKernelArg(kernel, index, size, data);
 
@@ -919,8 +903,7 @@ void cl_setKernelArg(cl_kernel kernel, unsigned int index, size_t size,
     Prints out the time taken between the start and end of an event
     \param event_time
 */
-double cl_computeExecTime(cl_event event_time)
-{
+double cl_computeExecTime(cl_event event_time) {
     cl_int status;
     cl_ulong starttime;
     cl_ulong endtime;
@@ -928,47 +911,45 @@ double cl_computeExecTime(cl_event event_time)
     double elapsed;
 
     status = clGetEventProfilingInfo(event_time, CL_PROFILING_COMMAND_START,
-                                          sizeof(cl_ulong), &starttime, NULL);
+                                     sizeof(cl_ulong), &starttime, NULL);
     cl_errChk(status, "profiling start", true);
 
     status = clGetEventProfilingInfo(event_time, CL_PROFILING_COMMAND_END,
-                                          sizeof(cl_ulong), &endtime, NULL);
+                                     sizeof(cl_ulong), &endtime, NULL);
     cl_errChk(status, "profiling end", true);
 
     // Convert to ms
-    elapsed = (double)(endtime-starttime)/1000000.0;
+    elapsed = (double)(endtime - starttime) / 1000000.0;
 
-    return elapsed;     
+    return elapsed;
 }
 
 //! Compute the elapsed time between two timer values
-double cl_computeTime(cl_time start, cl_time end) 
-{
+double cl_computeTime(cl_time start, cl_time end) {
 #ifdef _WIN32
     __int64 freq;
     int status;
 
-    status = QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-    if(status == 0) {
+    status = QueryPerformanceFrequency((LARGE_INTEGER *)&freq);
+    if (status == 0) {
         perror("QueryPerformanceFrequency");
         exit(-1);
     }
 
     // Return time in ms
-    return double(end-start)/(double(freq)/1000.0);
+    return double(end - start) / (double(freq) / 1000.0);
 #else
-    
-    return end-start;
+
+    return end - start;
 #endif
 }
 
 //! Grab the current time using a system-specific timer
-void cl_getTime(cl_time* time) 
-{
+void cl_getTime(cl_time *time) {
 
 #ifdef _WIN32
-    int status = QueryPerformanceCounter((LARGE_INTEGER*)time);
-    if(status == 0) {
+    int status = QueryPerformanceCounter((LARGE_INTEGER *)time);
+    if (status == 0) {
         perror("QueryPerformanceCounter");
         exit(-1);
     }
@@ -976,12 +957,11 @@ void cl_getTime(cl_time* time)
     // Use gettimeofday to get the current time
     struct timeval curTime;
     gettimeofday(&curTime, NULL);
-    
+
     // Convert timeval into double
-    *time = curTime.tv_sec * 1000 + (double)curTime.tv_usec/1000;
+    *time = curTime.tv_sec * 1000 + (double)curTime.tv_usec / 1000;
 #endif
 }
-
 
 
 //-------------------------------------------------------
@@ -990,93 +970,93 @@ void cl_getTime(cl_time* time)
 
 //! OpenCl error code list
 /*!
-    An array of character strings used to give the error corresponding to the error code \n
+    An array of character strings used to give the error corresponding to the
+   error code \n
 
     The error code is the index within this array
 */
 char *cl_errs[MAX_ERR_VAL] = {
-    (char *)"CL_SUCCESS",                         // 0                            
-    (char *)"CL_DEVICE_NOT_FOUND",                //-1                         
-    (char *)"CL_DEVICE_NOT_AVAILABLE",            //-2                    
-    (char *)"CL_COMPILER_NOT_AVAILABLE",          //-3                 
-    (char *)"CL_MEM_OBJECT_ALLOCATION_FAILURE",   //-4            
-    (char *)"CL_OUT_OF_RESOURCES",                //-5                         
-    (char *)"CL_OUT_OF_HOST_MEMORY",              //-6                      
-    (char *)"CL_PROFILING_INFO_NOT_AVAILABLE",    //-7            
-    (char *)"CL_MEM_COPY_OVERLAP",                //-8                        
-    (char *)"CL_IMAGE_FORMAT_MISMATCH",           //-9                   
-    (char *)"CL_IMAGE_FORMAT_NOT_SUPPORTED",      //-10
-    (char *)"CL_BUILD_PROGRAM_FAILURE",           //-11           
-    (char *)"CL_MAP_FAILURE",                     //-12
-    (char *)"",                                   //-13
-    (char *)"",                                   //-14
-    (char *)"",                                   //-15
-    (char *)"",                                   //-16
-    (char *)"",                                   //-17
-    (char *)"",                                   //-18
-    (char *)"",                                   //-19
-    (char *)"",                                   //-20
-    (char *)"",                                   //-21
-    (char *)"",                                   //-22
-    (char *)"",                                   //-23
-    (char *)"",                                   //-24
-    (char *)"",                                   //-25
-    (char *)"",                                   //-26
-    (char *)"",                                   //-27
-    (char *)"",                                   //-28
-    (char *)"",                                   //-29
-    (char *)"CL_INVALID_VALUE",                   //-30
-    (char *)"CL_INVALID_DEVICE_TYPE",             //-31
-    (char *)"CL_INVALID_PLATFORM",                //-32
-    (char *)"CL_INVALID_DEVICE",                  //-33
-    (char *)"CL_INVALID_CONTEXT",                 //-34
-    (char *)"CL_INVALID_QUEUE_PROPERTIES",        //-35
-    (char *)"CL_INVALID_COMMAND_QUEUE",           //-36
-    (char *)"CL_INVALID_HOST_PTR",                //-37
-    (char *)"CL_INVALID_MEM_OBJECT",              //-38
-    (char *)"CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", //-39
-    (char *)"CL_INVALID_IMAGE_SIZE",              //-40
-    (char *)"CL_INVALID_SAMPLER",                 //-41
-    (char *)"CL_INVALID_BINARY",                  //-42
-    (char *)"CL_INVALID_BUILD_OPTIONS",           //-43
-    (char *)"CL_INVALID_PROGRAM",                 //-44
-    (char *)"CL_INVALID_PROGRAM_EXECUTABLE",      //-45
-    (char *)"CL_INVALID_KERNEL_NAME",             //-46
-    (char *)"CL_INVALID_KERNEL_DEFINITION",       //-47
-    (char *)"CL_INVALID_KERNEL",                  //-48
-    (char *)"CL_INVALID_ARG_INDEX",               //-49
-    (char *)"CL_INVALID_ARG_VALUE",               //-50
-    (char *)"CL_INVALID_ARG_SIZE",                //-51
-    (char *)"CL_INVALID_KERNEL_ARGS",             //-52
-    (char *)"CL_INVALID_WORK_DIMENSION ",         //-53
-    (char *)"CL_INVALID_WORK_GROUP_SIZE",         //-54
-    (char *)"CL_INVALID_WORK_ITEM_SIZE",          //-55
-    (char *)"CL_INVALID_GLOBAL_OFFSET",           //-56
-    (char *)"CL_INVALID_EVENT_WAIT_LIST",         //-57
-    (char *)"CL_INVALID_EVENT",                   //-58
-    (char *)"CL_INVALID_OPERATION",               //-59
-    (char *)"CL_INVALID_GL_OBJECT",               //-60
-    (char *)"CL_INVALID_BUFFER_SIZE",             //-61
-    (char *)"CL_INVALID_MIP_LEVEL",               //-62
-    (char *)"CL_INVALID_GLOBAL_WORK_SIZE"};       //-63
+    (char *)"CL_SUCCESS",                          // 0
+    (char *) "CL_DEVICE_NOT_FOUND",                //-1
+    (char *) "CL_DEVICE_NOT_AVAILABLE",            //-2
+    (char *) "CL_COMPILER_NOT_AVAILABLE",          //-3
+    (char *) "CL_MEM_OBJECT_ALLOCATION_FAILURE",   //-4
+    (char *) "CL_OUT_OF_RESOURCES",                //-5
+    (char *) "CL_OUT_OF_HOST_MEMORY",              //-6
+    (char *) "CL_PROFILING_INFO_NOT_AVAILABLE",    //-7
+    (char *) "CL_MEM_COPY_OVERLAP",                //-8
+    (char *) "CL_IMAGE_FORMAT_MISMATCH",           //-9
+    (char *) "CL_IMAGE_FORMAT_NOT_SUPPORTED",      //-10
+    (char *) "CL_BUILD_PROGRAM_FAILURE",           //-11
+    (char *) "CL_MAP_FAILURE",                     //-12
+    (char *) "",                                   //-13
+    (char *) "",                                   //-14
+    (char *) "",                                   //-15
+    (char *) "",                                   //-16
+    (char *) "",                                   //-17
+    (char *) "",                                   //-18
+    (char *) "",                                   //-19
+    (char *) "",                                   //-20
+    (char *) "",                                   //-21
+    (char *) "",                                   //-22
+    (char *) "",                                   //-23
+    (char *) "",                                   //-24
+    (char *) "",                                   //-25
+    (char *) "",                                   //-26
+    (char *) "",                                   //-27
+    (char *) "",                                   //-28
+    (char *) "",                                   //-29
+    (char *) "CL_INVALID_VALUE",                   //-30
+    (char *) "CL_INVALID_DEVICE_TYPE",             //-31
+    (char *) "CL_INVALID_PLATFORM",                //-32
+    (char *) "CL_INVALID_DEVICE",                  //-33
+    (char *) "CL_INVALID_CONTEXT",                 //-34
+    (char *) "CL_INVALID_QUEUE_PROPERTIES",        //-35
+    (char *) "CL_INVALID_COMMAND_QUEUE",           //-36
+    (char *) "CL_INVALID_HOST_PTR",                //-37
+    (char *) "CL_INVALID_MEM_OBJECT",              //-38
+    (char *) "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR", //-39
+    (char *) "CL_INVALID_IMAGE_SIZE",              //-40
+    (char *) "CL_INVALID_SAMPLER",                 //-41
+    (char *) "CL_INVALID_BINARY",                  //-42
+    (char *) "CL_INVALID_BUILD_OPTIONS",           //-43
+    (char *) "CL_INVALID_PROGRAM",                 //-44
+    (char *) "CL_INVALID_PROGRAM_EXECUTABLE",      //-45
+    (char *) "CL_INVALID_KERNEL_NAME",             //-46
+    (char *) "CL_INVALID_KERNEL_DEFINITION",       //-47
+    (char *) "CL_INVALID_KERNEL",                  //-48
+    (char *) "CL_INVALID_ARG_INDEX",               //-49
+    (char *) "CL_INVALID_ARG_VALUE",               //-50
+    (char *) "CL_INVALID_ARG_SIZE",                //-51
+    (char *) "CL_INVALID_KERNEL_ARGS",             //-52
+    (char *) "CL_INVALID_WORK_DIMENSION ",         //-53
+    (char *) "CL_INVALID_WORK_GROUP_SIZE",         //-54
+    (char *) "CL_INVALID_WORK_ITEM_SIZE",          //-55
+    (char *) "CL_INVALID_GLOBAL_OFFSET",           //-56
+    (char *) "CL_INVALID_EVENT_WAIT_LIST",         //-57
+    (char *) "CL_INVALID_EVENT",                   //-58
+    (char *) "CL_INVALID_OPERATION",               //-59
+    (char *) "CL_INVALID_GL_OBJECT",               //-60
+    (char *) "CL_INVALID_BUFFER_SIZE",             //-61
+    (char *) "CL_INVALID_MIP_LEVEL",               //-62
+    (char *) "CL_INVALID_GLOBAL_WORK_SIZE"};       //-63
 
 //! OpenCl Error checker
 /*!
 Checks for error code as per cl_int returned by OpenCl
 \param status Error value as cl_int
-\param msg User provided error message 
+\param msg User provided error message
 \return True if Error Seen, False if no error
 */
-int cl_errChk(const cl_int status, const char * msg, bool exitOnErr)
-{
+int cl_errChk(const cl_int status, const char *msg, bool exitOnErr) {
 
-    if(status != CL_SUCCESS) {
+    if (status != CL_SUCCESS) {
         printf("OpenCL Error: %d %s %s\n", status, cl_errs[-status], msg);
-        
-        if(exitOnErr) {
+
+        if (exitOnErr) {
             exit(-1);
         }
-        
+
         return true;
     }
     return false;
@@ -1084,51 +1064,65 @@ int cl_errChk(const cl_int status, const char * msg, bool exitOnErr)
 
 // Queries the supported image formats for the device and prints
 // them to the screen
- void printSupportedImageFormats()
-{
+void printSupportedImageFormats() {
     cl_uint numFormats;
     cl_int status;
 
-    status = clGetSupportedImageFormats(context, 0, CL_MEM_OBJECT_IMAGE2D,
-        0, NULL, &numFormats);
+    status = clGetSupportedImageFormats(context, 0, CL_MEM_OBJECT_IMAGE2D, 0,
+                                        NULL, &numFormats);
     cl_errChk(status, "getting supported image formats", true);
 
-    cl_image_format* imageFormats = NULL;
-    imageFormats = (cl_image_format*)alloc(sizeof(cl_image_format)*numFormats);
+    cl_image_format *imageFormats = NULL;
+    imageFormats =
+        (cl_image_format *)alloc(sizeof(cl_image_format) * numFormats);
 
     status = clGetSupportedImageFormats(context, 0, CL_MEM_OBJECT_IMAGE2D,
-        numFormats, imageFormats, NULL);
+                                        numFormats, imageFormats, NULL);
 
     printf("There are %d supported image formats\n", numFormats);
 
-    cl_uint orders[]={CL_R,  CL_A, CL_INTENSITY, CL_LUMINANCE, CL_RG,  
-        CL_RA, CL_RGB, CL_RGBA, CL_ARGB, CL_BGRA};
-    char  *orderstr[]={(char *)"CL_R", (char *)"CL_A",(char *)"CL_INTENSITY", (char *)"CL_LUMINANCE", (char *)"CL_RG", 
-        (char *)"CL_RA", (char *)"CL_RGB", (char *)"CL_RGBA", (char *)"CL_ARGB", (char *)"CL_BGRA"};
+    cl_uint orders[] = {CL_R,  CL_A,   CL_INTENSITY, CL_LUMINANCE, CL_RG,
+                        CL_RA, CL_RGB, CL_RGBA,      CL_ARGB,      CL_BGRA};
+    char *orderstr[] = {(char *)"CL_R",         (char *)"CL_A",
+                        (char *)"CL_INTENSITY", (char *)"CL_LUMINANCE",
+                        (char *)"CL_RG",        (char *)"CL_RA",
+                        (char *)"CL_RGB",       (char *)"CL_RGBA",
+                        (char *)"CL_ARGB",      (char *)"CL_BGRA"};
 
-    cl_uint types[]={
-        CL_SNORM_INT8 , CL_SNORM_INT16, CL_UNORM_INT8, CL_UNORM_INT16, 
-        CL_UNORM_SHORT_565, CL_UNORM_SHORT_555, CL_UNORM_INT_101010,CL_SIGNED_INT8,
-        CL_SIGNED_INT16,  CL_SIGNED_INT32, CL_UNSIGNED_INT8, CL_UNSIGNED_INT16, 
-        CL_UNSIGNED_INT32, CL_HALF_FLOAT, CL_FLOAT};
+    cl_uint types[] = {
+        CL_SNORM_INT8,       CL_SNORM_INT16,     CL_UNORM_INT8,
+        CL_UNORM_INT16,      CL_UNORM_SHORT_565, CL_UNORM_SHORT_555,
+        CL_UNORM_INT_101010, CL_SIGNED_INT8,     CL_SIGNED_INT16,
+        CL_SIGNED_INT32,     CL_UNSIGNED_INT8,   CL_UNSIGNED_INT16,
+        CL_UNSIGNED_INT32,   CL_HALF_FLOAT,      CL_FLOAT};
 
-    char * typesstr[]={
-        (char *)"CL_SNORM_INT8" ,(char *)"CL_SNORM_INT16",(char *)"CL_UNORM_INT8",(char *)"CL_UNORM_INT16",
-        (char *)"CL_UNORM_SHORT_565",(char *)"CL_UNORM_SHORT_555",(char *)"CL_UNORM_INT_101010",
-        (char *)"CL_SIGNED_INT8",(char *)"CL_SIGNED_INT16",(char *)"CL_SIGNED_INT32",(char *)"CL_UNSIGNED_INT8",
-        (char *)"CL_UNSIGNED_INT16",(char *)"CL_UNSIGNED_INT32",(char *)"CL_HALF_FLOAT",(char *)"CL_FLOAT"};
+    char *typesstr[] = {(char *)"CL_SNORM_INT8",
+                        (char *)"CL_SNORM_INT16",
+                        (char *)"CL_UNORM_INT8",
+                        (char *)"CL_UNORM_INT16",
+                        (char *)"CL_UNORM_SHORT_565",
+                        (char *)"CL_UNORM_SHORT_555",
+                        (char *)"CL_UNORM_INT_101010",
+                        (char *)"CL_SIGNED_INT8",
+                        (char *)"CL_SIGNED_INT16",
+                        (char *)"CL_SIGNED_INT32",
+                        (char *)"CL_UNSIGNED_INT8",
+                        (char *)"CL_UNSIGNED_INT16",
+                        (char *)"CL_UNSIGNED_INT32",
+                        (char *)"CL_HALF_FLOAT",
+                        (char *)"CL_FLOAT"};
 
     printf("Supported Formats:\n");
-    for(int i = 0; i < (int)numFormats; i++) {
+    for (int i = 0; i < (int)numFormats; i++) {
         printf("\tFormat %d: ", i);
 
-        for(int j = 0; j < (int)(sizeof(orders)/sizeof(cl_int)); j++) {
-            if(imageFormats[i].image_channel_order == orders[j]) {
+        for (int j = 0; j < (int)(sizeof(orders) / sizeof(cl_int)); j++) {
+            if (imageFormats[i].image_channel_order == orders[j]) {
                 printf("%s, ", orderstr[j]);
             }
         }
-        for(int j = 0; j < (int)(sizeof(types)/sizeof(cl_int)); j++) {
-            if(imageFormats[i].image_channel_data_type == types[j]) {
+        for (int j = 0; j < (int)(sizeof(types) / sizeof(cl_int)); j++) {
+            if (imageFormats[i].image_channel_data_type == types[j]) {
                 printf("%s, ", typesstr[j]);
             }
         }
@@ -1148,9 +1142,9 @@ bool cl_deviceIsAMD(cl_device_id dev) {
 
     bool retval = false;
 
-    char* vendor = cl_getDeviceVendor(dev);
+    char *vendor = cl_getDeviceVendor(dev);
 
-    if(strncmp(vendor, "Advanced", 8) == 0) {
+    if (strncmp(vendor, "Advanced", 8) == 0) {
         retval = true;
     }
 
@@ -1164,9 +1158,9 @@ bool cl_deviceIsNVIDIA(cl_device_id dev) {
 
     bool retval = false;
 
-    char* vendor = cl_getDeviceVendor(dev);
+    char *vendor = cl_getDeviceVendor(dev);
 
-    if(strncmp(vendor, "NVIDIA", 6) == 0) {
+    if (strncmp(vendor, "NVIDIA", 6) == 0) {
         retval = true;
     }
 
@@ -1180,9 +1174,9 @@ bool cl_platformIsNVIDIA(cl_platform_id plat) {
 
     bool retval = false;
 
-    char* vendor = cl_getPlatformVendor(plat);
+    char *vendor = cl_getPlatformVendor(plat);
 
-    if(strncmp(vendor, "NVIDIA", 6) == 0) {
+    if (strncmp(vendor, "NVIDIA", 6) == 0) {
         retval = true;
     }
 
@@ -1192,149 +1186,139 @@ bool cl_platformIsNVIDIA(cl_platform_id plat) {
 }
 
 //! Get the name of the vendor for a device
-char* cl_getDeviceDriverVersion(cl_device_id dev)
-{
+char *cl_getDeviceDriverVersion(cl_device_id dev) {
     cl_int status;
     size_t devInfoSize;
-    char* devInfoStr = NULL;
+    char *devInfoStr = NULL;
 
     // If dev is NULL, set it to the default device
-    if(dev == NULL) {
+    if (dev == NULL) {
         dev = device;
     }
 
     // Print the vendor
-    status = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0,                 
-        NULL, &devInfoSize);            
+    status = clGetDeviceInfo(dev, CL_DRIVER_VERSION, 0, NULL, &devInfoSize);
     cl_errChk(status, "Getting vendor name", true);
 
-    devInfoStr = (char*)alloc(devInfoSize);
+    devInfoStr = (char *)alloc(devInfoSize);
 
-    status = clGetDeviceInfo(dev, CL_DRIVER_VERSION, devInfoSize,                       
-        devInfoStr, NULL);              
+    status =
+        clGetDeviceInfo(dev, CL_DRIVER_VERSION, devInfoSize, devInfoStr, NULL);
     cl_errChk(status, "Getting vendor name", true);
 
     return devInfoStr;
 }
 
 //! The the name of the device as supplied by the OpenCL implementation
-char* cl_getDeviceName(cl_device_id dev) 
-{
+char *cl_getDeviceName(cl_device_id dev) {
     cl_int status;
     size_t devInfoSize;
-    char* devInfoStr = NULL;
+    char *devInfoStr = NULL;
 
     // If dev is NULL, set it to the default device
-    if(dev == NULL) {
+    if (dev == NULL) {
         dev = device;
     }
 
     // Print the name
-    status = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0,                    
-        NULL, &devInfoSize);    
-    cl_errChk(status, "Getting device name", true);
-                
-    devInfoStr = (char*)alloc(devInfoSize);
-
-    status = clGetDeviceInfo(dev, CL_DEVICE_NAME, devInfoSize,                  
-        devInfoStr, NULL);      
+    status = clGetDeviceInfo(dev, CL_DEVICE_NAME, 0, NULL, &devInfoSize);
     cl_errChk(status, "Getting device name", true);
 
-    return(devInfoStr);
+    devInfoStr = (char *)alloc(devInfoSize);
+
+    status =
+        clGetDeviceInfo(dev, CL_DEVICE_NAME, devInfoSize, devInfoStr, NULL);
+    cl_errChk(status, "Getting device name", true);
+
+    return (devInfoStr);
 }
 
 //! Get the name of the vendor for a device
-char* cl_getDeviceVendor(cl_device_id dev)
-{
+char *cl_getDeviceVendor(cl_device_id dev) {
     cl_int status;
     size_t devInfoSize;
-    char* devInfoStr = NULL;
+    char *devInfoStr = NULL;
 
     // If dev is NULL, set it to the default device
-    if(dev == NULL) {
+    if (dev == NULL) {
         dev = device;
     }
 
     // Print the vendor
-    status = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0,                  
-        NULL, &devInfoSize);            
+    status = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, 0, NULL, &devInfoSize);
     cl_errChk(status, "Getting vendor name", true);
 
-    devInfoStr = (char*)alloc(devInfoSize);
+    devInfoStr = (char *)alloc(devInfoSize);
 
-    status = clGetDeviceInfo(dev, CL_DEVICE_VENDOR, devInfoSize,                        
-        devInfoStr, NULL);              
+    status =
+        clGetDeviceInfo(dev, CL_DEVICE_VENDOR, devInfoSize, devInfoStr, NULL);
     cl_errChk(status, "Getting vendor name", true);
 
     return devInfoStr;
 }
 
 //! Get the name of the vendor for a device
-char* cl_getDeviceVersion(cl_device_id dev)
-{
+char *cl_getDeviceVersion(cl_device_id dev) {
     cl_int status;
     size_t devInfoSize;
-    char* devInfoStr = NULL;
+    char *devInfoStr = NULL;
 
     // If dev is NULL, set it to the default device
-    if(dev == NULL) {
+    if (dev == NULL) {
         dev = device;
     }
 
     // Print the vendor
-    status = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0,                 
-        NULL, &devInfoSize);            
+    status = clGetDeviceInfo(dev, CL_DEVICE_VERSION, 0, NULL, &devInfoSize);
     cl_errChk(status, "Getting vendor name", true);
 
-    devInfoStr = (char*)alloc(devInfoSize);
+    devInfoStr = (char *)alloc(devInfoSize);
 
-    status = clGetDeviceInfo(dev, CL_DEVICE_VERSION, devInfoSize,                       
-        devInfoStr, NULL);              
+    status =
+        clGetDeviceInfo(dev, CL_DEVICE_VERSION, devInfoSize, devInfoStr, NULL);
     cl_errChk(status, "Getting vendor name", true);
 
     return devInfoStr;
 }
 
 //! The the name of the device as supplied by the OpenCL implementation
-char* cl_getPlatformName(cl_platform_id platform) 
-{
+char *cl_getPlatformName(cl_platform_id platform) {
     cl_int status;
     size_t platformInfoSize;
-    char* platformInfoStr = NULL;
+    char *platformInfoStr = NULL;
 
     // Print the name
-    status = clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0,                   
-        NULL, &platformInfoSize);       
-    cl_errChk(status, "Getting platform name", true);
-                
-    platformInfoStr = (char*)alloc(platformInfoSize);
-
-    status = clGetPlatformInfo(platform, CL_PLATFORM_NAME, platformInfoSize,                    
-        platformInfoStr, NULL); 
+    status = clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0, NULL,
+                               &platformInfoSize);
     cl_errChk(status, "Getting platform name", true);
 
-    return(platformInfoStr);
+    platformInfoStr = (char *)alloc(platformInfoSize);
+
+    status = clGetPlatformInfo(platform, CL_PLATFORM_NAME, platformInfoSize,
+                               platformInfoStr, NULL);
+    cl_errChk(status, "Getting platform name", true);
+
+    return (platformInfoStr);
 }
 
 //! The the name of the device as supplied by the OpenCL implementation
-char* cl_getPlatformVendor(cl_platform_id platform) 
-{
+char *cl_getPlatformVendor(cl_platform_id platform) {
     cl_int status;
     size_t platformInfoSize;
-    char* platformInfoStr = NULL;
+    char *platformInfoStr = NULL;
 
     // Print the name
-    status = clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, 0,                         
-        NULL, &platformInfoSize);       
-    cl_errChk(status, "Getting platform name", true);
-                
-    platformInfoStr = (char*)alloc(platformInfoSize);
-
-    status = clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, platformInfoSize,                  
-        platformInfoStr, NULL); 
+    status = clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, 0, NULL,
+                               &platformInfoSize);
     cl_errChk(status, "Getting platform name", true);
 
-    return(platformInfoStr);
+    platformInfoStr = (char *)alloc(platformInfoSize);
+
+    status = clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, platformInfoSize,
+                               platformInfoStr, NULL);
+    cl_errChk(status, "Getting platform name", true);
+
+    return (platformInfoStr);
 }
 
 //-------------------------------------------------------
@@ -1342,16 +1326,16 @@ char* cl_getPlatformVendor(cl_platform_id platform)
 //-------------------------------------------------------
 
 //! Take a string and an int, and return a string
-char* catStringWithInt(const char* string, int integer) {
-    
-    if(integer > 99999) {
+char *catStringWithInt(const char *string, int integer) {
+
+    if (integer > 99999) {
         printf("Can't handle event identifiers with 6 digits\n");
         exit(-1);
     }
 
     // 5 characters for the identifier, 1 for the null terminator
-    int strLen = strlen(string)+5+1;
-    char* eventStr = (char*)alloc(sizeof(char)*strLen);
+    int strLen = strlen(string) + 5 + 1;
+    char *eventStr = (char *)alloc(sizeof(char) * strLen);
 
     char tmp[6];
 
@@ -1366,27 +1350,32 @@ char* catStringWithInt(const char* string, int integer) {
  ** Written by Lukás Chmela
  ** Released under GPLv3.
  **/
-//portable itoa function
-char* itoa_portable(int value, char* result, int base) {
+// portable itoa function
+char *itoa_portable(int value, char *result, int base) {
     // check that the base if valid
-    if (base < 2 || base > 36) { *result = '\0'; return result; }
+    if (base < 2 || base > 36) {
+        *result = '\0';
+        return result;
+    }
 
-    char* ptr = result, *ptr1 = result, tmp_char;
+    char *ptr = result, *ptr1 = result, tmp_char;
     int tmp_value;
 
     do {
         tmp_value = value;
         value /= base;
-        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-    } while ( value );
+        *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnop"
+                 "qrstuvwxyz"[35 + (tmp_value - value * base)];
+    } while (value);
 
-    //Apply negative sign
-    if (tmp_value < 0) *ptr++ = '-';
+    // Apply negative sign
+    if (tmp_value < 0)
+        *ptr++ = '-';
     *ptr-- = '\0';
 
-    while(ptr1 < ptr) {
+    while (ptr1 < ptr) {
         tmp_char = *ptr;
-        *ptr--= *ptr1;
+        *ptr-- = *ptr1;
         *ptr1++ = tmp_char;
     }
 

@@ -5,19 +5,18 @@
 
 extern int layer_size;
 
-int load(BPNN *net)
-{
-  float *units;
-  int nr, nc, imgsize, i, j, k;
+int load(BPNN *net) {
+    float *units;
+    int nr, nc, imgsize, i, j, k;
 
-  nr = layer_size;
-  
-  imgsize = nr * nc;
-  units = net->input_units;
+    nr = layer_size;
 
-  k = 1;
-  for (i = 0; i < nr; i++) {
-	  units[k] = (float) rand()/RAND_MAX ;
-	  k++;
+    imgsize = nr * nc;
+    units = net->input_units;
+
+    k = 1;
+    for (i = 0; i < nr; i++) {
+        units[k] = (float)rand() / RAND_MAX;
+        k++;
     }
 }

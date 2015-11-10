@@ -11,32 +11,31 @@
 #include <sys/time.h>
 #include <assert.h>
 
-#ifdef RD_WG_SIZE_0_0                                                            
-        #define BLOCK_SIZE RD_WG_SIZE_0_0                                        
-#elif defined(RD_WG_SIZE_0)                                                      
-        #define BLOCK_SIZE RD_WG_SIZE_0                                          
-#elif defined(RD_WG_SIZE)                                                        
-        #define BLOCK_SIZE RD_WG_SIZE                                            
-#else                                                                                    
-        #define BLOCK_SIZE 16                                                            
-#endif                                                                                   
+#ifdef RD_WG_SIZE_0_0
+#define BLOCK_SIZE RD_WG_SIZE_0_0
+#elif defined(RD_WG_SIZE_0)
+#define BLOCK_SIZE RD_WG_SIZE_0
+#elif defined(RD_WG_SIZE)
+#define BLOCK_SIZE RD_WG_SIZE
+#else
+#define BLOCK_SIZE 16
+#endif
 
 #define STR_SIZE 256
-# define EXPAND_RATE 2// add one iteration will extend the pyramid base by 2 per each borderline
+#define EXPAND_RATE                                                            \
+    2 // add one iteration will extend the pyramid base by 2 per each borderline
 
 /* maximum power density possible (say 300W for a 10mm x 10mm chip)	*/
-#define MAX_PD	(3.0e6)
+#define MAX_PD (3.0e6)
 /* required precision in degrees	*/
-#define PRECISION	0.001
+#define PRECISION 0.001
 #define SPEC_HEAT_SI 1.75e6
 #define K_SI 100
 /* capacitance fitting factor	*/
-#define FACTOR_CHIP	0.5
+#define FACTOR_CHIP 0.5
 
 
-#define MIN(a, b) ((a)<=(b) ? (a) : (b))
-
-
+#define MIN(a, b) ((a) <= (b) ? (a) : (b))
 
 
 /* chip parameters	*/
@@ -54,10 +53,10 @@ cl_kernel kernel;
 
 void writeoutput(float *, int, int, char *);
 void readinput(float *, int, int, char *);
-int compute_tran_temp(cl_mem, cl_mem[2], int, int, int, int, int, int, int, int, float *, float *);
+int compute_tran_temp(cl_mem, cl_mem[2], int, int, int, int, int, int, int, int,
+                      float *, float *);
 void usage(int, char **);
 void run(int, char **);
-
 
 
 #endif

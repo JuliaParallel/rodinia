@@ -6,17 +6,10 @@ extern "C" {
 //	KERNEL_GPU_CUDA_WRAPPER HEADER
 //========================================================================================================================================================================================================200
 
-void 
-kernel_gpu_opencl_wrapper(params_common common,
-							int* endoRow,
-							int* endoCol,
-							int* tEndoRowLoc,
-							int* tEndoColLoc,
-							int* epiRow,
-							int* epiCol,
-							int* tEpiRowLoc,
-							int* tEpiColLoc,
-							avi_t* frames);
+void kernel_gpu_opencl_wrapper(params_common common, int *endoRow, int *endoCol,
+                               int *tEndoRowLoc, int *tEndoColLoc, int *epiRow,
+                               int *epiCol, int *tEpiRowLoc, int *tEpiColLoc,
+                               avi_t *frames);
 
 //========================================================================================================================================================================================================200
 //	END

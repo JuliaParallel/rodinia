@@ -21,119 +21,108 @@
 //	WRITE FUNCTION
 //========================================================================================================================================================================================================200
 
-void 
-write_file(	char* filename,
-			fp* input, 
-			int data_rows, 
-			int data_cols, 
-			int major,
-			int data_range){
+void write_file(char *filename, fp *input, int data_rows, int data_cols,
+                int major, int data_range) {
 
-	//=====================================================================
-	//	VARIABLES
-	//=====================================================================
+    //=====================================================================
+    //	VARIABLES
+    //=====================================================================
 
-	FILE* fid;
-	int i, j;
+    FILE *fid;
+    int i, j;
 
-	//=====================================================================
-	//	CREATE/OPEN FILE FOR WRITING
-	//=====================================================================
+    //=====================================================================
+    //	CREATE/OPEN FILE FOR WRITING
+    //=====================================================================
 
-	fid = fopen(filename, "w");
-	if( fid == NULL ){
-		printf( "The file was not created/opened for writing\n" );
-		fflush(0);
-		return;
-	}
+    fid = fopen(filename, "w");
+    if (fid == NULL) {
+        printf("The file was not created/opened for writing\n");
+        fflush(0);
+        return;
+    }
 
-	//=====================================================================
-	//	WRITE VALUES TO THE FILE
-	//=====================================================================
+    //=====================================================================
+    //	WRITE VALUES TO THE FILE
+    //=====================================================================
 
-	// if matrix is saved row major in memory (C)
-	if(major==0){
-		for(i=0; i<data_rows; i++){
-			for(j=0; j<data_cols; j++){
-				fprintf(fid, "%f ", (fp)input[i*data_cols+j]);
-			}
-			fprintf(fid, "\n");
-		}
-	}
-	// if matrix is saved column major in memory (MATLAB)
-	else{
-		for(i=0; i<data_rows; i++){
-			for(j=0; j<data_cols; j++){
-				fprintf(fid, "%f ", (fp)input[j*data_rows+i]);
-			}
-			fprintf(fid, "\n");
-		}
-	}
+    // if matrix is saved row major in memory (C)
+    if (major == 0) {
+        for (i = 0; i < data_rows; i++) {
+            for (j = 0; j < data_cols; j++) {
+                fprintf(fid, "%f ", (fp)input[i * data_cols + j]);
+            }
+            fprintf(fid, "\n");
+        }
+    }
+    // if matrix is saved column major in memory (MATLAB)
+    else {
+        for (i = 0; i < data_rows; i++) {
+            for (j = 0; j < data_cols; j++) {
+                fprintf(fid, "%f ", (fp)input[j * data_rows + i]);
+            }
+            fprintf(fid, "\n");
+        }
+    }
 
-	//=====================================================================
-	//	CLOSE FILE
-	//=====================================================================
+    //=====================================================================
+    //	CLOSE FILE
+    //=====================================================================
 
-	fclose(fid);
-
+    fclose(fid);
 }
 
 //========================================================================================================================================================================================================200
 //	READ FUNCTION
 //========================================================================================================================================================================================================200
 
-void read_file(	char* filename,
-				fp* input,
-				int data_rows, 
-				int data_cols,
-				int major){
+void read_file(char *filename, fp *input, int data_rows, int data_cols,
+               int major) {
 
-	//=====================================================================
-	//	VARIABLES
-	//=====================================================================
+    //=====================================================================
+    //	VARIABLES
+    //=====================================================================
 
-	FILE* fid;
-	int i, j;
-	fp temp;
+    FILE *fid;
+    int i, j;
+    fp temp;
 
-	//=====================================================================
-	//	OPEN FILE FOR READING
-	//=====================================================================
+    //=====================================================================
+    //	OPEN FILE FOR READING
+    //=====================================================================
 
-	fid = fopen(filename, "r");
-	if( fid == NULL ){
-		printf( "The file was not opened for reading\n" );
-		fflush(0);
-		return;
-	}
+    fid = fopen(filename, "r");
+    if (fid == NULL) {
+        printf("The file was not opened for reading\n");
+        fflush(0);
+        return;
+    }
 
-	//=====================================================================
-	//	READ VALUES FROM THE FILE
-	//=====================================================================
+    //=====================================================================
+    //	READ VALUES FROM THE FILE
+    //=====================================================================
 
-	if(major==0){																// if matrix is saved row major in memory (C)
-		for(i=0; i<data_rows; i++){
-			for(j=0; j<data_cols; j++){
-				fscanf(fid, "%f", &temp);
-				input[i*data_cols+j] = (fp)temp;
-			}
-		}
-	}
-	else{																				// if matrix is saved column major in memory (MATLAB)
-		for(i=0; i<data_rows; i++){
-			for(j=0; j<data_cols; j++){
-				fscanf(fid, "%f", &temp);
-				input[j*data_rows+i] = (fp)temp;
-			}
-		}
-	}
+    if (major == 0) { // if matrix is saved row major in memory (C)
+        for (i = 0; i < data_rows; i++) {
+            for (j = 0; j < data_cols; j++) {
+                fscanf(fid, "%f", &temp);
+                input[i * data_cols + j] = (fp)temp;
+            }
+        }
+    } else { // if matrix is saved column major in memory (MATLAB)
+        for (i = 0; i < data_rows; i++) {
+            for (j = 0; j < data_cols; j++) {
+                fscanf(fid, "%f", &temp);
+                input[j * data_rows + i] = (fp)temp;
+            }
+        }
+    }
 
-	//=====================================================================
-	//	CLOSE FILE
-	//=====================================================================
+    //=====================================================================
+    //	CLOSE FILE
+    //=====================================================================
 
-	fclose(fid);
-
+    fclose(fid);
 }
 
 //========================================================================================================================================================================================================200

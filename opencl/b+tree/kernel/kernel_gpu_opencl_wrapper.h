@@ -6,21 +6,13 @@
 //	KERNEL_GPU_OPENCL_WRAPPER HEADER
 //========================================================================================================================================================================================================200
 
-void 
-kernel_gpu_opencl_wrapper(	record *records,
-							long records_mem,
-							knode *knodes,
-							long knodes_elem,
-							long knodes_mem,
+void kernel_gpu_opencl_wrapper(record *records, long records_mem, knode *knodes,
+                               long knodes_elem, long knodes_mem,
 
-							int order,
-							long maxheight,
-							int count,
+                               int order, long maxheight, int count,
 
-							long *currKnode,
-							long *offset,
-							int *keys,
-							record *ans);
+                               long *currKnode, long *offset, int *keys,
+                               record *ans);
 
 //========================================================================================================================================================================================================200
 //	End

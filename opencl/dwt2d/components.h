@@ -10,12 +10,13 @@
 
 /* Separate compoents of source 8bit RGB image */
 
-template<typename T>
-void rgbToComponents(T d_r, T d_g, T d_b, unsigned char * src, int width, int height);
+template <typename T>
+void rgbToComponents(T d_r, T d_g, T d_b, unsigned char *src, int width,
+                     int height);
 
 
 /* Copy a 8bit source image data into a color compoment of type T */
-//template<typename T>
-//void bwToComponent(T *d_c, unsigned char * src, int width, int height);
+// template<typename T>
+// void bwToComponent(T *d_c, unsigned char * src, int width, int height);
 
 #endif

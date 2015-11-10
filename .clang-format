@@ -1,0 +1,6 @@
+{
+    BasedOnStyle: 'LLVM',
+    IndentWidth: '4',
+    MaxEmptyLinesToKeep: '2',
+}
+

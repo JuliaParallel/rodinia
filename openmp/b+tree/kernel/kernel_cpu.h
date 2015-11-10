@@ -6,19 +6,11 @@
 //	KERNEL_CPU HEADER
 //========================================================================================================================================================================================================200
 
-void 
-kernel_cpu(	record *records,
-			knode *knodes,
-			long knodes_elem,
+void kernel_cpu(record *records, knode *knodes, long knodes_elem,
 
-			int order,
-			long maxheight,
-			int count,
+                int order, long maxheight, int count,
 
-			long *currKnode,
-			long *offset,
-			int *keys,
-			record *ans);
+                long *currKnode, long *offset, int *keys, record *ans);
 
 //========================================================================================================================================================================================================200
 //	END

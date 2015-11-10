@@ -9,29 +9,33 @@ typedef float FP_NUMBER;
 #endif
 
 
-#define GET_RAND_FP ((FP_NUMBER)rand()/((FP_NUMBER)(RAND_MAX)+(FP_NUMBER)(1)))
+#define GET_RAND_FP                                                            \
+    ((FP_NUMBER)rand() / ((FP_NUMBER)(RAND_MAX) + (FP_NUMBER)(1)))
 char L_FNAME[32], U_FNAME[32], A_FNAME[32];
 
-int main (int argc, char **argv){
-    int i,j,k,MatrixDim;
+int main(int argc, char **argv) {
+    int i, j, k, MatrixDim;
     FP_NUMBER sum, **L, **U, **A;
-    FILE *fl,*fu,*fa;
+    FILE *fl, *fu, *fa;
 
-    if ( argc < 2) {
+    if (argc < 2) {
         printf("./gen_input [Matrix_Dimension_size]\n");
         return 1;
     }
 
     MatrixDim = atoi(argv[1]);
-    L = (FP_NUMBER **) malloc(sizeof(FP_NUMBER*)*MatrixDim);
-    U = (FP_NUMBER **) malloc(sizeof(FP_NUMBER*)*MatrixDim);
-    A = (FP_NUMBER **) malloc(sizeof(FP_NUMBER*)*MatrixDim);
+    L = (FP_NUMBER **)malloc(sizeof(FP_NUMBER *) * MatrixDim);
+    U = (FP_NUMBER **)malloc(sizeof(FP_NUMBER *) * MatrixDim);
+    A = (FP_NUMBER **)malloc(sizeof(FP_NUMBER *) * MatrixDim);
 
-    if ( !L || !U || !A){
+    if (!L || !U || !A) {
         printf("Can not allocate memory\n");
-        if (L) free(L);
-        if (U) free(U);
-        if (A) free(A);
+        if (L)
+            free(L);
+        if (U)
+            free(U);
+        if (A)
+            free(A);
         return 1;
     }
 
@@ -58,21 +62,20 @@ int main (int argc, char **argv){
         return 1;
     }
 
-    for (i=0; i < MatrixDim; i ++){
-        L[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
-        U[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
-        A[i]=(FP_NUMBER*)malloc(sizeof(FP_NUMBER)*MatrixDim);
+    for (i = 0; i < MatrixDim; i++) {
+        L[i] = (FP_NUMBER *)malloc(sizeof(FP_NUMBER) * MatrixDim);
+        U[i] = (FP_NUMBER *)malloc(sizeof(FP_NUMBER) * MatrixDim);
+        A[i] = (FP_NUMBER *)malloc(sizeof(FP_NUMBER) * MatrixDim);
     }
 #if 1
-#pragma omp parallel for default(none)\
-    private(i,j) shared(L,U,MatrixDim)
+#pragma omp parallel for default(none) private(i, j) shared(L, U, MatrixDim)
 #endif
-    for (i=0; i < MatrixDim; i ++){
-        for (j=0; j < MatrixDim; j++){
-            if ( i == j) {
+    for (i = 0; i < MatrixDim; i++) {
+        for (j = 0; j < MatrixDim; j++) {
+            if (i == j) {
                 L[i][j] = 1.0;
                 U[i][j] = GET_RAND_FP;
-            } else if (i < j){
+            } else if (i < j) {
                 L[i][j] = 0;
                 U[i][j] = GET_RAND_FP;
             } else { // i > j
@@ -83,41 +86,41 @@ int main (int argc, char **argv){
     }
 
 #if 1
-#pragma omp parallel for default(none) \
-    private(i,j,k,sum) shared(L,U,A,MatrixDim)
+#pragma omp parallel for default(none) private(i, j, k, sum) shared(L, U, A,   \
+                                                                    MatrixDim)
 #endif
-    for (i=0; i < MatrixDim; i++ ) {
-        for (j=0; j < MatrixDim; j++){
+    for (i = 0; i < MatrixDim; i++) {
+        for (j = 0; j < MatrixDim; j++) {
             sum = 0;
-            for(k=0; k < MatrixDim; k++)
-                sum += L[i][k]*U[k][j];
+            for (k = 0; k < MatrixDim; k++)
+                sum += L[i][k] * U[k][j];
             A[i][j] = sum;
         }
     }
 
-    for (i=0; i < MatrixDim; i ++) {
-        for (j=0; j < MatrixDim; j++)
+    for (i = 0; i < MatrixDim; i++) {
+        for (j = 0; j < MatrixDim; j++)
             fprintf(fl, "%f ", L[i][j]);
         fprintf(fl, "\n");
     }
     fclose(fl);
 
-    for (i=0; i < MatrixDim; i ++) {
-        for (j=0; j < MatrixDim; j++)
+    for (i = 0; i < MatrixDim; i++) {
+        for (j = 0; j < MatrixDim; j++)
             fprintf(fu, "%f ", U[i][j]);
         fprintf(fu, "\n");
     }
     fclose(fu);
 
     fprintf(fa, "%d\n", MatrixDim);
-    for (i=0; i < MatrixDim; i ++) {
-        for (j=0; j < MatrixDim; j++)
+    for (i = 0; i < MatrixDim; i++) {
+        for (j = 0; j < MatrixDim; j++)
             fprintf(fa, "%f ", A[i][j]);
         fprintf(fa, "\n");
     }
     fclose(fa);
 
-    for (i = 0; i < MatrixDim; i ++ ){
+    for (i = 0; i < MatrixDim; i++) {
         free(L[i]);
         free(U[i]);
         free(A[i]);
