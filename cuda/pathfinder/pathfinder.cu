@@ -9,18 +9,13 @@
 #define HALO                                                                   \
     1 // halo width along one direction when advancing to the next iteration
 
-#define BENCH_PRINT
-
 void run(int argc, char **argv);
 
 int rows, cols;
 int *data;
 int **wall;
 int *result;
-#define M_SEED 9
 int pyramid_height;
-
-//#define BENCH_PRINT
 
 void init(int argc, char **argv) {
     if (argc == 4) {
@@ -29,7 +24,7 @@ void init(int argc, char **argv) {
         pyramid_height = atoi(argv[3]);
     } else {
         printf("Usage: dynproc row_len col_len pyramid_height\n");
-        exit(0);
+        exit(1);
     }
     data = new int[rows * cols];
     wall = new int *[rows];
@@ -37,22 +32,26 @@ void init(int argc, char **argv) {
         wall[n] = data + cols * n;
     result = new int[cols];
 
-    int seed = M_SEED;
-    srand(seed);
-
+    srand(7);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             wall[i][j] = rand() % 10;
         }
     }
-#ifdef BENCH_PRINT
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            printf("%d ", wall[i][j]);
+
+    if (getenv("OUTPUT")) {
+        FILE *file = fopen("output.txt", "w");
+
+        fprintf(file, "wall:\n");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                fprintf(file, "%d ", wall[i][j]);
+            }
+            fprintf(file, "\n");
         }
-        printf("\n");
+
+        fclose(file);
     }
-#endif
 }
 
 void fatal(char *s) { fprintf(stderr, "error: %s\n", s); }
@@ -198,16 +197,21 @@ void run(int argc, char **argv) {
     cudaMemcpy(result, gpuResult[final_ret], sizeof(int) * cols,
                cudaMemcpyDeviceToHost);
 
+    if (getenv("OUTPUT")) {
+        FILE *file = fopen("output.txt", "a");
 
-#ifdef BENCH_PRINT
-    for (int i = 0; i < cols; i++)
-        printf("%d ", data[i]);
-    printf("\n");
-    for (int i = 0; i < cols; i++)
-        printf("%d ", result[i]);
-    printf("\n");
-#endif
+        fprintf(file, "data:\n");
+        for (int i = 0; i < cols; i++)
+            fprintf(file, "%d ", data[i]);
+        fprintf(file, "\n");
 
+        fprintf(file, "result:\n");
+        for (int i = 0; i < cols; i++)
+            fprintf(file, "%d ", result[i]);
+        fprintf(file, "\n");
+
+        fclose(file);
+    }
 
     cudaFree(gpuWall);
     cudaFree(gpuResult[0]);

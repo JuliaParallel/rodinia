@@ -1,9 +1,6 @@
-
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-// #define BENCH_PRINT
 
 
 /*----------- using cycle counter ------------*/
@@ -17,6 +14,7 @@ __inline__ uint64_t rdtsc() {
 unsigned long long start_cycles;
 #define startCycle() (start_cycles = rdtsc())
 #define stopCycle(cycles) (cycles = rdtsc() - start_cycles)
+
 
 /*--------- using gettimeofday ------------*/
 
