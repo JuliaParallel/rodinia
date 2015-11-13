@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
+OUTPUT=1 ./run
+diff output.txt ../../results/pathfinder/output.txt

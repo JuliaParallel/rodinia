@@ -12,13 +12,10 @@ void run(int argc, char **argv);
 #define pin_stats_pause(cycles) stopCycle(cycles)
 #define pin_stats_dump(cycles) printf("timer: %Lu\n", cycles)
 
-#define BENCH_PRINT
-
 int rows, cols;
 int *data;
 int **wall;
 int *result;
-#define M_SEED 9
 
 void init(int argc, char **argv) {
     if (argc == 3) {
@@ -34,8 +31,7 @@ void init(int argc, char **argv) {
         wall[n] = data + cols * n;
     result = new int[cols];
 
-    int seed = M_SEED;
-    srand(seed);
+    srand(7);
 
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -44,17 +40,21 @@ void init(int argc, char **argv) {
     }
     for (int j = 0; j < cols; j++)
         result[j] = wall[0][j];
-#ifdef BENCH_PRINT
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            printf("%d ", wall[i][j]);
-        }
-        printf("\n");
-    }
-#endif
-}
 
-void fatal(char *s) { fprintf(stderr, "error: %s\n", s); }
+    if (getenv("OUTPUT")) {
+        FILE *file = fopen("output.txt", "w");
+
+        fprintf(file, "wall:\n");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                fprintf(file, "%d ", wall[i][j]);
+            }
+            fprintf(file, "\n");
+        }
+
+        fclose(file);
+    }
+}
 
 #define IN_RANGE(x, min, max) ((x) >= (min) && (x) <= (max))
 #define CLAMP_RANGE(x, min, max) x = (x < (min)) ? min : ((x > (max)) ? max : x)
@@ -96,14 +96,21 @@ void run(int argc, char **argv) {
     pin_stats_pause(cycles);
     pin_stats_dump(cycles);
 
-#ifdef BENCH_PRINT
-    for (int i = 0; i < cols; i++)
-        printf("%d ", data[i]);
-    printf("\n");
-    for (int i = 0; i < cols; i++)
-        printf("%d ", dst[i]);
-    printf("\n");
-#endif
+    if (getenv("OUTPUT")) {
+        FILE *file = fopen("output.txt", "a");
+
+        fprintf(file, "data:\n");
+        for (int i = 0; i < cols; i++)
+            fprintf(file, "%d ", data[i]);
+        fprintf(file, "\n");
+
+        fprintf(file, "result:\n");
+        for (int i = 0; i < cols; i++)
+            fprintf(file, "%d ", dst[i]);
+        fprintf(file, "\n");
+
+        fclose(file);
+    }
 
     delete[] data;
     delete[] wall;
