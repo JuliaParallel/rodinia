@@ -4,8 +4,8 @@ using CUDA
 const BLOCK_SIZE = 256
 const HALO = 1
 
-const M_SEED = 9
-const BENCH_PRINT = true
+const M_SEED = 7
+const OUTPUT = true
 
 # Helper function
 
@@ -38,13 +38,23 @@ rows = cols = pyramid_height = 0
 # Device code
 
 @target ptx function kernel_dynproc(
-	iteration, 
+	iteration,
 	gpu_wall::CuDeviceArray{Int64}, gpu_src::CuDeviceArray{Int64}, gpu_results::CuDeviceArray{Int64}, 
 	cols, rows, start_step, border)
 	
 	# Define shared memory
+	#=
+	#cuShareMem_i64() returns the same pointer twice, we want separate values, 
 	prev = cuSharedMem_i64()
 	result = cuSharedMem_i64()
+	=#
+
+	#For now use 1 shared mem block together with offsets
+	shared_mem = cuSharedMem_i64()	# size: 2*256*8 bytes (Int64 -> 8 bytes), see CUDA.jl/src/native/execution.jl:356
+	# prev = shared_mem[0:256]
+	# result = shared_mem[265:512]
+	prev_offset = 0
+	result_offset = 256
 
 	bx = blockIdx().x
 	tx = threadIdx().x
@@ -53,13 +63,14 @@ rows = cols = pyramid_height = 0
 	# but will likely be replaced by a constant when jitting, or not?
 	small_block_cols = BLOCK_SIZE - iteration * HALO * 2
 
-	blk_x = small_block_cols * bx - border;
+	blk_x = small_block_cols * (bx-1) - border;
 	blk_x_max = blk_x + BLOCK_SIZE -1
 
 	xidx = blk_x + tx
 
-	valid_x_min = (blk_x < 0) ? -blk_x : 0
-	valid_x_max = (blk_x_max > cols -1)  ? BLOCK_SIZE -1 -(blk_x_max - cols +1) : BLOCK_SIZE -1
+	valid_x_min = (blk_x < 1) ? -blk_x+2 : 0
+	valid_x_max = (blk_x_max > cols)  ? BLOCK_SIZE -(blk_x_max - cols) : BLOCK_SIZE
+
 	W = tx - 1
 	E = tx + 1
 	W = (W < valid_x_min) ? valid_x_min : W
@@ -67,45 +78,53 @@ rows = cols = pyramid_height = 0
 
 	is_valid = inrange(tx, valid_x_min, valid_x_max)
 
-	if inrange(xidx, 0, cols -1)
+	if inrange(xidx, 1, cols)
 		#prev[tx] = gpu_src[xidx]
-		setCuSharedMem_i64(prev, tx, gpu_src[xidx])
+		# setCuSharedMem_i64(prev, tx, gpu_src[xidx])
+		setCuSharedMem_i64(shared_mem, prev_offset +tx, gpu_src[xidx])
 	end
 
 	sync_threads()
 
 	computed = false
-	for i = 0:iteration
+	for i = 1:iteration
 		computed = false
-		if inrange(tx, i+1, BLOCK_SIZE -i -2) && is_valid
+		if inrange(tx, i+1, BLOCK_SIZE -i) && is_valid
 			computed = true
 
-			left = getCuSharedMem_i64(prev, W)	#left = prev[W]
-			up = getCuSharedMem_i64(prev, tx)	#up = prev[tx]
-			right = getCuSharedMem_i64(prev, E)	# right = prev[E]
+			#left = getCuSharedMem_i64(prev, W)	#left = prev[W]
+			left = getCuSharedMem_i64(shared_mem, prev_offset +W)
+			#up = getCuSharedMem_i64(prev, tx)	#up = prev[tx]
+			up = getCuSharedMem_i64(shared_mem, prev_offset +tx)
+			#right = getCuSharedMem_i64(prev, E)	# right = prev[E]
+			right = getCuSharedMem_i64(shared_mem, prev_offset +E)	
 
 			shortest = dev_min(left, up)
 			shortest = dev_min(shortest, right)
 
-			index = cols * (start_step + i) + xidx
+			index = cols * (start_step + (i-1)) + xidx
 			#result[tx] = shortest + gpu_wall[index]
-			setCuSharedMem_i64(result, tx, shortest + gpu_wall[index]) 
+			#setCuSharedMem_i64(result, tx, shortest + gpu_wall[index]) 
+			setCuSharedMem_i64(shared_mem, result_offset +tx, shortest + gpu_wall[index])
 		end
 		sync_threads()
-		if i == iteration -1
+		if i == iteration
 			break
         end
         if computed
 			#prev[tx] = result[tx]
-			value = getCuSharedMem_i64(result, tx)
-			setCuSharedMem_i64(prev, tx, value)	
+			#value = getCuSharedMem_i64(result, tx)
+			value = getCuSharedMem_i64(shared_mem, result_offset +tx)
+			#setCuSharedMem_i64(prev, tx, value)	
+			setCuSharedMem_i64(shared_mem, prev_offset +tx, value)
 		end
 		sync_threads()
 	end
 
 	if computed
 		# gpu_result[xidx] = result[tx]
-		gpu_results[xidx] =  getCuSharedMem_i64(result, tx)
+		#gpu_results[xidx] =  getCuSharedMem_i64(result, tx)
+		gpu_results[xidx] =  getCuSharedMem_i64(shared_mem, result_offset +tx)
 	end
 	return nothing	# pretty important this
 end
@@ -132,21 +151,22 @@ function init(args)
 	end
 
 	# Print wall
-	if BENCH_PRINT
-		for i = 1:rows
-			for j = 1:cols
-				print("$(wall[i,j]) ")
+	if OUTPUT
+		file = open("output.txt", "w")
+		println(file, "wall:")
+		for i = 1:cols
+			for j = 1:rows
+				print(file, "$(wall[j,i]) ")
 			end
-			println()
+			println(file, "")
 		end
+		close(file)
 	end
 
 end
 
-function calcpath(
-	gpu_wall, gpu_result, 
-	rows, cols, pyramid_height, 
-	block_cols, border_cols)
+function calcpath(gpu_wall, gpu_result, rows, cols, 
+	pyramid_height, block_cols, border_cols)
 
 	dim_block = BLOCK_SIZE
 	dim_grid = block_cols
@@ -160,10 +180,10 @@ function calcpath(
 
 		gpu_src = gpu_result[src,:]
 		gpu_dst = gpu_result[dst,:]
-
 		iter = min(pyramid_height, rows -t -1)
+
 		@cuda (dim_grid, dim_block) kernel_dynproc(
-			iter, 
+			iter,
 			CuIn(gpu_wall), 
 			CuIn(gpu_src),
 			CuOut(gpu_dst),
@@ -173,6 +193,10 @@ function calcpath(
 		gpu_result[src,:] = gpu_src 
 		gpu_result[dst,:] = gpu_dst 
 	end
+
+	println("src: $(gpu_result[1,:])")
+	println("dst: $(gpu_result[2,:])")
+
 	return dst
 end
 
@@ -196,7 +220,7 @@ target_block: [$small_block_col]")
 
 	# Setup GPU memory
 	gpu_result = Array{Int64}(2, cols)
-	gpu_result[1,:] = wall[1,:]	# 1st row 
+	gpu_result[1,:] = wall[:,1]	# 1st row (column major)
 
 	gpu_wall = wall[cols+1:end]
 
@@ -205,18 +229,25 @@ target_block: [$small_block_col]")
 		rows, cols, pyramid_height,
 		block_cols, border_cols)
 
+
 	result = gpu_result[final_ret, :]
 
-	if BENCH_PRINT
-		# TODO: check row-major vs col-major format of julia
+	if OUTPUT
+		file = open("output.txt", "a")
+		println(file, "data:")
+
 		for i=1:cols
-			print(wall[i])
+			print(file, "$(wall[i]) ")
 		end
-		println()
+		println(file, "")
+
+		println(file, "result:")
 		for i=1:cols
-			print(result[i])
+			print(file, "$(result[i]) ")
 		end
-		println()
+		println(file, "")
+
+		close(file)
 	end
 
 end
