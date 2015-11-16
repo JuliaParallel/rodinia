@@ -9,7 +9,7 @@ const OUTPUT = true
 
 # Helper function
 
-function inrange(x, min, max)
+@target ptx function inrange(x, min, max)
 	return x >= min && x <= max
 end
 
@@ -50,7 +50,7 @@ rows = cols = pyramid_height = 0
 	=#
 
 	#For now use 1 shared mem block together with offsets
-	shared_mem = cuSharedMem_i64()	# size: 2*256*8 bytes (Int64 -> 8 bytes), see CUDA.jl/src/native/execution.jl:356
+	shared_mem = cuSharedMem_i64()	# size: 2*256*8 bytes (Int64 -> 8 bytes), indicated when calling using @cuda macro
 	# prev = shared_mem[0:256]
 	# result = shared_mem[265:512]
 	prev_offset = 0
@@ -68,8 +68,10 @@ rows = cols = pyramid_height = 0
 
 	xidx = blk_x + tx
 
-	valid_x_min = (blk_x < 1) ? -blk_x+2 : 0
-	valid_x_max = (blk_x_max > cols)  ? BLOCK_SIZE -(blk_x_max - cols) : BLOCK_SIZE
+	valid_x_min = (blk_x < 0) ? -blk_x : 0
+	valid_x_max = (blk_x_max > cols -1)  ? BLOCK_SIZE -1 -(blk_x_max - cols +1) : BLOCK_SIZE -1
+	valid_x_min = valid_x_min +1
+	valid_x_max = valid_x_max +1
 
 	W = tx - 1
 	E = tx + 1
@@ -145,7 +147,8 @@ function init(args)
 	srand(M_SEED)
 
 	# Initialize en fill wall
-	global wall = Array{Int64}(rows, cols)
+	# Switch semantics of row & col -> easy copy to gpu array in run function
+	global wall = Array{Int64}(cols, rows)
 	for i = 1:length(wall)
 		wall[i] = Int64(rand() % 10)
 	end
@@ -154,8 +157,8 @@ function init(args)
 	if OUTPUT
 		file = open("output.txt", "w")
 		println(file, "wall:")
-		for i = 1:cols
-			for j = 1:rows
+		for i = 1:rows
+			for j = 1:cols
 				print(file, "$(wall[j,i]) ")
 			end
 			println(file, "")
@@ -182,7 +185,7 @@ function calcpath(gpu_wall, gpu_result, rows, cols,
 		gpu_dst = gpu_result[dst,:]
 		iter = min(pyramid_height, rows -t -1)
 
-		@cuda (dim_grid, dim_block) kernel_dynproc(
+		@cuda (dim_grid, dim_block, 256*2*8) kernel_dynproc(
 			iter,
 			CuIn(gpu_wall), 
 			CuIn(gpu_src),
