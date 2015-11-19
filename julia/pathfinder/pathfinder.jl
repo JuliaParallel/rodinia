@@ -197,9 +197,6 @@ function calcpath(gpu_wall, gpu_result, rows, cols,
 		gpu_result[dst,:] = gpu_dst 
 	end
 
-	println("src: $(gpu_result[1,:])")
-	println("dst: $(gpu_result[2,:])")
-
 	return dst
 end
 
@@ -227,11 +224,18 @@ target_block: [$small_block_col]")
 
 	gpu_wall = wall[cols+1:end]
 
-	final_ret = calcpath(
+	# First do a dummy call to force compilation of the 
+	# calcpath function and the kernel
+	@time final_ret = calcpath(
 		gpu_wall, gpu_result,
 		rows, cols, pyramid_height,
 		block_cols, border_cols)
 
+	# call again, now time it
+	@time final_ret = calcpath(
+		gpu_wall, gpu_result,
+		rows, cols, pyramid_height,
+		block_cols, border_cols)
 
 	result = gpu_result[final_ret, :]
 
