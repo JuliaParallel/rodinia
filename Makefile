@@ -1,6 +1,6 @@
 include common.mk
 
-SUITES := openmp cuda opencl
+SUITES := openmp cuda opencl julia
 
 .PHONY: compile
 compile: $(SUITES)
