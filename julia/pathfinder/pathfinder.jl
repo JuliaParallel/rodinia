@@ -181,6 +181,7 @@ function calcpath(gpu_wall, gpu_result, rows, cols,
 		src = dst
 		dst = tmp
 
+		# TODO: Copy slice, because slices can't be passed as kernerl args
 		gpu_src = gpu_result[src,:]
 		gpu_dst = gpu_result[dst,:]
 		iter = min(pyramid_height, rows -t -1)
@@ -188,7 +189,7 @@ function calcpath(gpu_wall, gpu_result, rows, cols,
 		@cuda (dim_grid, dim_block, 256*2*8) kernel_dynproc(
 			iter,
 			CuIn(gpu_wall), 
-			CuIn(gpu_src),
+			CuIn(gpu_src),		# Does not work with slice: CuIn(gpu_result[src,:])
 			CuOut(gpu_dst),
 			cols, rows, t, border_cols
 		)
@@ -226,13 +227,7 @@ target_block: [$small_block_col]")
 
 	# First do a dummy call to force compilation of the 
 	# calcpath function and the kernel
-	@time final_ret = calcpath(
-		gpu_wall, gpu_result,
-		rows, cols, pyramid_height,
-		block_cols, border_cols)
-
-	# call again, now time it
-	@time final_ret = calcpath(
+	final_ret = calcpath(
 		gpu_wall, gpu_result,
 		rows, cols, pyramid_height,
 		block_cols, border_cols)
