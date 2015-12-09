@@ -1,8 +1,9 @@
-FLAGS := -std=c++0x -fopenmp
+CXXFLAGS += -std=c++0x -fopenmp
 
-graphgen: graphgen.cpp
-	g++ $(FLAGS) -o $@ $<
+.PHONY: all
+all: graphgen
 
+.PHONY: clean
 clean: 
 	$(RM) graphgen
 

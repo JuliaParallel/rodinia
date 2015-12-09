@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ue
 
 ./graphgen 1024 1k
 ./graphgen 2048 2k
