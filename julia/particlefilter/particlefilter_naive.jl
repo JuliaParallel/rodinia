@@ -1,12 +1,19 @@
+using CUDA
+
 # Variables
 
-M = typemax(Int32)
-A = 1103515245
-C = 12345
+const M = typemax(Int32)
+const A = Int32(1103515245)
+const C = Int32(12345)
 
 const PI = 3.1415926535897932
 
 const threads_per_block = 128
+
+function d(tag, x)
+	println(tag, ": ", x)
+	exit(0)
+end
 
 # Utility functions
 
@@ -28,14 +35,16 @@ function rounddouble(value)
 	if (value - new_value < 0.5)
 		return new_value
 	else
-		return new_value+1
+		return new_value	# Copy bug from original
 	end
 end
 
 function randu(seed, index)
-	num = A * seed[index] + C
+	num::Int32 = A * seed[index] + C
+	r = num % M
 	seed[index] = num % M
-	return abs(seed[index]/M)
+	q = seed[index]/M
+	return abs(q)
 end
 
 function randn(seed, index)
@@ -111,7 +120,7 @@ function imdilate_disk(matrix, dimX, dimY, dimZ, error, new_matrix)
 	end
 end
 
-function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int})
+function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int32})
 
 	max_size = IszX * IszY * Nfr
 	# get object centers
@@ -121,9 +130,9 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int})
 
 	# Move point
 	xk = yk = 0
-	for k = 1:Nfr-1
-		xk = abs(x0 + (k - 1));
-        yk = abs(y0 - 2 * (k - 1));
+	for k = 2:Nfr-1
+		xk = abs(x0 + (k - 2));
+        yk = abs(y0 - 2 * (k - 2));
         pos = yk * IszY * Nfr + xk * Nfr + k;
         if pos >= max_size
             pos = 1;
@@ -149,6 +158,216 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int})
     setif(0, 200, I, IszX, IszY, Nfr)
     # Add noise
     addnoise(I, IszX, IszY, Nfr, seed)
+end
+
+# Particle filter
+
+function streldisk(disk, radius)
+	diameter = radius * 2 -1
+	for x=1:diameter
+		for y=1:diameter
+			distance = sqrt((x-radius)^2 + (y-radius)^2)
+			if distance < radius
+				disk[(x-1)*diameter + y] = 1
+			else
+				disk[(x-1)*diameter + y] = 0
+			end
+		end
+	end
+end
+
+function getneighbors(se, num_ones, neighbors, radius)
+	neighY = 1
+	center = radius -1
+	diameter = radius * 2 -1
+	for x=1:diameter
+		for y=1:diameter
+			if se[(x-1)*diameter+y] != 0
+				neighbors[neighY * 2 - 1] = (y-1) - center
+				neighbors[neighY * 2] = (x-1) - center
+				neighY += 1
+			end
+		end
+	end
+end
+
+function calc_likelihood_sum(I, ind, num_ones)
+	likelihood_sum = 0
+	for y=1:num_ones
+		likelihood_sum += ((I[ind[y]] -100)^2 - (I[ind[y]] -228)^2)/50
+	end
+	return likelihood_sum
+end
+
+
+function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
+
+	max_size = IszX * IszY * Nfr
+	start = gettime()
+	# Original particle centroid
+	xe = rounddouble(IszY/2.0)
+	ye = rounddouble(IszX/2.0)
+
+	# Expected object locations, compared to cneter
+	radius = 5
+	diameter = radius * 2 -1
+	disk = Array{Int, 1}(diameter * diameter)
+	streldisk(disk, radius)
+	count_ones = 0
+	for x=1:diameter
+		for y=1:diameter
+			if disk[(x-1) * diameter + y] == 1
+				count_ones += 1
+			end
+		end
+	end
+
+	objxy = Array{Float64, 1}(count_ones * 2)
+	getneighbors(disk, count_ones, objxy, radius)
+	get_neighbors = gettime()
+	println("TIME TO GET NEIGHBORS TOOK: $(elapsedtime(start, get_neighbors))")
+
+	# Initial weights are all equal (1/Nparticles)
+	weights = Array{Float64, 1}(Nparticles)
+	for x=1:Nparticles
+		weights[x] = 1 / Nparticles
+	end
+	get_weights = gettime()
+	println("TIME TO GET WEIGHTS TOOK: $(elapsedtime(get_neighbors, get_weights))")
+
+	# Initial likelihood to 0.0
+	likelihood = Array{Float64, 1}(Nparticles)
+	arrayX = Array{Float64, 1}(Nparticles)
+	arrayY = Array{Float64, 1}(Nparticles)
+	xj = Array{Float64, 1}(Nparticles)
+	yj = Array{Float64, 1}(Nparticles)
+	CDF = Array{Float64, 1}(Nparticles)
+
+	ind = Array{Int, 1}(count_ones)
+	u = Array{Int, 1}(Nparticles)
+
+	for x=1:Nparticles
+		arrayX[x] = xe
+		arrayY[x] = ye
+	end
+
+	for k=2:Nfr
+		set_arrays = gettime()
+
+		for x=1:Nparticles
+			arrayX[x] = arrayX[x] + 1 + 5 * randn(seed, x)
+			arrayY[x] = arrayY[x] - 2 + 2 * randn(seed, x)
+		end
+
+		error = gettime()
+		println("TIME TO SET ERROR TOOK: $(elapsedtime(set_arrays, error))")
+
+		# Particle filter likelihood
+		for x=1:Nparticles
+			for y=1:count_ones
+				#d("objxy[(y-1)*2 + 1]", objxy[(y-1)*2 + 1])
+				indX = rounddouble(arrayX[x]) + objxy[(y-1)*2 + 2]
+				indY = rounddouble(arrayY[x]) + objxy[(y-1)*2 + 1]
+				v = abs(indX * IszY * Nfr + indY * Nfr + k)
+				ind[y] = v
+				if ind[y] >= max_size
+					ind[y] = 1
+				end
+			end
+							println("ind: $ind")
+				exit(0)
+			likelihood[x] = calc_likelihood_sum(I, ind, count_ones)
+			likelihood[x] = likelihood[x] / count_ones
+		end
+		println(likelihood)
+		likelihood_time = gettime()
+		println("TIME TO GET LIKELIHOODS TOOK: $(elapsedtime(error, likelihood_time))")
+
+		# Update & normalize weights
+		for x=1:Nparticles
+			weights[x] = weights[x] * exp(likelihood[x])
+		end
+		exponential = gettime()
+		println("TIME TO GET EXP TOOK: $(elapsedtime(likelihood_time, exponential))")
+		sum_weights = 0;
+        for x = 1:Nparticles
+            sum_weights += weights[x];
+        end
+        sum_time = gettime();
+        println("TIME TO SUM WEIGHTS TOOK: $(elapsedtime(exponential, sum_time))");
+        for x = 1:Nparticles
+            weights[x] = weights[x] / sum_weights;
+        end
+        normalize = gettime();
+        println("TIME TO NORMALIZE WEIGHTS TOOK: $(elapsedtime(sum_time, normalize))");
+
+        xe = ye = 0
+        for x=1:Nparticles
+        	xe += arrayX[x] * weights[x]
+        	ye += arrayY[x] * weights[x]
+        end
+        move_time = gettime()
+        println("TIME TO MOVE OBJECT TOOK: $(elapsedtime(normalize, move_time))")
+        distance = sqrt((xe - rounddouble(IszY/2.0))^2  + (ye - rounddouble(IszX))^2)
+        println(distance)
+
+        # Resampling
+
+        CDF[1] = weights[1]
+        for x=2:Nparticles
+        	CDF[x] = weights[x] + CDF[x-1]
+        end
+        cumsum = gettime()
+        println("TIME TO CALC CUM SUM: $(elapsedtime(move_time, cumsum))")
+
+        u1 = (1/Nparticles) * randu(seed, 1)
+        for x=1:Nparticles
+        	u[x] = u1 + x/Nparticles
+        end
+        utime = gettime()
+        println("TIME TO CALC U TOOK: $(elapsedtime(cumsum, utime))")
+
+        # Set number of threads
+        num_blocks = ceil(Nparticles/threads_per_block)
+        # Kernel call
+        @cuda (num_blocks, threads_per_block) kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
+        synchonize(ctx)
+        exec_time = gettime()
+        println("CUDA EXEC TOOK: $(elapsedtime(utime, exec_time))")
+
+        for x=1:Nparticles
+        	arrayX[x] = xj[x]
+        	arrayY[x] = yj[x]
+        	weights[x] = 1 / Nparticles
+        end
+
+        reset = gettime()
+        println("TIME TO RESET: $(elapsedtime(exec_time, reset))")
+    end
+end
+
+# Kernel
+
+@target ptx function kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
+	
+	block_id = blockIdx().x
+	i = blockDim().x * block_id + threadIdx().x
+
+	if i < Nparticles
+		index = 0
+		for x=1:Nparticles
+			if CDF[x] >= u[i]
+				index = x
+				break
+			end
+		end
+		if index == 0
+			index = Nparticles - 1
+		end
+
+		xj[i] = arrayX[index]
+		yj[i] = arrayY[index]
+	end
 end
 
 # Main
@@ -195,25 +414,37 @@ function main()
 	end
 
 	# Initialize stuff
-	seed = Array{Int, 1}(Nparticles)
+	seed = Array{Int32, 1}(Nparticles)
 	for i = 1:Nparticles
-		t = round(Int32, time())
-		seed[i] = t * (i-1)
+		seed[i] = i-1
 	end
 	I = Array{Int, 1}(IszX * IszY * Nfr)
 
 	# Call videao sequence
 	start = gettime()
+
 	videosequence(I, IszX, IszY, Nfr, seed)
 	end_video_sequence = gettime()
 	println("VIDEO SEQUENCE TOOK $(elapsedtime(start, end_video_sequence))")
 
 	# Call particle filter
-	#particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
+	particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
 	end_particle_filter = gettime()
-	#println("PARTICLE FILTER TOOK $(elapsedtime(end_video_sequence, end_particle_filter))")
+	println("PARTICLE FILTER TOOK $(elapsedtime(end_video_sequence, end_particle_filter))")
 
 	println("ENTIRE PROGRAM TOOK $(elapsedtime(start, end_video_sequence))")
 end
 
-main()
+# Setup context etc
+num_dev = devcount()
+if num_dev > 0
+	const dev = CuDevice(0)
+	const ctx = CuContext(dev)
+	const cgctx = CuCodegenContext(ctx, dev)
+
+	# Run the code with given params
+	main()
+
+	destroy(ctx)
+	destroy(cgctx)
+end
