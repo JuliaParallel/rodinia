@@ -495,6 +495,8 @@ void strelDisk(int *disk, int radius) {
                                    pow((double)(y - radius + 1), 2));
             if (distance < radius)
                 disk[x * diameter + y] = 1;
+            else 
+                disk[x * diameter + y] = 0;
         }
     }
 }
@@ -860,6 +862,8 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
 }
 
 int main(int argc, char *argv[]) {
+
+    printf("INTMAX:\n");
 
     char *usage = "double.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments

@@ -55,6 +55,23 @@ void check_error(cudaError e) {
         exit(1);
     }
 }
+
+void print_arr(char *tag, double *arr, int len) {
+    printf("%s: ", tag);
+    for (int i=0;i<len;i++) {
+        printf("%lf, ", arr[i]);
+    }
+    printf("\n");
+}
+
+void print_arr(char *tag, int *arr, int len) {
+    printf("%s: ", tag);
+    for (int i=0;i<len;i++) {
+        printf("%d, ", arr[i]);
+    }
+    printf("\n");
+}
+
 __device__ int findIndexSeq(double *CDF, int lengthCDF, double value) {
     int index = -1;
     int x;
@@ -174,7 +191,8 @@ void setIf(int testValue, int newValue, int *array3D, int *dimX, int *dimY,
 double randu(int *seed, int index) {
     int num = A * seed[index] + C;
     seed[index] = num % M;
-    return fabs(seed[index] / ((double)M));
+    double q = seed[index] / ((double)M);
+    return fabs(q);
 }
 /**
 * Generates a normally distributed random number using the Box-Muller
@@ -230,6 +248,8 @@ void strelDisk(int *disk, int radius) {
                                    pow((double)(y - radius + 1), 2));
             if (distance < radius)
                 disk[x * diameter + y] = 1;
+            else
+                disk[x * diameter + y] = 0;
         }
     }
 }
@@ -431,6 +451,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
     int diameter = radius * 2 - 1;
     int *disk = (int *)malloc(diameter * diameter * sizeof(int));
     strelDisk(disk, radius);
+    print_arr("disk", disk, diameter*diameter);
     int countOnes = 0;
     int x, y;
     for (x = 0; x < diameter; x++) {
@@ -484,6 +505,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
         arrayX[x] = xe;
         arrayY[x] = ye;
     }
+
     int k;
     // double * Ik = (double *)malloc(sizeof(double)*IszX*IszY);
     int indX, indY;
@@ -500,6 +522,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
             arrayX[x] = arrayX[x] + 1.0 + 5.0 * randn(seed, x);
             arrayY[x] = arrayY[x] - 2.0 + 2.0 * randn(seed, x);
         }
+        
         // particle filter likelihood
         long long error = get_time();
         printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
@@ -520,6 +543,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
             likelihood[x] = calcLikelihoodSum(I, ind, countOnes);
             likelihood[x] = likelihood[x] / countOnes;
         }
+
         long long likelihood_time = get_time();
         printf("TIME TO GET LIKELIHOODS TOOK: %f\n",
                elapsed_time(error, likelihood_time));
@@ -653,6 +677,8 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
 }
 int main(int argc, char *argv[]) {
 
+    printf("INT_MAX: %ld\n", INT_MAX);
+
     char *usage = "naive.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments
     if (argc != 9) {
@@ -719,10 +745,12 @@ int main(int argc, char *argv[]) {
     // malloc matrix
     int *I = (int *)malloc(sizeof(int) * IszX * IszY * Nfr);
     long long start = get_time();
+
     // call video sequence
     videoSequence(I, IszX, IszY, Nfr, seed);
     long long endVideoSequence = get_time();
     printf("VIDEO SEQUENCE TOOK %f\n", elapsed_time(start, endVideoSequence));
+
     // call particle filter
     particleFilter(I, IszX, IszY, Nfr, seed, Nparticles);
     long long endParticleFilter = get_time();
