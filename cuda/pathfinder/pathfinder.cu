@@ -183,6 +183,9 @@ void run(int argc, char **argv) {
     int *gpuWall, *gpuResult[2];
     int size = rows * cols;
 
+    struct timespec start, end;
+    clock_gettime(CLOCK_REALTIME, &start);
+
     cudaMalloc((void **)&gpuResult[0], sizeof(int) * cols);
     cudaMalloc((void **)&gpuResult[1], sizeof(int) * cols);
     cudaMemcpy(gpuResult[0], data, sizeof(int) * cols, cudaMemcpyHostToDevice);
@@ -196,6 +199,11 @@ void run(int argc, char **argv) {
 
     cudaMemcpy(result, gpuResult[final_ret], sizeof(int) * cols,
                cudaMemcpyDeviceToHost);
+
+    clock_gettime(CLOCK_REALTIME, &end);
+    double elapsed = (end.tv_sec - start.tv_sec)
+        + (end.tv_nsec - start.tv_nsec)/1E9;
+    printf("%.6f seconds\n", elapsed);
 
     if (getenv("OUTPUT")) {
         FILE *file = fopen("output.txt", "a");
