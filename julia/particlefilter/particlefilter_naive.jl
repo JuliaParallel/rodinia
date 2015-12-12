@@ -31,7 +31,7 @@ function elapsedtime(start_time, end_time)
 end
 
 function rounddouble(value)
-	new_value = floor(value)
+	new_value = convert(Int, floor(value))
 	if (value - new_value < 0.5)
 		return new_value
 	else
@@ -58,11 +58,11 @@ end
 # Video sequence
 
 function setif(test_value, new_value, array3D::Array{Int}, dimX, dimY, dimZ)
-	for x=1:dimX
-		for y=1:dimY
-			for z=1:dimZ
-				if array3D[(x-1)*dimY+(y-1)*dimZ+z] == test_value
-					array3D[(x-1)*dimY+(y-1)*dimZ+z] = new_value
+	for x=0:dimX-1
+		for y=0:dimY-1
+			for z=0:dimZ-1
+				if array3D[x*dimY*dimZ + y*dimZ + z + 1] == test_value
+					array3D[x*dimY*dimZ + y*dimZ + z + 1] = new_value
 				end
 			end
 		end
@@ -70,12 +70,12 @@ function setif(test_value, new_value, array3D::Array{Int}, dimX, dimY, dimZ)
 end
 
 function addnoise(array3D::Array{Int}, dimX, dimY, dimZ, seed)
-	for x=1:dimX
-		for y=1:dimY
-			for z=1:dimZ
-				noise = randn(seed, 1)
-				array3D[(x-1)*dimY+(y-1)*dimZ+z] =
-					array3D[(x-1)*dimY+(y-1)*dimZ+z] + round(noise)
+	for x=0:dimX-1
+		for y=0:dimY-1
+			for z=0:dimZ-1
+				noise = convert(Int, trunc(5 * randn(seed, 1)))
+				array3D[x*dimY*dimZ + y*dimZ + z + 1] =
+					array3D[x*dimY*dimZ + y*dimZ + z + 1] + noise
 			end
 		end
 	end
@@ -83,11 +83,11 @@ end
 
 function dilate_matrix(matrix, posX, posY, posZ, dimX, dimY, dimZ, error)
 	startX = posX - error
-	while startX < 1
+	while startX < 0
 		startX += 1
 	end
 	startY = posY - error
-	while startY < 1
+	while startY < 0
 		startY += 1
 	end
 	endX = posX + error
@@ -98,21 +98,21 @@ function dilate_matrix(matrix, posX, posY, posZ, dimX, dimY, dimZ, error)
 	while endY > dimY
 		endY -= 1
 	end
-	for x=startX:endX
-		for y=startY:endY
+	for x=startX:endX-1
+		for y=startY:endY-1
 			distance = sqrt((x-posX)^2 + (y-posY)^2)
 			if distance < error
-				matrix[(x-1) * dimY * dimZ + (y-1) * dimZ + posZ] = 1
+				matrix[x * dimY * dimZ + y * dimZ + posZ + 1] = 1
 			end
 		end
 	end
 end
 
 function imdilate_disk(matrix, dimX, dimY, dimZ, error, new_matrix)
-	for z=1:dimZ
-		for x=1:dimX
-			for y=1:dimY
-				if matrix[(x-1) * dimY * dimZ + (y-1) * dimZ + z] == 1 
+	for z=0:dimZ-1
+		for x=0:dimX-1
+			for y=0:dimY-1
+				if matrix[x * dimY * dimZ + y * dimZ + z + 1] == 1 
 					dilate_matrix(new_matrix, x, y, z, dimX, dimY, dimZ, error)
 				end
 			end
@@ -126,7 +126,7 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int32})
 	# get object centers
 	x0 = convert(Int, rounddouble(IszX/2.0))
 	y0 = convert(Int, rounddouble(IszY/2.0))
-	I[x0 * IszY * Nfr + y0 * Nfr + 0] = 1 		# TODO: +1 instead of 0????
+	I[x0 * IszY * Nfr + y0 * Nfr + 1] = 1 		# TODO: +1 instead of 0????
 
 	# Move point
 	xk = yk = 0
@@ -141,7 +141,7 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int32})
     end
 
     # Dialate matrix
-    new_matrix = Array{Int, 1}(IszX * IszY * Nfr)
+    new_matrix = zeros(Int, IszX * IszY * Nfr)
     imdilate_disk(I, IszX, IszY, Nfr, 5, new_matrix)
 
     for x=1:IszX
@@ -154,8 +154,8 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int32})
     end
 
     # Define background, add noise
-    setif(0, 200, I, IszX, IszY, Nfr)
-    setif(0, 200, I, IszX, IszY, Nfr)
+    setif(0, 100, I, IszX, IszY, Nfr)
+    setif(1, 228, I, IszX, IszY, Nfr)
     # Add noise
     addnoise(I, IszX, IszY, Nfr, seed)
 end
@@ -192,15 +192,16 @@ function getneighbors(se, num_ones, neighbors, radius)
 end
 
 function calc_likelihood_sum(I, ind, num_ones)
-	likelihood_sum = 0
+	likelihood_sum = Float64(0)
 	for y=1:num_ones
-		likelihood_sum += ((I[ind[y]] -100)^2 - (I[ind[y]] -228)^2)/50
+		v = ((I[ind[y]] -100)^2 - (I[ind[y]] -228)^2)/50
+		likelihood_sum += v
 	end
 	return likelihood_sum
 end
 
 
-function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
+function particlefilter(I::Array{Int}, IszX, IszY, Nfr, seed, Nparticles)
 
 	max_size = IszX * IszY * Nfr
 	start = gettime()
@@ -244,7 +245,7 @@ function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
 	CDF = Array{Float64, 1}(Nparticles)
 
 	ind = Array{Int, 1}(count_ones)
-	u = Array{Int, 1}(Nparticles)
+	u = Array{Float64, 1}(Nparticles)
 
 	for x=1:Nparticles
 		arrayX[x] = xe
@@ -266,20 +267,18 @@ function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
 		for x=1:Nparticles
 			for y=1:count_ones
 				#d("objxy[(y-1)*2 + 1]", objxy[(y-1)*2 + 1])
-				indX = rounddouble(arrayX[x]) + objxy[(y-1)*2 + 2]
-				indY = rounddouble(arrayY[x]) + objxy[(y-1)*2 + 1]
-				v = abs(indX * IszY * Nfr + indY * Nfr + k)
-				ind[y] = v
+				indX::Int = rounddouble(arrayX[x]) + objxy[(y-1)*2 + 2]
+				indY::Int = rounddouble(arrayY[x]) + objxy[(y-1)*2 + 1]
+				v::Float64 = abs(indX * IszY * Nfr + indY * Nfr + k -1)
+				ind[y] = v+1
 				if ind[y] >= max_size
 					ind[y] = 1
 				end
 			end
-							println("ind: $ind")
-				exit(0)
 			likelihood[x] = calc_likelihood_sum(I, ind, count_ones)
 			likelihood[x] = likelihood[x] / count_ones
 		end
-		println(likelihood)
+		
 		likelihood_time = gettime()
 		println("TIME TO GET LIKELIHOODS TOOK: $(elapsedtime(error, likelihood_time))")
 
@@ -308,8 +307,11 @@ function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
         end
         move_time = gettime()
         println("TIME TO MOVE OBJECT TOOK: $(elapsedtime(normalize, move_time))")
-        distance = sqrt((xe - rounddouble(IszY/2.0))^2  + (ye - rounddouble(IszX))^2)
-        println(distance)
+        println("XE: $xe")
+        println("YE: $ye")
+        distance = sqrt(
+        	(xe - trunc(rounddouble(IszY/2.0)))^2  
+        	+ (ye - trunc(rounddouble(IszX/2.0)))^2)
 
         # Resampling
 
@@ -328,10 +330,10 @@ function particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
         println("TIME TO CALC U TOOK: $(elapsedtime(cumsum, utime))")
 
         # Set number of threads
-        num_blocks = ceil(Nparticles/threads_per_block)
+        num_blocks = convert(Int,ceil(Nparticles/threads_per_block))
         # Kernel call
-        @cuda (num_blocks, threads_per_block) kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
-        synchonize(ctx)
+        @cuda (num_blocks, threads_per_block) kernel_kernel(CuIn(arrayX), CuIn(arrayY), CuIn(CDF), CuIn(u), CuOut(xj), CuOut(yj), Nparticles)
+        synchronize(ctx)
         exec_time = gettime()
         println("CUDA EXEC TOOK: $(elapsedtime(utime, exec_time))")
 
@@ -354,7 +356,7 @@ end
 	i = blockDim().x * block_id + threadIdx().x
 
 	if i < Nparticles
-		index = 0
+		index = 0	# an invalid index
 		for x=1:Nparticles
 			if CDF[x] >= u[i]
 				index = x
@@ -362,12 +364,14 @@ end
 			end
 		end
 		if index == 0
-			index = Nparticles - 1
+			index = Nparticles
 		end
 
 		xj[i] = arrayX[index]
 		yj[i] = arrayY[index]
 	end
+
+	return nothing
 end
 
 # Main
@@ -418,7 +422,7 @@ function main()
 	for i = 1:Nparticles
 		seed[i] = i-1
 	end
-	I = Array{Int, 1}(IszX * IszY * Nfr)
+	I = zeros(Int, IszX * IszY * Nfr)
 
 	# Call videao sequence
 	start = gettime()
