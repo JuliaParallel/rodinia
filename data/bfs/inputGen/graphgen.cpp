@@ -26,12 +26,6 @@
 #include <ctime>
 #include <climits>
 
-// These names may vary by implementation
-//#define LINEAR_CONGRUENTIAL_ENGINE linear_congruential_engine
-#define LINEAR_CONGRUENTIAL_ENGINE linear_congruential
-//#define UNIFORM_INT_DISTRIBUTION uniform_int_distribution
-#define UNIFORM_INT_DISTRIBUTION uniform_int
-
 using namespace std;
 
 #define MIN_NODES 20
@@ -75,8 +69,8 @@ int main(int argc, char **argv) {
     // C RNG for numbers of edges and weights
     srand(time(NULL));
     // TR1 RNG for choosing edge destinations
-    LINEAR_CONGRUENTIAL_ENGINE<ulong, 48271, 0, ULONG_MAX> gen(time(NULL));
-    UNIFORM_INT_DISTRIBUTION<ulong> randNode(0, numNodes - 1);
+    linear_congruential_engine<ulong, 48271, 0, ULONG_MAX> gen(time(NULL));
+    uniform_int_distribution<ulong> randNode(0, numNodes - 1);
 
     // Generate graph
     uint numEdges;
