@@ -56,22 +56,6 @@ void check_error(cudaError e) {
     }
 }
 
-void print_arr(char *tag, double *arr, int len) {
-    printf("%s: ", tag);
-    for (int i=0;i<len;i++) {
-        printf("%lf, ", arr[i]);
-    }
-    printf("\n");
-}
-
-void print_arr(char *tag, int *arr, int len) {
-    printf("%s: ", tag);
-    for (int i=0;i<len;i++) {
-        printf("%d, ", arr[i]);
-    }
-    printf("\n");
-}
-
 __device__ int findIndexSeq(double *CDF, int lengthCDF, double value) {
     int index = -1;
     int x;
@@ -452,7 +436,6 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
     int diameter = radius * 2 - 1;
     int *disk = (int *)malloc(diameter * diameter * sizeof(int));
     strelDisk(disk, radius);
-    print_arr("disk", disk, diameter*diameter);
     int countOnes = 0;
     int x, y;
     for (x = 0; x < diameter; x++) {
