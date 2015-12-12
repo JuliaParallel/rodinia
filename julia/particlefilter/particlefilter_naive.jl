@@ -319,22 +319,26 @@ function particlefilter(I::Array{Int}, IszX, IszY, Nfr, seed, Nparticles)
         for x=2:Nparticles
         	CDF[x] = weights[x] + CDF[x-1]
         end
+
         cumsum = gettime()
         println("TIME TO CALC CUM SUM: $(elapsedtime(move_time, cumsum))")
 
         u1 = (1/Nparticles) * randu(seed, 1)
         for x=1:Nparticles
-        	u[x] = u1 + x/Nparticles
+        	u[x] = u1 + (x-1)/Nparticles
         end
+
         utime = gettime()
         println("TIME TO CALC U TOOK: $(elapsedtime(cumsum, utime))")
 
         # Set number of threads
         num_blocks = convert(Int,ceil(Nparticles/threads_per_block))
         # Kernel call
-        @cuda (num_blocks, threads_per_block) kernel_kernel(CuIn(arrayX), CuIn(arrayY), CuIn(CDF), CuIn(u), CuOut(xj), CuOut(yj), Nparticles)
+        @cuda (num_blocks, threads_per_block) kernel_kernel(
+        	CuIn(arrayX), CuIn(arrayY), CuIn(CDF), CuIn(u), CuOut(xj), CuOut(yj), Nparticles)
         synchronize(ctx)
         exec_time = gettime()
+
         println("CUDA EXEC TOOK: $(elapsedtime(utime, exec_time))")
 
         for x=1:Nparticles
@@ -353,9 +357,9 @@ end
 @target ptx function kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
 	
 	block_id = blockIdx().x
-	i = blockDim().x * block_id + threadIdx().x
+	i = blockDim().x * (block_id-1) + threadIdx().x
 
-	if i < Nparticles
+	if i <= Nparticles
 		index = 0	# an invalid index
 		for x=1:Nparticles
 			if CDF[x] >= u[i]
