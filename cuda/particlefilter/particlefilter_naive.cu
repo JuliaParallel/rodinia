@@ -155,7 +155,7 @@ double roundDouble(double value) {
     if (value - newValue < .5)
         return newValue;
     else
-        return newValue++;
+        return newValue++;  // This is a bug as it is a post-increment!
 }
 /**
 * Set values of the 3D array to a newValue if that value is equal to the
@@ -365,8 +365,9 @@ void videoSequence(int *I, int IszX, int IszY, int Nfr, int *seed) {
     }
 
     /*dilate matrix*/
-    int *newMatrix = (int *)malloc(sizeof(int) * IszX * IszY * Nfr);
+    int *newMatrix = (int *)calloc(IszX * IszY * Nfr, sizeof(int));
     imdilate_disk(I, IszX, IszY, Nfr, 5, newMatrix);
+
     int x, y;
     for (x = 0; x < IszX; x++) {
         for (y = 0; y < IszY; y++) {
@@ -583,7 +584,6 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
         double distance =
             sqrt(pow((double)(xe - (int)roundDouble(IszY / 2.0)), 2) +
                  pow((double)(ye - (int)roundDouble(IszX / 2.0)), 2));
-        printf("%lf\n", distance);
         // display(hold off for now)
 
         // pause(hold off for now)
@@ -677,8 +677,6 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
 }
 int main(int argc, char *argv[]) {
 
-    printf("INT_MAX: %ld\n", INT_MAX);
-
     char *usage = "naive.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments
     if (argc != 9) {
@@ -743,7 +741,7 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < Nparticles; i++)
         seed[i] = i;
     // malloc matrix
-    int *I = (int *)malloc(sizeof(int) * IszX * IszY * Nfr);
+    int *I = (int *)calloc(IszX * IszY * Nfr, sizeof(int));
     long long start = get_time();
 
     // call video sequence
