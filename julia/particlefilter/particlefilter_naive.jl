@@ -10,11 +10,6 @@ const PI = 3.1415926535897932
 
 const threads_per_block = 128
 
-function d(tag, x)
-	println(tag, ": ", x)
-	exit(0)
-end
-
 # Utility functions
 
 function gettime()
@@ -41,7 +36,6 @@ end
 
 function randu(seed, index)
 	num::Int32 = A * seed[index] + C
-	r = num % M
 	seed[index] = num % M
 	q = seed[index]/M
 	return abs(q)
@@ -134,7 +128,7 @@ function videosequence(I::Array{Int}, IszX, IszY, Nfr, seed::Array{Int32})
 		xk = abs(x0 + (k - 2));
         yk = abs(y0 - 2 * (k - 2));
         pos = yk * IszY * Nfr + xk * Nfr + k;
-        if pos >= max_size
+        if pos > max_size
             pos = 1;
         end
         I[pos] = 1;
@@ -233,6 +227,7 @@ function particlefilter(I::Array{Int}, IszX, IszY, Nfr, seed, Nparticles)
 	for x=1:Nparticles
 		weights[x] = 1 / Nparticles
 	end
+
 	get_weights = gettime()
 	println("TIME TO GET WEIGHTS TOOK: $(elapsedtime(get_neighbors, get_weights))")
 
@@ -286,17 +281,20 @@ function particlefilter(I::Array{Int}, IszX, IszY, Nfr, seed, Nparticles)
 		for x=1:Nparticles
 			weights[x] = weights[x] * exp(likelihood[x])
 		end
+
 		exponential = gettime()
 		println("TIME TO GET EXP TOOK: $(elapsedtime(likelihood_time, exponential))")
 		sum_weights = 0;
         for x = 1:Nparticles
             sum_weights += weights[x];
         end
+
         sum_time = gettime();
         println("TIME TO SUM WEIGHTS TOOK: $(elapsedtime(exponential, sum_time))");
         for x = 1:Nparticles
             weights[x] = weights[x] / sum_weights;
         end
+
         normalize = gettime();
         println("TIME TO NORMALIZE WEIGHTS TOOK: $(elapsedtime(sum_time, normalize))");
 
