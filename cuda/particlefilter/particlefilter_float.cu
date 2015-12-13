@@ -234,7 +234,7 @@ __device__ double dev_round_double(double value) {
     if (value - newValue < .5f)
         return newValue;
     else
-        return newValue++;
+        return newValue++;  // will return new_value (post-increment)
 }
 
 /*****************************
@@ -863,8 +863,6 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
 
 int main(int argc, char *argv[]) {
 
-    printf("INTMAX:\n");
-
     char *usage = "double.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments
     if (argc != 9) {
@@ -927,10 +925,10 @@ int main(int argc, char *argv[]) {
     int *seed = (int *)malloc(sizeof(int) * Nparticles);
     int i;
     for (i = 0; i < Nparticles; i++)
-        seed[i] = time(0) * i;
+        seed[i] = i;
     // malloc matrix
     unsigned char *I =
-        (unsigned char *)malloc(sizeof(unsigned char) * IszX * IszY * Nfr);
+        (unsigned char *)calloc(IszX * IszY * Nfr, sizeof(unsigned char));
     long long start = get_time();
     // call video sequence
     videoSequence(I, IszX, IszY, Nfr, seed);
