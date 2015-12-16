@@ -170,6 +170,216 @@ function streldisk(disk, radius)
 	end
 end
 
+# Particle filter
+# Helper functions
+
+@inline function cdf_calc(CDF::CuDeviceArray{Float64}, weights::CuDeviceArray{Float64}, Nparticles)
+	CDF[1] = weights[1]
+	for x=2:Nparticles
+		CDF[x] = weights[x] + CDF[x-1]
+	end
+end
+
+@inline function d_randu(seed::CuDeviceArray{Int32}, index)
+	num = A * seed[index] + C
+	seed[index] = num % M
+	return CUDA.abs(seed[index]/M)
+end
+
+@inline function d_randn(seed::CuDeviceArray{Int32}, index)
+	pi = 3.14159265358979323846
+	u = d_randu(seed, index)
+	v = d_randu(seed, index)
+	cosine = CUDA.cos(2*pi*v)
+	rt = -2 * CUDA.log(u)
+	return CUDA.sqrt(rt) * cosine
+end
+
+@inline function calc_likelihood_sum(I::CuDeviceArray{UInt8}, ind::CuDeviceArray{Int}, num_ones, index)
+	likelihood_sum = Float64(0)
+	for x=1:num_ones
+		i = ind[(index-1) * num_ones + x]
+		likelihood_sum = Float64(i)
+		#=v = ((I[i] - 100)*(I[i] - 100))
+			- (I[i] -228)*(I[i] -228))/50
+		likelihood_sum += v=#
+		break
+	end
+	return likelihood_sum
+end
+
+@inline function dev_round_double(value)
+	new_value = Int(value)
+	if value - new_value < 0.5
+		return new_value
+	else
+		return new_value # keep buggy semantics of original, should be new_value+1
+	end
+end
+
+
+# Kernels
+
+@target ptx function kernel_find_index(
+	arrayX::CuDeviceArray{Float64}, arrayY::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64},
+	u::CuDeviceArray{Float64}, xj::CuDeviceArray{Float64}, yj::CuDeviceArray{Float64},
+	weights::CuDeviceArray{Float64}, Nparticles)
+	
+	block_id = blockIdx().x
+	i = blockDim().x * (block_id-1) + threadIdx().x
+
+	if i <= Nparticles
+		index = 0 	# an invalid index
+		for x=1:Nparticles
+			if CDF[x] >= u[i]
+				index = x
+				break
+			end
+		end
+		if index == 0
+			index = Nparticles
+		end
+
+		xj[i] = arrayX[index]
+		yj[i] = arrayY[index]
+	end
+	sync_threads()
+end
+
+@target ptx function kernel_normalize_weights(
+	weights::CuDeviceArray{Float64}, Nparticles,
+	partial_sums::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64},
+	u::CuDeviceArray{Float64}, seed::CuDeviceArray{Int32})
+
+	block_id = blockIdx().x
+	i = blockDim().x * (block_id-1) + threadIdx().x
+
+	shared = cuSharedMem_double()	# size of 2 doubles
+	u1_i = 1
+	sum_weights_i = 2
+	# shared[1] == u1, shared[2] = sum_weights
+
+	if threadIdx().x == 1
+		setCuSharedMem_double(shared, sum_weights_i, partial_sums[0])
+	end
+	sync_threads()
+
+	if i <= Nparticles
+		weights[i] = weights[i] / getCuSharedMem_double(shared, sum_weights_i)
+	end
+	sync_threads()
+
+	if i==1
+		cdf_calc(CDF, weights, Nparticles)
+		u[1] = (1/Nparticles) * d_randu(seed, i)
+	end
+	sync_threads()
+
+	if threadIdx().x == 1
+		setCuSharedMem_double(shared, u1_i, u[1])
+	end
+	sync_threads()
+
+	if i <= Nparticles
+		u1 = getCuSharedMem_double(shared, u1_i)
+		u[i] = u1 + i / Nparticles
+	end
+
+	return nothing
+end
+
+@target ptx function kernel_sum(partial_sums::CuDeviceArray{Float64}, Nparticles)
+	block_id = blockIdx().x
+	i = blockDim().x * (block_id-1) + threadIdx().x
+
+	if i==1
+		sum = 0.0
+		num_blocks = Int(CUDA.ceil(Nparticles/threads_per_block))
+		for x=1:num_blocks
+			sum += partial_sums[x]
+		end
+		partial_sums[1] = sum
+	end
+
+	return nothing
+end
+
+@target ptx function kernel_likelihood(
+	arrayX::CuDeviceArray{Float64}, 		# Out
+	arrayY::CuDeviceArray{Float64}, 		# Out
+	xj::CuDeviceArray{Float64}, 			# In
+	yj::CuDeviceArray{Float64}, 			# In
+	#CDF::CuDeviceArray{Float64}, 			
+	ind::CuDeviceArray{Int},				# Out
+	objxy::CuDeviceArray{Int}, 				# In
+	likelihood::CuDeviceArray{Float64}, 	# Out
+	I::CuDeviceArray{UInt8}, 				# In	
+	#u::CuDeviceArray{Float64}, 				
+	weights::CuDeviceArray{Float64}, 		# Out
+	Nparticles, count_ones, max_size, k, IszY, 
+	Nfr, 
+	seed::CuDeviceArray{Int32}, 			# InOut
+	partial_sums::CuDeviceArray{Float64})	# Out
+
+	block_id = blockIdx().x
+	i::Int = blockDim().x * (block_id-1) + threadIdx().x
+
+	buffer = cuSharedMem_double()	# 512 doubles
+	if i <= Nparticles
+		arrayX[i] = xj[i]
+		arrayY[i] = yj[i]
+		weights[i] = 1/Nparticles
+
+		arrayX[i] = arrayX[i] + 1.0 + 5.0 * d_randn(seed, i)
+		arrayY[i] = arrayY[i] - 2.0 + 2.0 * d_randn(seed, i)
+	end
+
+	sync_threads()
+
+	if i <= Nparticles
+		for y=0:count_ones-1
+			indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
+			indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
+
+			val = indX*IszY*Nfr + indY*Nfr + k #CUDA.abs(val)
+			if val < 1
+				val = -val +1
+			end
+			index = (i-1)*count_ones + y + 1
+			ind[index] = val
+			if ind[(i-1)*count_ones + y + 1] > max_size
+				ind[(i-1)*count_ones + y + 1] = 1
+			end
+		end
+		likelihood[i] = calc_likelihood_sum(I, ind, count_ones, i)
+		#likelihood[i] = likelihood[i]/count_ones
+		weights[i] = weights[i] * CUDA.exp(likelihood[i])
+	end
+	setCuSharedMem_double(buffer, threadIdx().x, 0.0)
+
+	sync_threads()
+
+	if i<Nparticles
+		buffer[threadIdx().x] = weights[i]
+	end
+	sync_threads()
+
+	s = Int64(blockDim().x/2)
+	while s > 0
+		if threadIdx().x <= s
+			v = getCuSharedMem_double(buffer, threadIdx().x)
+			v += getCuSharedMem_double(buffer, threadIdx().x + s)
+			setCuSharedMem_double(buffer, threadIdx().x, v)
+		end
+		s>>=1
+	end
+	if threadIdx().x == 1
+		partial_sums[blockIdx().x] = getCuSharedMem_double(buffer, 1)
+	end
+	sync_threads()
+	return nothing
+end
+
 function getneighbors(se::Array{Int}, num_ones, neighbors::Array{Int}, radius)
 	neighY = 1
 	center = radius -1
@@ -215,7 +425,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 	end
 
 	# Initial likelihood to 0.0
-	likelihood = Array{Float64, 1}(Nparticles)
+	likelihood = zeros(Float64, Nparticles) #Array{Float64, 1}(Nparticles)
 	arrayX = Array{Float64, 1}(Nparticles)
 	arrayY = Array{Float64, 1}(Nparticles)
 	xj = Array{Float64, 1}(Nparticles)
@@ -233,18 +443,24 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
 	num_blocks = Int(ceil(Nparticles/threads_per_block))
 
-	for k=2:Nfr
+	for k=2:3 #Nfr
 
 		@cuda (num_blocks, threads_per_block, 8*512) kernel_likelihood(
-			arrayX, arrayY, xj, yj, CDF, ind, objxy, likelihood, I, u, weights, 
+			CuOut(arrayX), CuOut(arrayY), 
+			CuIn(xj), CuIn(yj), #CDF, 
+			CuOut(ind), 
+			CuIn(objxy), 
+			CuOut(likelihood), 
+			CuIn(I), #u,
+			CuOut(weights), 
 			Nparticles, count_ones, max_size, k, IszY, Nfr, 
-			seed, partial_sums)
-		#=@cuda (num_blocks, threads_per_block) kernel_sum(partial_sums, Nparticles)
+			CuInOut(seed), CuOut(partial_sums))
+		@cuda (num_blocks, threads_per_block) kernel_sum(partial_sums, Nparticles)
 		@cuda (num_blocks, threads_per_block, 8*2) kernel_normalize_weights(
 			weights, Nparticles,
 			partial_sums, CDF, u, seed)
 		@cuda (num_blocks, threads_per_block) kernel_find_index(
-			arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)=#
+			arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)
     end
     synchronize(ctx)
 
@@ -260,189 +476,6 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     			   +(ye - Int(rounddouble(IszY/2.0)))^2)
     println(distance)
 
-end
-
-# Device code
-
-@target ptx function kernel_find_index(
-	arrayX::CuDeviceArray{Float64}, arrayY::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64},
-	u::CuDeviceArray{Float64}, xj::CuDeviceArray{Float64}, yj::CuDeviceArray{Float64},
-	weights::CuDeviceArray{Float64}, Nparticles)
-	
-	block_id = blockIdx().x
-	i = blockDim().x * (block_id-1) + threadIdx().x
-
-	if i <= Nparticles
-		index = 0 	# an invalid index
-		for x=1:Nparticles
-			if CDF[x] >= u[i]
-				index = x
-				break
-			end
-		end
-		if index == 0
-			index = Nparticles
-		end
-
-		xj[i] = arrayX[index]
-		yj[i] = arrayY[index]
-	end
-	sync_threads()
-end
-
-@target ptx function cdf_calc(CDF::CuDeviceArray{Float64}, weights::CuDeviceArray{Float64}, Nparticles)
-	CDF[1] = weights[1]
-	for x=2:Nparticles
-		CDF[x] = weights[x] + CDF[x-1]
-	end
-end
-
-@target ptx function d_randu(seed::CuDeviceArray{Int32}, index)
-	num = A * seed[index] + C
-	seed[index] = num % M
-	return abs(seed[index]/M)
-end
-
-@target ptx function kernel_normalize_weights(
-	weights::CuDeviceArray{Float64}, Nparticles,
-	partial_sums::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64},
-	u::CuDeviceArray{Float64}, seed::CuDeviceArray{Int})
-
-	block_id = blockIdx().x
-	i = blockDim().x * (block_id-1) + threadIdx().x
-
-	shared = cuSharedMem_double()	# size of 2 doubles
-	u1_i = 1
-	sum_weights_i = 2
-	# shared[1] == u1, shared[2] = sum_weights
-
-	if threadIdx().x == 1
-		setCuSharedMem_double(shared, sum_weights_i, partial_sums[0])
-	end
-	sync_threads()
-
-	if i <= Nparticles
-		weights[i] = weights[i] / getCuSharedMem_double(shared, sum_weights_i)
-	end
-	sync_threads()
-
-	if i==1
-		cdf_calc(CDF, weights, Nparticles)
-		u[1] = (1/Nparticles) * d_randu(seed, i)
-	end
-	sync_threads()
-
-	if threadIdx().x == 1
-		setCuSharedMem_double(shared, u1_i, u[1])
-	end
-	sync_threads()
-
-	if i <= Nparticles
-		u1 = getCuSharedMem_double(shared, u1_i)
-		u[i] = u1 + i / Nparticles
-	end
-
-	return nothing
-end
-
-@target ptx function kernel_sum(partial_sums::CuDeviceArray{Float64}, Nparticles)
-	block_id = blockIdx().x
-	i = blockDim().x * (block_id-1) + threadIdx().x
-
-	if i==1
-		sum = 0.0
-		num_blocks = Int(ceil(Nparticles/threads_per_block))
-		for x=1:num_blocks
-			sum += partial_sums[x]
-		end
-		partial_sums[1] = sum
-	end
-
-	return nothing
-end
-
-@target ptx function calc_likelihood_sum(I, ind, num_ones, index)
-	likelihood_sum = Float64(0)
-	for x=1:num_ones
-		v = ((I[ind[index * num_ones + x]] -100)^2 
-			- (I[ind[index * num_ones + x]] -228)^2)/50
-		likelihood_sum += v
-	end
-	return likelihood_sum
-end
-
-@target ptx function kernel_likelihood(
-	arrayX::CuDeviceArray{Float64}, arrayY::CuDeviceArray{Float64}, xj::CuDeviceArray{Float64}, 
-	yj::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64}, ind::CuDeviceArray{Int}, objxy::CuDeviceArray{Int}, 
-	likelihood::CuDeviceArray{Float64}, I::CuDeviceArray{UInt8}, 
-	u::CuDeviceArray{Float64}, weights::CuDeviceArray{Float64}, 
-	Nparticles, count_ones, max_size, k, IszY, 
-	Nfr, seed::CuDeviceArray{Int32}, partial_sums::CuDeviceArray{Float64})
-
-	block_id = blockIdx().x
-	i::Int = blockDim().x * (block_id-1) + threadIdx().x
-
-	buffer = cuSharedMem_double()	# 512 doubles
-	if i <= Nparticles
-		arrayX[i] = xj[i]
-		arrayY[i] = yj[i]
-		weights[i] = 1/Nparticles
-
-		d_randn(seed, i)
-		#arrayX[i] = arrayX[i] + 1.0 + 5.0 * d_randn(seed, i)
-		#arrayY[i] = arrayY[i] - 2.0 + 2.0 * d_randn(seed, i)
-	end
-
-	#=sync_threads()
-
-	if i <= Nparticles
-		for y=0:count_ones-1
-			indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
-			indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
-
-			ind[(i-1)*count_ones + y + 1] = abs(indX*IszY*Nfr + indY*Nfr + k) + 1
-			if ind[(i-1)*count_ones + y + 1] > max_size
-				ind[(i-1)*count_ones + y + 1] = 1
-			end
-		end
-		likelihood[i] = calc_likelihood_sum(I, ind, count_ones, i)
-		likelihood[i] = likelihood[i]/count_ones
-		weights[i] = weights[i] * CUDA.exp(likelihood[i])
-	end
-	setCuSharedMem_double(buffer, threadIdx().x, 0.0)
-
-	sync_threads()
-
-	if i<Nparticles
-		buffer[threadIdx().x] = weights[i]
-	end
-	sync_threads()
-
-	s = UInt(blockDim().x/2)
-	while s > 0
-		if threadIdx().x < s+1
-			v = getCuSharedMem_double(buffer, threadIdx().x)
-			v += getCuSharedMem_double(buffer, threadIdx().x + s)
-			setCuSharedMem_double(buffer, threadIdx().x, v)
-		end
-		s>>=1
-	end
-	if threadIdx().x == 1
-		partial_sums[blockIdx().x] = getCuSharedMem_double(buffer, 1)
-	end
-	sync_threads()=#
-	return nothing
-end
-
-# Utility device functions
-
-@target ptx function dev_round_double(value)
-	new_value = trunc(value)
-	if value - new_value < 0.5
-		return new_value
-	else
-		return new_value # keep buggy semantics of original, should be new_value+1
-	end
 end
 
 # Main
