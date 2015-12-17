@@ -200,9 +200,9 @@ end
 	for x=1:num_ones
 		i = ind[(index-1) * num_ones + x]
 		likelihood_sum = Float64(i)
-		#=v = ((I[i] - 100)*(I[i] - 100))
+		v = ((I[i] - 100)*(I[i] - 100)
 			- (I[i] -228)*(I[i] -228))/50
-		likelihood_sum += v=#
+		likelihood_sum += v
 		break
 	end
 	return likelihood_sum
@@ -294,7 +294,7 @@ end
 
 	if i==1
 		sum = 0.0
-		num_blocks = Int(CUDA.ceil(Nparticles/threads_per_block))
+		num_blocks = Int(CUDA.floor(Nparticles/threads_per_block) + 1)
 		for x=1:num_blocks
 			sum += partial_sums[x]
 		end
@@ -352,7 +352,7 @@ end
 			end
 		end
 		likelihood[i] = calc_likelihood_sum(I, ind, count_ones, i)
-		#likelihood[i] = likelihood[i]/count_ones
+		likelihood[i] = likelihood[i]/count_ones
 		weights[i] = weights[i] * CUDA.exp(likelihood[i])
 	end
 	setCuSharedMem_double(buffer, threadIdx().x, 0.0)
@@ -443,7 +443,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
 	num_blocks = Int(ceil(Nparticles/threads_per_block))
 
-	for k=2:3 #Nfr
+	for k=2:Nfr
 
 		@cuda (num_blocks, threads_per_block, 8*512) kernel_likelihood(
 			CuOut(arrayX), CuOut(arrayY), 
