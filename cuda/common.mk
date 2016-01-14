@@ -29,7 +29,7 @@ ifeq ($(MACHINE), i686)
 LDFLAGS += -L$(CUDA_ROOT)/lib
 endif
 
-CPPFLAGS += -I$(CUDA_ROOT)/include
+CPPFLAGS += -isystem $(CUDA_ROOT)/include -isystem $(CUDA_DIR)/../common/cuda
 
 NVCC=$(CUDA_ROOT)/bin/nvcc
 
