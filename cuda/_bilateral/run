@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+./bilateralFilter ../../data/_bilateral/nature_monte.bmp
