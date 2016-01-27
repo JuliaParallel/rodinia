@@ -124,11 +124,11 @@ function videosequence(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32})
 
 	# Move point
 	xk = yk = 0
-	for k = 2:Nfr-1
+	for k = 2:Nfr
 		xk = abs(x0 + (k - 2));
         yk = abs(y0 - 2 * (k - 2));
         pos = yk * IszY * Nfr + xk * Nfr + k;
-        if pos >= max_size
+        if pos > max_size
             pos = 1;
         end
         I[pos] = 1;
@@ -173,7 +173,10 @@ end
 # Particle filter
 # Helper functions
 
-@inline function cdf_calc(CDF::CuDeviceArray{Float64}, weights::CuDeviceArray{Float64}, Nparticles)
+@inline function cdf_calc(
+	CDF::CuDeviceArray{Float64}, 		# Out
+	weights::CuDeviceArray{Float64}, 	# Int
+	Nparticles)
 	CDF[1] = weights[1]
 	for x=2:Nparticles
 		CDF[x] = weights[x] + CDF[x-1]
@@ -199,11 +202,9 @@ end
 	likelihood_sum = Float64(0)
 	for x=1:num_ones
 		i = ind[(index-1) * num_ones + x]
-		likelihood_sum = Float64(i)
 		v = ((I[i] - 100)*(I[i] - 100)
 			- (I[i] -228)*(I[i] -228))/50
 		likelihood_sum += v
-		break
 	end
 	return likelihood_sum
 end
@@ -247,9 +248,12 @@ end
 end
 
 @target ptx function kernel_normalize_weights(
-	weights::CuDeviceArray{Float64}, Nparticles,
-	partial_sums::CuDeviceArray{Float64}, CDF::CuDeviceArray{Float64},
-	u::CuDeviceArray{Float64}, seed::CuDeviceArray{Int32})
+	weights::CuDeviceArray{Float64},		# InOut
+	Nparticles,
+	partial_sums::CuDeviceArray{Float64}, 	# In
+	CDF::CuDeviceArray{Float64},			# Out
+	u::CuDeviceArray{Float64}, 				# InOut
+	seed::CuDeviceArray{Int32})				# InOut
 
 	block_id = blockIdx().x
 	i = blockDim().x * (block_id-1) + threadIdx().x
@@ -260,7 +264,7 @@ end
 	# shared[1] == u1, shared[2] = sum_weights
 
 	if threadIdx().x == 1
-		setCuSharedMem_double(shared, sum_weights_i, partial_sums[0])
+		setCuSharedMem_double(shared, sum_weights_i, partial_sums[1])
 	end
 	sync_threads()
 
@@ -294,7 +298,7 @@ end
 
 	if i==1
 		sum = 0.0
-		num_blocks = Int(CUDA.floor(Nparticles/threads_per_block) + 1)
+		num_blocks = Int(CUDA.ceil(Nparticles/threads_per_block))
 		for x=1:num_blocks
 			sum += partial_sums[x]
 		end
@@ -341,10 +345,11 @@ end
 			indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
 			indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
 
-			val = indX*IszY*Nfr + indY*Nfr + k #CUDA.abs(val)
-			if val < 1
-				val = -val +1
+			val = indX*IszY*Nfr + indY*Nfr + k -1 #CUDA.abs(val)
+			if val < 0
+				val = -val
 			end
+			val += 1
 			index = (i-1)*count_ones + y + 1
 			ind[index] = val
 			if ind[(i-1)*count_ones + y + 1] > max_size
@@ -359,8 +364,8 @@ end
 
 	sync_threads()
 
-	if i<Nparticles
-		buffer[threadIdx().x] = weights[i]
+	if i<=Nparticles
+		setCuSharedMem_double(buffer, threadIdx().x, weights[i])
 	end
 	sync_threads()
 
@@ -418,6 +423,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
 	objxy = Array{Int, 1}(count_ones * 2)
 	getneighbors(disk, count_ones, objxy, radius)
+
 	# Initial weights are all equal (1/Nparticles)
 	weights = Array{Float64, 1}(Nparticles)
 	for x=1:Nparticles
@@ -444,7 +450,6 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 	num_blocks = Int(ceil(Nparticles/threads_per_block))
 
 	for k=2:Nfr
-
 		@cuda (num_blocks, threads_per_block, 8*512) kernel_likelihood(
 			CuOut(arrayX), CuOut(arrayY), 
 			CuIn(xj), CuIn(yj), #CDF, 
@@ -455,10 +460,13 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 			CuOut(weights), 
 			Nparticles, count_ones, max_size, k, IszY, Nfr, 
 			CuInOut(seed), CuOut(partial_sums))
+
 		@cuda (num_blocks, threads_per_block) kernel_sum(partial_sums, Nparticles)
+
 		@cuda (num_blocks, threads_per_block, 8*2) kernel_normalize_weights(
 			weights, Nparticles,
 			partial_sums, CDF, u, seed)
+
 		@cuda (num_blocks, threads_per_block) kernel_find_index(
 			arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)
     end

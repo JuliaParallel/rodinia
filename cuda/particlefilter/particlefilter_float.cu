@@ -53,25 +53,6 @@ void check_error(cudaError e) {
     }
 }
 
-void cuda_print_double_array(double *array_GPU, size_t size) {
-    // allocate temporary array for printing
-    double *mem = (double *)malloc(sizeof(double) * size);
-
-    // transfer data from device
-    cudaMemcpy(mem, array_GPU, sizeof(double) * size, cudaMemcpyDeviceToHost);
-
-
-    printf("PRINTING ARRAY VALUES\n");
-    // print values in memory
-    for (size_t i = 0; i < size; ++i) {
-        printf("[%d]:%0.6f\n", i, mem[i]);
-    }
-    printf("FINISHED PRINTING ARRAY VALUES\n");
-
-    // clean up memory
-    free(mem);
-    mem = NULL;
-}
 
 /********************************
  * CALC LIKELIHOOD SUM
