@@ -7,4 +7,4 @@ all: $(EXES)
 
 .PHONY: clean
 clean:
-	$(RM) $(EXES)
+	$(RM) $(EXES) output.txt

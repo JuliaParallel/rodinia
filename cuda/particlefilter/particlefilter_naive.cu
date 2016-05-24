@@ -645,6 +645,25 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
     cudaFree(arrayY_GPU);
     cudaFree(arrayX_GPU);
 
+    xe = 0;
+    ye = 0;
+    // estimate the object location by expected values
+    for (x = 0; x < Nparticles; x++) {
+        xe += arrayX[x] * weights[x];
+        ye += arrayY[x] * weights[x];
+    }
+    double distance = sqrt(pow((double)(xe - (int)roundDouble(IszY / 2.0)), 2) +
+                           pow((double)(ye - (int)roundDouble(IszX / 2.0)), 2));
+
+    // Output results
+    if (getenv("OUTPUT")) {
+        FILE *fpo = fopen("output.txt", "w");
+        fprintf(fpo, "XE: %lf\n", xe);
+        fprintf(fpo, "YE: %lf\n", ye);
+        fprintf(fpo, "distance: %lf\n", distance);
+        fclose(fpo);
+    }
+
     // free memory
     free(disk);
     free(objxy);

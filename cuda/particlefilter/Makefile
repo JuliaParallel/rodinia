@@ -1,10 +1,10 @@
 include ../common.mk
 
-EXES  = particlefilter_naive particlefilter_float
+EXES  = particlefilter_naive particlefilter_double
 
 .PHONY: all
 all: $(EXES)
 
 .PHONY: clean
 clean:
-	$(RM) $(EXES)
+	$(RM) $(EXES) output.txt
