@@ -2,7 +2,6 @@
 set -ue
 
 #./particlefilter_naive -x 128 -y 128 -z 10 -np 10000
-./particlefilter_double -x 128 -y 128 -z 10 -np 400000
-./particlefilter_single -x 128 -y 128 -z 10 -np 400000
-cat ./output.txt
+#./particlefilter_single -x 128 -y 128 -z 10 -np 10000
+./particlefilter_double -x 128 -y 128 -z 10 -np 10000
 

@@ -836,16 +836,32 @@ int particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
                elapsed_time(xyj_time, reset));
     }
 
+    xe = 0;
+    ye = 0;
+    // estimate the object location by expected values
+    for (x = 0; x < Nparticles; x++) {
+        xe += arrayX[x] * weights[x];
+        ye += arrayY[x] * weights[x];
+    }
+    double distance = sqrt(pow((double)(xe - (int)roundDouble(IszY / 2.0)), 2) +
+                           pow((double)(ye - (int)roundDouble(IszX / 2.0)), 2));
+
+    // Output results
+    if (getenv("OUTPUT")) {
+        FILE *fpo = fopen("output.txt", "w");
+        fprintf(fpo, "XE: %lf\n", xe);
+        fprintf(fpo, "YE: %lf\n", ye);
+        fprintf(fpo, "distance: %lf\n", distance);
+        fclose(fpo);
+    }
 
     // OpenCL freeing of memory
-
     clReleaseMemObject(u_GPU);
     clReleaseMemObject(CDF_GPU);
     clReleaseMemObject(yj_GPU);
     clReleaseMemObject(xj_GPU);
     clReleaseMemObject(arrayY_GPU);
     clReleaseMemObject(arrayX_GPU);
-
 
     // free memory
     free(disk);

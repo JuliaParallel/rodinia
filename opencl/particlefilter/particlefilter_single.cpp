@@ -1072,17 +1072,13 @@ int particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
                           pow((float)(ye - (int)roundFloat(IszX / 2.0)), 2));
 
     // Output results
-    FILE *fid;
-    fid = fopen("output.txt", "w+");
-    if (fid == NULL) {
-        printf("The file was not opened for writing\n");
-        return -1;
+    if (getenv("OUTPUT")) {
+        FILE *fpo = fopen("output.txt", "w");
+        fprintf(fpo, "XE: %lf\n", xe);
+        fprintf(fpo, "YE: %lf\n", ye);
+        fprintf(fpo, "distance: %lf\n", distance);
+        fclose(fpo);
     }
-    fprintf(fid, "XE: %lf\n", xe);
-    fprintf(fid, "YE: %lf\n", ye);
-    fprintf(fid, "distance: %lf\n", distance);
-    fclose(fid);
-
 
     // OpenCL freeing of memory
     clReleaseMemObject(weights_GPU);

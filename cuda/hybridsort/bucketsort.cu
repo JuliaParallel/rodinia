@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "../../common/cuda/helper_cuda.h"
+#include <helper_cuda.h>
 #include <cuda_gl_interop.h>
 #include "bucketsort.cuh"
 // includes, kernels

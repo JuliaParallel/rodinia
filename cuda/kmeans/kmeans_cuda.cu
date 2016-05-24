@@ -1,4 +1,4 @@
-#include "../../common/cuda/helper_cuda.h"
+#include <helper_cuda.h>
 
 #include <stdlib.h>
 #include <stdio.h>

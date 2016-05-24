@@ -544,6 +544,26 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
         printf("TIME TO RESET WEIGHTS TOOK: %f\n",
                elapsed_time(xyj_time, reset));
     }
+
+    xe = 0;
+    ye = 0;
+    // estimate the object location by expected values
+    for (x = 0; x < Nparticles; x++) {
+        xe += arrayX[x] * weights[x];
+        ye += arrayY[x] * weights[x];
+    }
+    double distance = sqrt(pow((double)(xe - (int)roundDouble(IszY / 2.0)), 2) +
+                           pow((double)(ye - (int)roundDouble(IszX / 2.0)), 2));
+
+    // Output results
+    if (getenv("OUTPUT")) {
+        FILE *fpo = fopen("output.txt", "w");
+        fprintf(fpo, "XE: %lf\n", xe);
+        fprintf(fpo, "YE: %lf\n", ye);
+        fprintf(fpo, "distance: %lf\n", distance);
+        fclose(fpo);
+    }
+
     free(disk);
     free(objxy);
     free(weights);
@@ -555,9 +575,9 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
     free(CDF);
     free(u);
     free(ind);
+
 }
 int main(int argc, char *argv[]) {
-
     char *usage = "openmp.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments
     if (argc != 9) {
