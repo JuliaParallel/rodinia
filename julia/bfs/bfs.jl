@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDA
+using CUDAnative
 
 const MAX_THREADS_PER_BLOCK = 512
 
@@ -9,13 +9,13 @@ immutable Node
     no_of_edges::Int32
 end
 
-@target ptx function kernel_1(g_graph_nodes::CuDeviceArray{Node},
-                              g_graph_edges::CuDeviceArray{Int32},
-                              g_graph_mask::CuDeviceArray{Bool},
-                              g_updating_graph_mask::CuDeviceArray{Bool},
-                              g_graph_visited::CuDeviceArray{Bool},
-                              g_cost::CuDeviceArray{Int32},
-                              no_of_nodes::Int32)
+@target ptx function kernel_1(g_graph_nodes,
+                              g_graph_edges,
+                              g_graph_mask,
+                              g_updating_graph_mask,
+                              g_graph_visited,
+                              g_cost,
+                              no_of_nodes)
     tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x;
     if tid <= no_of_nodes && g_graph_mask[tid]
         g_graph_mask[tid] = false
@@ -32,11 +32,11 @@ end
     return nothing
 end
 
-@target ptx function kernel_2(g_graph_mask::CuDeviceArray{Bool},
-                              g_updating_graph_mask::CuDeviceArray{Bool},
-                              g_graph_visited::CuDeviceArray{Bool},
-                              g_over::CuDeviceArray{Bool},
-                              no_of_nodes::Int32)
+@target ptx function kernel_2(g_graph_mask,
+                              g_updating_graph_mask,
+                              g_graph_visited,
+                              g_over,
+                              no_of_nodes)
     tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x;
     if tid <= no_of_nodes && g_updating_graph_mask[tid]
         g_graph_mask[tid] = true
@@ -52,19 +52,15 @@ function parseline{T<:Number}(::Type{T}, f)
     while true
         line = chomp(readline(f))
         if length(line) > 0
-            return map(s -> parse(T, s), split(line))
+            return map(s -> parse(T, s), split(line))::Vector{T}
         end
     end
     return T[]
 end
 
 function main(args)
-    dev = CuDevice(0)
-    ctx = CuContext(dev)
-    cgctx = CuCodegenContext(ctx, dev)
-
     if length(args) != 1
-        error("Usage: bfs.jl <input_file)")
+        error("Usage: bfs.jl <input_file>")
     end
     input_f = args[1]
 
@@ -125,34 +121,57 @@ function main(args)
     grid = (num_of_blocks, 1, 1)
     threads = (num_of_threads_per_block, 1, 1)
 
+
+    # Manual copies to device
+    g_graph_nodes = CuArray(h_graph_nodes)
+    g_graph_edges = CuArray(h_graph_edges)
+    g_graph_mask  = CuArray(h_graph_mask)
+    g_updating_graph_mask = CuArray(h_updating_graph_mask)
+    g_graph_visited = CuArray(h_graph_visited)
+    g_cost = CuArray(h_cost)
+    g_stop = CuArray(Bool, 1)
+
     k = 0
     info("Start traversing the tree")
     stop = Bool[1]
+
     while true
         # if no thread changes this value then the loop stops
         stop[1] = false
+        copy!(g_stop, stop)
 
         @cuda (grid, threads, 0) kernel_1(
-            h_graph_nodes, h_graph_edges, h_graph_mask,
-            h_updating_graph_mask, h_graph_visited,
-            h_cost, Int32(no_of_nodes)
+            g_graph_nodes, g_graph_edges, g_graph_mask,
+            g_updating_graph_mask, g_graph_visited,
+            g_cost, Int32(no_of_nodes)
         )
 
         @cuda (grid, threads, 0) kernel_2(
-            h_graph_mask, h_updating_graph_mask, h_graph_visited,
-            stop, Int32(no_of_nodes)
+            g_graph_mask, g_updating_graph_mask, g_graph_visited,
+            g_stop, Int32(no_of_nodes)
         )
 
         k += 1
+        copy!(stop, g_stop)
         if !stop[1]
             break
         end
     end
 
+    # Copy result back + free
+    h_cost = to_host(g_cost)
+    free(g_graph_nodes)
+    free(g_graph_edges)
+    free(g_graph_mask)
+    free(g_updating_graph_mask)
+    free(g_graph_visited)
+    free(g_cost)
+
     info("Kernel Executed $k times")
 
     # Store the result into a file
-    if haskey(ENV, "OUTPUT")
+    # TODO: static because it boxes no_of_nodes (#15276)
+    @static if haskey(ENV, "OUTPUT")
         open("output.txt", "w") do fpo
             for i = 1:no_of_nodes
                 write(fpo, "$(i-1)) cost:$(h_cost[i])\n")
@@ -161,4 +180,10 @@ function main(args)
     end
 end
 
+
+dev = CuDevice(0)
+ctx = CuContext(dev)
+
 main(ARGS)
+
+destroy(ctx)
