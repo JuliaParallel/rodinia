@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+OUTPUT=x ./hotspot.jl 512 512 2 ../../data/hotspot/temp_512 ../../data/hotspot/power_512 
