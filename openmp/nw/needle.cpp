@@ -129,7 +129,7 @@ void runTest(int argc, char **argv) {
     output_itemsets = (int *)malloc(max_rows * max_cols * sizeof(int));
 
 
-    if (!input_itemsets)
+    if (!output_itemsets)
         fprintf(stderr, "error: can not allocate memory");
 
     srand(7);
