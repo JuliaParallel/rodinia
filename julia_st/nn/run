@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+julia nn.jl filelist_4 5 30 90
