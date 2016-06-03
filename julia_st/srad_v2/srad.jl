@@ -59,8 +59,8 @@ function main(args)
 
     println("Start the SRAD main loop")
   
-    sum = 0
-    sum2 = 0
+    sum::Float32 = 0
+    sum2::Float32 = 0
     for iter in 1:niter
         sum = 0
         sum2 = 0
@@ -73,9 +73,9 @@ function main(args)
         end
     end
 
-    meanROI = sum / size_R
-    varROI = (sum / size_R) - meanROI * meanROI
-    q0sqr = varROI / (meanROI * meanROI)
+    meanROI::Float32 = sum / size_R
+    varROI::Float32 = (sum / size_R) - meanROI * meanROI
+    q0sqr::Float32 = varROI / (meanROI * meanROI)
 
     for i in 1:size(J,1)
         for j in size(J,2)
