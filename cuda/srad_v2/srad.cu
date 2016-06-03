@@ -92,10 +92,10 @@ void runTest(int argc, char **argv) {
 
 #ifdef CPU
 
-    iN = (int *)malloc(sizeof(unsigned int *) * rows);
-    iS = (int *)malloc(sizeof(unsigned int *) * rows);
-    jW = (int *)malloc(sizeof(unsigned int *) * cols);
-    jE = (int *)malloc(sizeof(unsigned int *) * cols);
+    iN = (int *)malloc(sizeof(int) * rows);
+    iS = (int *)malloc(sizeof(int) * rows);
+    jW = (int *)malloc(sizeof(int) * cols);
+    jE = (int *)malloc(sizeof(int) * cols);
 
 
     dN = (float *)malloc(sizeof(float) * size_I);

@@ -70,10 +70,10 @@ int main(int argc, char *argv[]) {
     J = (float *)malloc(size_I * sizeof(float));
     c = (float *)malloc(sizeof(float) * size_I);
 
-    iN = (int *)malloc(sizeof(unsigned int *) * rows);
-    iS = (int *)malloc(sizeof(unsigned int *) * rows);
-    jW = (int *)malloc(sizeof(unsigned int *) * cols);
-    jE = (int *)malloc(sizeof(unsigned int *) * cols);
+    iN = (int *)malloc(sizeof(int) * rows);
+    iS = (int *)malloc(sizeof(int) * rows);
+    jW = (int *)malloc(sizeof(int) * cols);
+    jE = (int *)malloc(sizeof(int) * cols);
 
 
     dN = (float *)malloc(sizeof(float) * size_I);
