@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+julia pathfinder.jl 100000 100
