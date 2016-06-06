@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+# You can replace the "-p 1" with "-p $((`nproc` - 1))" to use all cores
+# and slow down things even more, if you want
+julia-master -p 1 -L bfs.jl -e "main(ARGS)" ../../data/bfs/graph1M.txt
