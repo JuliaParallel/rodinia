@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+OUTPUT = false
+
 function usage()
     prog = basename(Base.source_path())
 #    println(STDERR,"Usage ",prog," <rows> <cols> <y1> <y2> <x1> <x2> <no. of threads><lamda> <no. of iter>")
@@ -128,6 +130,14 @@ function main(args)
 
     println("Computation done")
 
+    if OUTPUT
+        for i in 1:size(J,1)
+            for j in 1:size(J,2)
+               print(@sprintf("%.5f ",J[i,j])) 
+            end
+            println()
+        end
+    end
 end
 
 main(ARGS)
