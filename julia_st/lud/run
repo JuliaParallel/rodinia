@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
+# julia lud.jl -n 4 -i ../../data/lud/512.dat
+julia lud.jl -s 256 -v
