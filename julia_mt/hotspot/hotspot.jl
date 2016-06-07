@@ -191,21 +191,19 @@ function main(args)
 
     # output results
     output = ""
-    try
-      output = ENV["OUTPUT"]
-    catch e
-    end
-    if output != ""
-        println("Writing results output.txt")
-        f = open("output.txt","w")
-        for r in 1:size(temp,1)
-            for c in 1:size(temp,2)
-                println(f,@sprintf("%d\t%g",(r-1)*size(temp,2)+c-1,temp[r,c]))
+    if haskey(ENV,"OUTPUT")
+        if ENV["OUTPUT"] != ""
+            println("Writing results output.txt")
+            f = open("output.txt","w")
+            for r in 1:size(temp,1)
+                for c in 1:size(temp,2)
+                    println(f,@sprintf("%d\t%g",(r-1)*size(temp,2)+c-1,temp[r,c]))
+                end
             end
+            close(f)
+        else
+            println("OUTPUT environment variable not set or empty, not writing results")
         end
-        close(f)
-    else
-      println("OUTPUT environment variable not set or empty, not writing results")
     end
 end
 
