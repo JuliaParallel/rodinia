@@ -159,7 +159,7 @@ function main(args)
     end
 
     # Copy result back + free
-    h_cost = to_host(g_cost)
+    h_cost = Array(g_cost)
     free(g_graph_nodes)
     free(g_graph_edges)
     free(g_graph_mask)

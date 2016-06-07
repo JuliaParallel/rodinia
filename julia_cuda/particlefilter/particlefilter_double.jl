@@ -491,9 +491,9 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     end
     synchronize(default_stream())
 
-    arrayX = to_host(g_arrayX)
-    arrayY = to_host(g_arrayY)
-    weights = to_host(g_weights)
+    arrayX = Array(g_arrayX)
+    arrayY = Array(g_arrayY)
+    weights = Array(g_weights)
 
     free(g_likelihood)
     free(g_arrayX)

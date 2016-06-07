@@ -221,7 +221,7 @@ function main(args)
         rows, cols, pyramid_height,
         block_cols, border_cols)
 
-    result = to_host(gpu_result[final_ret])
+    result = Array(gpu_result[final_ret])
 
     free(gpu_result[1])
     free(gpu_result[2])
