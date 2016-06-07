@@ -1,6 +1,4 @@
-function getenv(var)
-    ccall((:getenv, "libc"), Ptr{UInt8}, (Ptr{UInt8},), var)
-end
+include("../../common/julia/wrappers.jl")
 
 function init(args)
     global rows
@@ -19,9 +17,13 @@ function init(args)
     data = Array{Int}(rows, cols)
     result = Array{Int}(cols)
 
-    rng = MersenneTwister()
-    srand(rng, 7)
-    rand!(rng, data, 0:9)
+    srand(7)
+
+    for i = 1:rows
+        for j = 1:cols
+            data[i,j] = rand() % 10
+        end
+    end
 
     for j = 1:cols
         result[j] = data[1,j]
@@ -71,7 +73,7 @@ function main(args)
         file = open("output.txt", "a")
         @printf(file, "data:\n")
         for i = 1:cols
-            @printf(file, "%d", data[1,i])
+            @printf(file, "%d ", data[1,i])
         end
         @printf(file, "\n")
 
