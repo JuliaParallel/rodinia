@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+julia needle.jl 2048 10
