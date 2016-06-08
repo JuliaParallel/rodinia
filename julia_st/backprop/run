@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
+julia facetrain.jl 65536
+
