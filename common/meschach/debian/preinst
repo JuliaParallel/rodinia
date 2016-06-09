@@ -1,0 +1,9 @@
+#!/bin/sh 
+set -e
+
+# kill the old doc directory, so the new one can be created in /usr/share/doc
+if [ -d /usr/doc/#PACKAGE# ]; then
+    rm -r /usr/doc/#PACKAGE#
+fi
+
+#DEBHELPER#

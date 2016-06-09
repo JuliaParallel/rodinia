@@ -1,0 +1,116 @@
+meschach (1.2b-13) unstable; urgency=low
+
+  * Standardise package names to normal forms libmeschach-dev and
+    libmeschach1. Motivated by libc6 2.5 change of long double from
+    64 bit to 124 bit, which requires renaming of library packages
+    using long double. I think meschach support for long double was not
+    fully completed, but using this opportunity to bring the package naming
+    in line with usual Debian conventions. Closes: #430316.
+  * Put developer's docs into libmeschach-dev not libmeschach1.
+  * Standards version 3.7.2.
+  * Use debhelper 5 (set in debian/compat).
+  * Use `./macheps` not `macheps` in configure.in, likewise for
+    `maxint`. Regenerate configure with autoconf.
+  * maxint.c: #include <stdio.h> to define printf.
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 28 Jun 2007 00:57:59 +1000
+
+meschach (1.2b-12) unstable; urgency=low
+
+  * Explicitly declared m_free ,v_free, px_free as type int (extern)
+    in matrix.h.  Required for compiling with C++.  Closes: #254387.
+  * Standards version 3.6.1.
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 18 Jun 2004 20:36:08 +1000
+
+meschach (1.2b-11) unstable; urgency=low
+
+  * Add "Section: devel" to the meschach-dev entry in debian/control so I
+    won't get that annoying override warning everytime I upload the package.
+    I'll leave the overall Section as "math" for now, although you could
+    well argue it belongs in "libs" (cf. blas, lapack).
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 30 Nov 2002 09:11:03 +1100
+
+meschach (1.2b-10) unstable; urgency=low
+
+  * Changed MAXDIM in matrix.h to 10000 instead of 2001, allowing for
+    matrices which are 100's of MB in size, rather than only several MB,
+    allowing for better use of the capacity of modern machines.
+    Done by request of one of my users.  I won't set it to 100000, since
+    that would imply matrices tens of GBs in size, which is larger than most
+    current PCs' entire memory. If you really need MAXDIM that large,
+    recompile the package yourself.
+  * Standards version 3.5.8.
+  * Use debhelper v4 (just for the hell of it).  i.e. DH_COMPAT=4
+  * Cleaned out dh_installinfo, dh_installmanpages from debian/rules.
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 29 Nov 2002 20:23:03 +1100
+
+meschach (1.2b-9) unstable frozen; urgency=low
+
+  * Corrected Section to math from devel in debian/control.
+  * Removed dh_testversion from debian/rules (now deprecated).
+  * Removed meschach.postinst, used DH_COMPAT=3 to handle ldconfig.
+  * Standards version 3.5.6.0.
+
+ -- Drew Parsons <dparsons@debian.org>  Sun,  9 Sep 2001 16:49:48 +1000
+
+meschach (1.2b-8) unstable frozen; urgency=low
+
+  * New maintainer (closes: #68320, #68321, #80284).
+  * Standards version 3.5.2.0.  The ./debian was regenerated from scratch
+    using dh_make to help update to latest standard.  Added -D_REENTRANT to
+    CFLAGS as suggested in Policy 11.2
+  * Recompiled against latest libraries. 
+  * All instances of #include <math.h> moved in front of local
+    includes (#include "matrix.h" etc) to avoid redefining HUGE_VAL.
+  * Reference to complex.h commented out in configure.in.
+    Meschach's complex numbers are not the same as those in <complex.h>,
+    which corresponds to the new C99 standard.
+  * #DEBHELPER# introduced to postinst scripts, prerm introduced accordingly
+    (to help with move from /usr/doc to /use/share/doc).
+  * "rm *.so" added to clean and realclean in makefile.in.
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 14 Mar 2001 14:33:43 +1100
+
+meschach (1.2b-7) unstable frozen; urgency=low
+
+  * recompile with libc6 2.1.1-2 
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Mon, 10 May 1999 17:05:23 -0700
+  
+meschach (1.2b-6) unstable frozen; urgency=low
+
+  * recompile with libc6 2.0.7u-7.1
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Mon,  7 Dec 1998 14:56:09 -0700
+	
+meschach (1.2b-5) unstable frozen; urgency=low
+
+  * recompile with libc6 2.0.7u-6
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Thu,  3 Dec 1998 01:54:50 -0700
+	
+meschach (1.2b-3) unstable; urgency=low
+
+  * Split into dev packages.
+  * Fix hardcoded egcc.
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Tue, 15 Sep 1998 18:59:44 -0700
+
+meschach (1.2b-2) unstable; urgency=low
+
+  * Fixed some lintian warnings and errors, re: sonames .
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Wed, 29 Jul 1998 16:36:53 -0700
+
+meschach (1.2b-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- John Lapeyre <lapeyre@physics.arizona.edu>  Fri, 10 Jul 1998 16:05:22 -0700
+
+Local variables:
+mode: debian-changelog
+End:

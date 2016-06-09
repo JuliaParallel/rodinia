@@ -1,0 +1,22 @@
+meschach for DEBIAN
+----------------------
+
+This is the meschach linear algegra library
+for Debian GNU/Linux.  
+
+Source:
+    ftp://ftpmaths.anu.edu.au/pub/meschach/meschach.html 
+Documentation can be obtained at this site, as well.
+
+The header files are installed in /usr/include/meschach.
+A shared library is installed as /usr/lib/libmeschach.so
+
+Meschach programs can be compiled using                                                                                            
+    cc prog.c -I/usr/include/meschach -lmeschach                                                                                                                    
+where prog.c is the name of the file to be compiled. 
+
+
+This package was compiled with an -O3 flag.
+
+
+Drew Parsons <dparsons@debian.org>, Wed Jan 10 00:09:45 EST 2001

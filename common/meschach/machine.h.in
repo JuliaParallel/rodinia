@@ -116,6 +116,11 @@
 #endif
 #endif
 
+/* if the system has complex.h */
+#ifdef HAVE_COMPLEX_H
+/*don't#include	<complex.h>*/
+#endif
+
 /* If prototypes are available & ANSI_C not yet defined, then define it,
 	but don't include any header files as the proper ANSI C headers
         aren't here */
@@ -212,6 +217,11 @@
 #ifndef HUGE
 #define HUGE HUGE_VAL
 #endif
+#endif
+
+
+#ifdef ANSI_C
+extern	int	isatty(int);
 #endif
 
 #endif

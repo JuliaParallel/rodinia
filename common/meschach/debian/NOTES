@@ -1,0 +1,4 @@
+The original source untars into the current directory.  I
+untarred the sourcr, put it in a directory and made a tar file for 
+orig.tar.gz.  Otherwise dpkg-source -b cannot handle it.
+John Lapeyre Sun, 12 Jul 1998 18:45:41 -0700

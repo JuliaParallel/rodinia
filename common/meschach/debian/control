@@ -1,0 +1,33 @@
+Source: meschach
+Section: math
+Priority: optional
+Maintainer: Drew Parsons <dparsons@debian.org>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: libmeschach-dev
+Architecture: any
+Section: devel
+Depends: libmeschach1.2, libc6-dev
+Conflicts: meschach-dev
+Replaces: meschach-dev
+Description: development files for meschach
+ These are files necessary for compiling programs with the 
+ meschach linear algebra library.
+
+Package: libmeschach1.2
+Architecture: any
+Depends: ${shlibs:Depends}
+Conflicts: meschach
+Description: library for performing operations on matrices and vectors
+ Meschach is a library of routines written in C for matrix
+ computations. These include operations for basic numerical linear
+ algebra; routines for matrix factorisations; solving systems of
+ equations; solving least squares problems; computing eigenvalues,
+ eigenvectors and singular values;sparse matrix computations including
+ both direct and iterative methods. This package makes use of the
+ features of the C programming language: data structures, dynamic
+ memory allocation and deallocation, pointers, functions as parameters
+ and objects. Meschach has a number of self-contained data structures
+ for matrices, vectors and other mathematical objects.
+ Web site: ftp://ftpmaths.anu.edu.au/pub/meschach/meschach.html
