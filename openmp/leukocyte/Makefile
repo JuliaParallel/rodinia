@@ -1,3 +1,5 @@
+OUTPUT := Y
+
 include ../common.mk
 
 EXE  = leukocyte
