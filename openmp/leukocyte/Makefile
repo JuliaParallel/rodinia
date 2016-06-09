@@ -26,6 +26,6 @@ $(EXE): LDLIBS += -lm $(MESCHACH_DIR)/libmeschach.a
 
 .PHONY: clean
 clean:
-	$(RM) $(EXE) $(OBJS)
+	$(RM) $(EXE) $(OBJS) result.txt
 	-$(MAKE) -C $(MESCHACH_DIR) clean
 	$(MAKE) -C $(AVI_DIR) clean

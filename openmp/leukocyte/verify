@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -ue
+
+rm -f result.txt
+./run
+diff result.txt ../../results/leukocyte/result.txt
+
