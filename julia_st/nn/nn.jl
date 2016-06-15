@@ -3,8 +3,8 @@ REC_WINDOW = 10   # number of records to read at a time
 LATITUDE_POS = 28 # location of latitude coordinates in input record
 OPEN = 10000      # initial value of nearest neighbors
 
-type neighbor
-    entry::ASCIIString
+type Neighbor
+    entry::String
     dist::Float64
 end
 
@@ -33,7 +33,7 @@ function main(args)
     target_lat = parse(Float64, args[3])
     target_long = parse(Float64, args[4])
 
-    neighbors = Array{neighbor}(k)
+    neighbors = Array{Neighbor}(k)
     #if (neighbors == NULL) {
     #    fprintf(stderr, "no room for neighbors\n");
     #    exit(0);
@@ -41,7 +41,7 @@ function main(args)
 
     # Initialize list of nearest neighbors to very large dist.
     for j in eachindex(neighbors)
-        neighbors[j] = neighbor("NULL", OPEN)
+        neighbors[j] = Neighbor("NULL", OPEN)
     end
 
     # Main processing
@@ -59,7 +59,7 @@ function main(args)
 
     done::Bool = false
     z = Array{Float32}(REC_WINDOW)
-    sandbox = Array{ASCIIString}(REC_WINDOW)
+    sandbox = Array{String}(REC_WINDOW)
 
     while !done
         # Read in REC_WINDOW number of records
