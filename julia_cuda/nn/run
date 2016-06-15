@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+./nn.jl filelist_4 -r 5 --lat 30 --lng 90
