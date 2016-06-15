@@ -29,7 +29,7 @@ function init(args)
         result[j] = data[1,j]
     end
 
-    if getenv("OUTPUT") != C_NULL
+    if haskey(ENV, "OUTPUT")
         file = open("output.txt", "w")
         @printf(file, "wall:\n")
         for i = 1:rows
@@ -69,7 +69,7 @@ function main(args)
 
     @printf("timer: %Lu\n", toq())
 
-    if getenv("OUTPUT") != C_NULL
+    if haskey(ENV, "OUTPUT")
         file = open("output.txt", "a")
         @printf(file, "data:\n")
         for i = 1:cols

@@ -108,7 +108,7 @@ function main(args)
         end
     end
 
-    if getenv("OUTPUT") != C_NULL
+    if haskey(ENV, "OUTPUT")
         fpo = open("output.txt", "w")
         @printf(fpo, "print traceback value GPU:\n")
 

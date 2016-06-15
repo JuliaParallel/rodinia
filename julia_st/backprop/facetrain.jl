@@ -13,7 +13,7 @@ function backprop_face(layer_size)
     println("Starting training kernel")
     bpnn_train_kernel(net)
 
-    if getenv("OUTPUT") != C_NULL
+    if haskey(ENV, "OUTPUT")
         bpnn_save(net, "output.dat")
     end
 
