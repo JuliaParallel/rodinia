@@ -47,11 +47,14 @@ int main(int argc, char *argv[]) {
     findLowest(records, recordDistances, numRecords, resultsCount);
 
     // print out results
-    if (!quiet)
-        for (i = 0; i < resultsCount; i++) {
-            printf("%s --> Distance=%f\n", records[i].recString,
-                   records[i].distance);
-        }
+    if (getenv("OUTPUT")) {
+        FILE* out = fopen("output.txt", "w");
+        fprintf(out, "The %d nearest neighbors are:\n", resultsCount);
+        for (i = 0; i < resultsCount; i++)
+            fprintf(out, "%s --> %f\n", records[i].recString, records[i].distance);
+        fclose(out);
+    }
+
     free(recordDistances);
     return 0;
 }

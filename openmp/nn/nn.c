@@ -135,11 +135,14 @@ int main(int argc, char *argv[]) {
         }
     } // End while loop
 
-    fprintf(stderr, "The %d nearest neighbors are:\n", k);
-    for (j = 0; j < k; j++) {
-        if (!(neighbors[j].dist == OPEN))
-            fprintf(stderr, "%s --> %f\n", neighbors[j].entry,
-                    neighbors[j].dist);
+    if (getenv("OUTPUT")) {
+        FILE* out = fopen("output.txt", "w");
+        fprintf(out, "The %d nearest neighbors are:\n", k);
+        for (j = k - 1; j >= 0; j--) {
+            if (!(neighbors[j].dist == OPEN))
+                fprintf(out, "%s --> %f\n", neighbors[j].entry, neighbors[j].dist);
+        }
+        fclose(out);
     }
 
     fclose(flist);

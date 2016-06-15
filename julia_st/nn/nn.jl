@@ -124,11 +124,15 @@ function main(args)
         end
     end
 
-    @printf(STDERR, "The %d nearest neighbors are:\n", k);
-    for j in eachindex(neighbors)
-        if neighbors[j].dist != OPEN
-            @printf(STDERR, "%s --> %f\n", neighbors[j].entry, neighbors[j].dist)
+    if haskey(ENV, "OUTPUT")
+        out = open("output.txt", "w")
+        @printf(out, "The %d nearest neighbors are:\n", k);
+        for j in length(neighbors):-1:1
+            if neighbors[j].dist != OPEN
+                @printf(out, "%s --> %f\n", neighbors[j].entry, neighbors[j].dist)
+            end
         end
+        close(out)
     end
 
     close(flist)

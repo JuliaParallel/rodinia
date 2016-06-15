@@ -110,10 +110,13 @@ function main(args)
     findLowest(records, distances, numRecords, resultsCount);
 
     # Print out results.
-    if !quiet
+    if haskey(ENV, "OUTPUT")
+        out = open("output.txt", "w")
+        @printf(out, "The %d nearest neighbors are:\n", resultsCount)
         for i = 1:resultsCount
-            @printf("%s --> %f\n", records[i].recString, records[i].distance)
+            @printf(out, "%s --> %f\n", records[i].recString, records[i].distance)
         end
+        close(out)
     end
 
     free(d_locations)
