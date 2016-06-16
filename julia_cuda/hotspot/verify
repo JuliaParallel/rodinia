@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
+OUTPUT=1 ./run
+numdiff -a 1.1e-3 output.txt ../../results/hotspot/output.txt
