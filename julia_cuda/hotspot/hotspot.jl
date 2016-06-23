@@ -82,11 +82,11 @@ end
 
     amb_temp = 80.0
 
-    bx = blockIdx().x
-    by = blockIdx().y
+    bx = blockIdx().x - 1
+    by = blockIdx().y - 1
 
-    tx = threadIdx().x
-    ty = threadIdx().y
+    tx = threadIdx().x - 1
+    ty = threadIdx().y - 1
 
     step_div_Cap = step / Cap
 
@@ -207,10 +207,10 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         temp = src
         src = dst
         dst = temp
-        @cuda ((blockCols, blockRows), BLOCK_SIZE, SHARED_MEM_SIZE) calculate_temp(
+        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE), SHARED_MEM_SIZE) calculate_temp(
             min(num_iterations, total_iterations - t), MatrixPower, MatrixTemp[src + 1],
-            MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry, Rz,
-            step, time_elapsed)
+            MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry,
+            Rz, step, time_elapsed)
     end
 
     return dst
