@@ -19,7 +19,7 @@ function lud_verify(m, lu, matrix_dim)
 
     for i = 1:matrix_dim
         for j = 1:matrix_dim
-            if abs(m[i, j] - tmp[i, j] > 0.0001)
+            if abs(m[i, j] - tmp[i, j]) > 0.0001
                 @printf("dismatch at (%d, %d): (o)%f (n)%f\n", i, j, m[i, j], tmp[i, j])
             end
         end
