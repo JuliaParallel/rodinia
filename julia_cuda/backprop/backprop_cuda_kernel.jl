@@ -9,9 +9,9 @@ end
                                             input_hidden_cuda,
                                             hidden_partial_sum,
                                             inp, hid)
-    by = blockIdx().y
-    tx = threadIdx().x
-    ty = threadIdx().y
+    by = blockIdx().y - 1
+    tx = threadIdx().x - 1
+    ty = threadIdx().y - 1
 
     index = (hid + 1) * HEIGHT * by + (hid + 1) * ty + tx + 1 + (hid + 1)
     index_in = HEIGHT * by + ty + 1
@@ -62,9 +62,9 @@ end
 end
 
 @target ptx function bpnn_adjust_weights_cuda(delta, hid, ly, inp, w, oldw)
-    by = blockIdx().y
-    tx = threadIdx().x
-    ty = threadIdx().y
+    by = blockIdx().y - 1
+    tx = threadIdx().x - 1
+    ty = threadIdx().y - 1
 
     index = (hid + 1) * HEIGHT * by + (hid + 1) * ty + tx + 2 + (hid + 1)
     index_y = HEIGHT * by + ty + 2

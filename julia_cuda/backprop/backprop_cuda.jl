@@ -34,7 +34,7 @@ function bpnn_train_cuda(net, ctx)
 
     println("Performing GPU computation")
 
-    @cuda ((1, num_blocks), 16, SHARED_MEM_SIZE) bpnn_layerforward_CUDA(
+    @cuda ((1, num_blocks), (16, 16), SHARED_MEM_SIZE) bpnn_layerforward_CUDA(
         input_cuda, output_hidden_cuda, input_hidden_cuda, hidden_partial_sum,
         inp, hid)
 
