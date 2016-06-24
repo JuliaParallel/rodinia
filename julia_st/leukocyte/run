@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia leukocyte.jl 5 ../../data/leukocyte/testfile.avi
