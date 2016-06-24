@@ -46,9 +46,9 @@ function main(args)
     # The lengths of the two sequences should be divisible by 16.
     # And at current stage max_rows needs to equal max_cols
     if length(args) == 2
-        max_rows = parse(Int, args[1])
-        max_cols = parse(Int, args[1])
-        penalty = parse(Int, args[2])
+        max_rows = parse(Int32, args[1])
+        max_cols = parse(Int32, args[1])
+        penalty = parse(Int32, args[2])
     else
         usage(argc, argv)
     end
@@ -56,9 +56,9 @@ function main(args)
     max_rows = max_rows + 1
     max_cols = max_cols + 1
 
-    reference = Array{Int}(max_rows, max_cols)
-    input_itemsets = zeros(Int, (max_rows, max_cols))
-    output_itemsets = Array{Int}(max_rows, max_cols)
+    reference = Array{Int32}(max_rows, max_cols)
+    input_itemsets = zeros(Int32, (max_rows, max_cols))
+    output_itemsets = Array{Int32}(max_rows, max_cols)
 
     srand(7)
     println("Start Needleman-Wunsch")
