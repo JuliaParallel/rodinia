@@ -2,21 +2,22 @@ OUTPUT := Y
 
 include ../common.mk
 
+MESCHACH_DIR=../../common/meschach
+AVI_DIR=../../common/avi
+
 EXE  = leukocyte
-OBJS = $(MESCHACH_DIR)/libmeschach.a find_ellipse.o track_ellipse.o misc_math.o $(MESCHACH_DIR)/libmeschach.a  \
+OBJS = $(MESCHACH_DIR)/libmeschach.a find_ellipse.o track_ellipse.o misc_math.o \
        $(AVI_DIR)/avilib.o
 
 .PHONY: all
 all: $(EXE)
 
-MESCHACH_DIR=../../common/meschach
-$(MESCHACH_DIR)/Makefile:
+$(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/Makefile
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR) all
 CPPFLAGS += -I$(MESCHACH_DIR)
 
-AVI_DIR=../../common/avi
 $(AVI_DIR)/avilib.o $(AVI_DIR)/avimod.o:
 	$(MAKE) -C $(AVI_DIR)
 CPPFLAGS += -I$(AVI_DIR)
