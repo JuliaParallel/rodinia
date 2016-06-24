@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+./needle.jl 2048 10
