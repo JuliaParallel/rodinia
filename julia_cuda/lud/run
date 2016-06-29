@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+./lud.jl -s 256 -v
