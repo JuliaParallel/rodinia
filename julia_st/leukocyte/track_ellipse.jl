@@ -47,7 +47,7 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
 
     # Keep track of the total time spent on computing
     #  the MGVF matrix and evolving the snakes
-    
+
     # Process each frame
     for frame_num in 1:Nf
         print("\rProcessing frame ",frame_num," / ", Nf)
@@ -326,7 +326,7 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
         vf = linear_interp2(f,x,y)
         vfx = linear_interp2(fx,x,y)
         vfy = linear_interp2(fy,x,y)
-        
+
         # Compute the average potential surface around the snake
         vfmean = sum(vf) / L
         vfxmean = sum(vfx) / L
@@ -344,7 +344,7 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
         r = (r + (deltar * lambdaedge * reshape(vfr,size(vfr,2)) + deltar * lambdasize * Er)) / (1.0 + deltar * lambdasize)
         r_diff = sum(abs(r-r_old))
 
-        # Test for convergence 
+        # Test for convergence
         snakediff = abs(xc - xc_old) + abs(yc - yc_old) + r_diff
 
         iter+=1

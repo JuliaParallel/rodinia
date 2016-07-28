@@ -13,7 +13,7 @@ function main(args)
     end
 
     num_frames = parse(Int32,args[1])
-    
+
     video_file_name = args[2]
 
     cell_file = AVI_open_input_file(video_file_name, 1)
@@ -110,7 +110,7 @@ function main(args)
                 Cy = A * y'
                 Cy = Cy .+ 40.0
 
-                # Iteratively refine the snake/spline 
+                # Iteratively refine the snake/splin
                 for i in 0:Iter-1
                     if G[n+1] > 0.0
                         typeofcell = 0
@@ -144,7 +144,7 @@ function main(args)
                 k_count += 1
             end
         end
-    end 
+    end
     # Report the total number of cells detected
     println("Cells detected: ",k_count)
     println()

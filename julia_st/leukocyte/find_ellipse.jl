@@ -119,7 +119,7 @@ function ellipsematching(grad_x, grad_y)
 end
 
 
-# Returns a circular structuring element of the specified radius 
+# Returns a circular structuring element of the specified radius
 function structuring_element(radius)
     [sqrt((i-radius)^2 + (j-radius)^2)<=radius?1.0:0.0 for i in 0:radius*2, j in 0:radius*2]
 end
@@ -186,7 +186,7 @@ function TMatrix(N, M)
 
     for i in 1:N
         LB = zeros(Float64,M,N)
-        
+
         for j in 1:M
             s = (j-1)/M
 
@@ -208,7 +208,7 @@ function TMatrix(N, M)
     end
 
     B_TEMP_INV = inv(B' * B)
-    B_TEMP_INV * B' 
+    B_TEMP_INV * B'
 end
 
 
@@ -337,7 +337,7 @@ function splineenergyform01(Cx, Cy, Ix, Iy, ns, delta, dt, typeofcell)
     XX = Xs .* Xs
     YY = Ys .* Ys
 
-    dCx = zeros(Float64,size(Cx,1)) 
+    dCx = zeros(Float64,size(Cx,1))
     dCy = zeros(Float64,size(Cy,1))
 
     # get control points for splines
