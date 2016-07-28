@@ -4,6 +4,9 @@ include("find_ellipse.jl")
 include("track_ellipse.jl")
 
 function main(args)
+    # Keep track of the start time of the program
+    program_start_time = time()
+
     # Let the user specify the number of frames to process
     num_frames = 1
 
@@ -42,19 +45,18 @@ function main(args)
     grad_y = gradient_y(image_chopped)
 
     # Get GICOV matrix corresponding to image gradients
-    # TODO: begin GICOV time
+    tic()
     gicov = ellipsematching(grad_x, grad_y)
 
     # Square GICOV values
     max_gicov = gicov.^2
-
-    # TODO: end gicov time
+    GICOV_end_time = toq()
 
     # Dilate the GICOV matrix
-    # TODO: begin dilate time
+    tic()
     strel = structuring_element(12)
     img_dilated = dilate_f(max_gicov, strel)
-    # TODO: end dilate time
+    dilate_end_time = toq()
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
@@ -150,17 +152,11 @@ function main(args)
     println()
 
     # Report the breakdown of the detection runtime
-    # TODO
-    #=
     println("Detection runtime");
     println("-----------------");
-    printf("GICOV computation: %.5f seconds\n",
-           ((float)(GICOV_end_time - GICOV_start_time)) / (1000 * 1000));
-    printf("   GICOV dilation: %.5f seconds\n",
-           ((float)(dilate_end_time - dilate_start_time)) / (1000 * 1000));
-    printf("            Total: %.5f seconds\n",
-           ((float)(get_time() - program_start_time)) / (1000 * 1000));
-    =#
+    print(@sprintf("GICOV computation: %.5f seconds\n",GICOV_end_time))
+    print(@sprintf("   GICOV dilation: %.5f seconds\n",dilate_end_time))
+    print(@sprintf("            Total: %.5f seconds\n",time() - program_start_time))
 
     # Now that the cells have been detected in the first frame,
     #  track the ellipses through subsequent frames
@@ -176,11 +172,7 @@ function main(args)
     toc()
 
     # Report total program execution time
-    #= TODO
-    printf("\nTotal application run time: %.5f seconds\n",
-           ((float)(get_time() - program_start_time)) / (1000 * 1000));
-    =#
-
+    print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
 end
 
 main(ARGS)

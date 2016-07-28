@@ -47,6 +47,8 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
 
     # Keep track of the total time spent on computing
     #  the MGVF matrix and evolving the snakes
+    MGVF_time = 0
+    snake_time = 0
 
     # Process each frame
     for frame_num in 1:Nf
@@ -93,7 +95,9 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
             IE = sqrt(Ix.^2 + Iy.^2)
 
             # Compute the motion gradient vector flow (MGVF) edgemaps
+            MGVF_start_time = time()
             IMGVF = MGVF(IE, 1, 1)
+            MGVF_time += time() - MGVF_start_time
 
             # Determine the position of the cell in the subimage
             xci = xci - u1
@@ -101,7 +105,9 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
             ycavg = ycavg - (v1 - 1)
 
             # Evolve the snake
+            snake_start_time = time()
             xci, yci = ellipseevolve(IMGVF, xci, yci, ri, t, Np, convert(Float64,R), ycavg)
+            snake_time += time() - snake_start_time
 
             # Compute the cell's new position in the full image
             xci = xci + u1
@@ -127,9 +133,10 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
 
     println()
     println()
-    println("Tracking runtime (average per frame):")
+    println("\n\nTracking runtime (average per frame):")
     println("-------------------------------------")
-    println("TODO")
+    print(@sprintf("MGVF computation: %.5f seconds\n",MGVF_time / Nf))
+    print(@sprintf(" Snake evolution: %.5f seconds\n",snake_time / Nf))
 end
 
 # destroys I
