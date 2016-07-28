@@ -247,15 +247,10 @@ function AVI_audio_tracks(AVI::Ptr{avi_t})
     ccall((:AVI_audio_tracks,"libavi"),Cint,(Ptr{avi_t},),AVI)
 end
 
-#=
-The leukocyte benchmark uses its own versions of this functions, which return
-matrices
-
-function chop_flip_image(image::Ptr{UInt8},height::Cint,width::Cint,cropped::Bool,scaled::Bool,converted::Bool)
+function AVI_chop_flip_image(image::Ptr{UInt8},height::Cint,width::Cint,cropped::Bool,scaled::Bool,converted::Bool)
     ccall((:chop_flip_image,"libavi"),Ptr{Cfloat},(Ptr{UInt8},Cint,Cint,Cint,Cint,Cint),image,height,width,cropped,scaled,converted)
 end
 
-function get_frame(cell_file::Ptr{avi_t},frame_num::Cint,cropped::Bool,scaled::Bool,converted::Bool)
+function AVI_get_frame(cell_file::Ptr{avi_t},frame_num::Cint,cropped::Bool,scaled::Bool,converted::Bool)
     ccall((:get_frame,"libavi"),Ptr{Cfloat},(Ptr{avi_t},Cint,Cint,Cint,Cint),cell_file,frame_num,cropped,scaled,converted)
 end
-=#
