@@ -13,6 +13,7 @@ end
 
 function lrand48()
 	ccall((:lrand48, "libc"), Int64, ())
+end
 
 function catan(angle::Float64)
     ccall((:atan, "libm"), Float64, (Float64, ), angle)
