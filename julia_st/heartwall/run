@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -ue
+
+LD_LIBRARY_PATH=../../common/avi ./heartwall.jl ../../data/heartwall/test.avi 20
