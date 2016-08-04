@@ -75,19 +75,9 @@ function kernel(public, private)
         # 1) get sum of input 1
         # 2) get sum of input 1 squared
 
-        # TODO use sum
-        in_final_sum = 0f0
-
-        for i = 1:public.in_mod_elem
-            in_final_sum = in_final_sum + private.d_T[private.in_pointer + i]
-        end
-
-        # TODO use sum
-        in_sqr_final_sum = 0f0
-
-        for i = 1:public.in_mod_elem
-            in_sqr_final_sum = in_sqr_final_sum + private.d_in_sqr[i]
-        end
+        pip = private.in_pointer
+        in_final_sum = sum(private.d_T[pip+1:pip+public.in_mod_elem])
+        in_sqr_final_sum = sum(private.d_in_sqr[1:public.in_mod_elem])
 
         # 3) do statistical calculations
         # 4) get denominator T

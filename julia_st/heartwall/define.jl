@@ -29,7 +29,7 @@ type public_struct
     allPoints
 
     # Frame
-    d_frames # TODO
+    d_frames::Ptr{avi_t}
     frames::Int32
     frame_no::Int32
     d_frame::Ptr{Float32}
