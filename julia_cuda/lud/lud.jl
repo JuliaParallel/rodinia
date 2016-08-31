@@ -6,7 +6,7 @@ include("lud_kernel.jl")
 using ArgParse
 
 function main(args)
-    @printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE)
+    info("WG size of kernel = $BLOCK_SIZE X $BLOCK_SIZE")
 
     s = ArgParseSettings()
     @add_arg_table s begin
@@ -25,39 +25,35 @@ function main(args)
     input_file = args["input"]
 
     if input_file != nothing
-        println("Reading matrix from file ", input_file)
+        info("Reading matrix from file ", input_file)
         matrix, matrix_dim = create_matrix_from_file(input_file)
     elseif matrix_dim > 0
-        println("Creating matrix internally size=", matrix_dim)
+        info("Creating matrix internally size=", matrix_dim)
         matrix = create_matrix(matrix_dim)
     else
-        println("No input file specified!")
-        exit(-1)
+        error("No input file specified!")
     end
 
     if verify
-        println("Before LUD")
+        info("Before LUD")
         matrix_copy = copy(matrix)
     end
 
     dev = CuDevice(0)
     ctx = CuContext(dev)
 
-    # beginning of timing point
-    tic()
-
-    d_matrix = CuArray(matrix)
-    lud_cuda(d_matrix, matrix_dim)
-    matrix = Array(d_matrix)
-
-    # end of timing point
-    println("Time consumed(ms): ", toq() * 1000)
+    sec = @elapsed begin
+        d_matrix = CuArray(matrix)
+        lud_cuda(d_matrix, matrix_dim)
+        matrix = Array(d_matrix)
+    end
+    info("Time consumed(ms): ", 1000sec)
 
     free(d_matrix)
 
     if verify
-        println("After LUD")
-        println(">>>Verify<<<<")
+        info("After LUD")
+        info(">>>Verify<<<<")
         lud_verify(matrix_copy, matrix, matrix_dim)
     end
 

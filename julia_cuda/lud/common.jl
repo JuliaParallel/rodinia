@@ -24,14 +24,13 @@ function lud_verify(m, lu, matrix_dim)
 end
 
 function create_matrix_from_file(filename)
-    println("TODO: not yet implemented.")
-    exit(-1)
+    error("TODO: not yet implemented.")
 end
 
 # Generate well-conditioned matrix internally by Ke Wang 2013/08/07 22:20:06
 function create_matrix(size)
     lamda = -0.001
-    coe = Array{Float32}(2 * size - 1)
+    coe = Vector{Float32}(2 * size - 1)
 
     for i = 0:size-1
         coe_i = 10 * exp(lamda * i)
@@ -39,7 +38,7 @@ function create_matrix(size)
         coe[size - i] = coe_i
     end
 
-    matrix = Array{Float32}(size * size)
+    matrix = Vector{Float32}(size * size)
 
     for i = 1:size, j = 1:size
         matrix[(i - 1) * size + j] = coe[size - i + j]

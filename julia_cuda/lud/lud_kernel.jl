@@ -149,7 +149,7 @@ end
 
     sync_threads()
 
-    sum::Float32 = 0.0
+    sum = 0f0
     for i = 0:BLOCK_SIZE-1
         sum += peri_col[idx(ty, i)] * peri_row[idx(i, tx)]
     end
