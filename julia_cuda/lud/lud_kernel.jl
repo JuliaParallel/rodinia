@@ -9,7 +9,7 @@ using CUDAnative
 end
 
 @target ptx function lud_diagonal(matrix, matrix_dim, offset)
-    shadow = @cuDynamicSharedMem(Float32, MATRIX_SIZE)
+    shadow = @cuStaticSharedMem(Float32, MATRIX_SIZE)
 
     array_offset = offset * matrix_dim + offset
 
@@ -53,10 +53,9 @@ end
 end
 
 @target ptx function lud_perimeter(matrix, matrix_dim, offset)
-    shared_mem = @cuDynamicSharedMem(Float32, 3*MATRIX_SIZE)
-    dia = view(shared_mem, 1:MATRIX_SIZE)
-    peri_row = view(shared_mem, MATRIX_SIZE+1:2*MATRIX_SIZE)
-    peri_col = view(shared_mem, 2*MATRIX_SIZE+1:3*MATRIX_SIZE)
+    dia = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    peri_row = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    peri_col = @cuStaticSharedMem(Float32, MATRIX_SIZE)
 
     bx = blockIdx().x - 1
     tx = threadIdx().x - 1
@@ -136,9 +135,8 @@ end
 end
 
 @target ptx function lud_internal(matrix, matrix_dim, offset)
-    shared_mem = @cuDynamicSharedMem(Float32, 2*MATRIX_SIZE)
-    peri_col = view(shared_mem, 1:MATRIX_SIZE)
-    peri_row = view(shared_mem, MATRIX_SIZE+1:2*MATRIX_SIZE)
+    peri_col = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    peri_row = @cuStaticSharedMem(Float32, MATRIX_SIZE)
 
     global_row_id = offset + blockIdx().y * BLOCK_SIZE
     global_col_id = offset + blockIdx().x * BLOCK_SIZE
@@ -163,19 +161,16 @@ end
 function lud_cuda(matrix, matrix_dim)
     i = 0
     while i < matrix_dim - BLOCK_SIZE
-        @cuda (1, BLOCK_SIZE, MATRIX_SIZE*sizeof(Float32)) lud_diagonal(
-            matrix, matrix_dim, i)
+        @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
 
         grid_size = Int((matrix_dim - i) / BLOCK_SIZE) - 1
 
-        @cuda (grid_size, BLOCK_SIZE * 2, 3*MATRIX_SIZE*sizeof(Float32)) lud_perimeter(
-            matrix, matrix_dim, i)
+        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, matrix_dim, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE),
-            2*MATRIX_SIZE*sizeof(Float32) ) lud_internal(matrix, matrix_dim, i)
+        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, matrix_dim, i)
 
         i += BLOCK_SIZE
     end
 
-    @cuda (1, BLOCK_SIZE, MATRIX_SIZE*sizeof(Float32)) lud_diagonal(matrix, matrix_dim, i)
+    @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
 end
