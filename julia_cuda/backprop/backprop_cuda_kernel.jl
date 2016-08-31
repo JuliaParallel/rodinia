@@ -34,14 +34,10 @@ end
 
     sync_threads()
 
-    # TODO: computing power_two as in the CUDA version of the benchmarks, i.e.,
-    # power_two = 2 ^ i results in the following error: LoadError: could not
-    # find function 'jlsys_power_by_squaring_33838'.
     # TODO: Since HEIGHT is an integer, there might be a nicer way to express
     # i = 1:log2(HEIGHT) than what is currently used.
-    power_two = 1
     for i = 1:Int32(CUDAnative.log2(Float32(HEIGHT)))
-        power_two *= 2
+        power_two = CUDAnative.pow(2f0, Int32(i))
         if ty % power_two == 0
             weight_matrix[idx(ty, tx)] +=
                 weight_matrix[idx(ty + Int32(power_two / 2), tx)]
