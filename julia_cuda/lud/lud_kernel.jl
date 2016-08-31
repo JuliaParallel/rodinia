@@ -1,40 +1,32 @@
 const BLOCK_SIZE = 16
 const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
-using CUDAdrv
-using CUDAnative
-
-@target ptx function idx(x, y)
-    return x * BLOCK_SIZE + y + 1
-end
+using CUDAdrv, CUDAnative
 
 @target ptx function lud_diagonal(matrix, matrix_dim, offset)
-    shadow = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    shadow = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
-    array_offset = offset * matrix_dim + offset
+    tx = threadIdx().x
 
-    tx = threadIdx().x - 1
-
-    for i = 0:BLOCK_SIZE-1
-        shadow[idx(i, tx)] = matrix[array_offset + tx + 1]
-        array_offset += matrix_dim
+    for i = 1:BLOCK_SIZE
+        shadow[tx, i] = matrix[offset + tx, offset+i]
     end
 
     sync_threads()
 
-    for i = 0:BLOCK_SIZE-2
+    for i = 1:BLOCK_SIZE-1
         if tx > i
-            for j = 0:i-1
-                shadow[idx(tx, i)] -= shadow[idx(tx, j)] * shadow[idx(j, i)]
+            for j = 1:i-1
+                shadow[i, tx] -= shadow[j, tx] * shadow[i, j]
             end
-            shadow[idx(tx, i)] /= shadow[idx(i, i)]
+            shadow[i, tx] /= shadow[i, i]
         end
 
         sync_threads()
 
         if tx > i
-            for j = 0:i
-                shadow[idx(i + 1, tx)] -= shadow[idx(i + 1, j)] * shadow[idx(j, tx)]
+            for j = 1:i
+                shadow[tx, i + 1] -= shadow[j, i + 1] * shadow[tx, j]
             end
         end
 
@@ -42,118 +34,99 @@ end
     end
 
     # The first row is not modified, it is no need to write it back to the global memory.
-    array_offset = (offset + 1) * matrix_dim + offset
-
-    for i = 1:BLOCK_SIZE-1
-        matrix[array_offset + tx + 1] = shadow[idx(i, tx)]
-        array_offset += matrix_dim
+    for i = 2:BLOCK_SIZE
+        matrix[offset + tx, offset + i] = shadow[tx, i]
     end
 
     return nothing
 end
 
 @target ptx function lud_perimeter(matrix, matrix_dim, offset)
-    dia = @cuStaticSharedMem(Float32, MATRIX_SIZE)
-    peri_row = @cuStaticSharedMem(Float32, MATRIX_SIZE)
-    peri_col = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    dia = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
+    peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
+    peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
-    bx = blockIdx().x - 1
-    tx = threadIdx().x - 1
+    # FIXME: typecast because otherwise `index` isn't inferred correctly,
+    #        probably because of JuliaLang/#15276
+    bx = Int(blockIdx().x)
+    tx = Int(threadIdx().x)
 
-    if tx < BLOCK_SIZE
+    if tx <= BLOCK_SIZE
         index = tx
-        array_offset = offset * matrix_dim + offset
 
-        for i = 0:Int(BLOCK_SIZE / 2)-1
-            dia[idx(i, index)] = matrix[array_offset + index + 1]
-            array_offset += matrix_dim
+        for i = 1:BLOCK_SIZE÷2
+            dia[index, i] = matrix[offset+index, offset+i]
         end
 
-        array_offset = offset * matrix_dim + offset
-
-        for i = 0:BLOCK_SIZE-1
-            peri_row[idx(i, index)] =
-                matrix[array_offset + (bx + 1) * BLOCK_SIZE + index + 1]
-            array_offset += matrix_dim
+        for i = 1:BLOCK_SIZE
+            peri_row[index, i] = matrix[offset + index + bx * BLOCK_SIZE, offset + i]
         end
     else
         index = tx - BLOCK_SIZE
-        array_offset = (offset + Int(BLOCK_SIZE / 2)) * matrix_dim + offset
 
-        for i = Int(BLOCK_SIZE / 2):BLOCK_SIZE-1
-            dia[idx(i, index)] = matrix[array_offset + index + 1]
-            array_offset += matrix_dim
+        for i = 1+BLOCK_SIZE÷2:BLOCK_SIZE
+            dia[index, i] = matrix[offset + index, offset + i]
         end
 
-        array_offset = (offset + (bx + 1) * BLOCK_SIZE) * matrix_dim + offset
-
-        for i = 0:BLOCK_SIZE-1
-            peri_col[idx(i, index)] = matrix[array_offset + index + 1]
-            array_offset += matrix_dim
+        for i = 1:BLOCK_SIZE
+            peri_col[index, i] = matrix[offset + index, offset + i + bx * BLOCK_SIZE]
         end
     end
 
     sync_threads()
 
-    if tx < BLOCK_SIZE # peri-row
+    if tx <= BLOCK_SIZE # peri-row
         index = tx
-        for i = 1:BLOCK_SIZE-1, j = 0:i-1
-            peri_row[idx(i, index)] -= dia[idx(i, j)] * peri_row[idx(j, index)]
+        for i = 2:BLOCK_SIZE, j = 1:i-1
+            peri_row[index, i] -= dia[j, i] * peri_row[index, j]
         end
     else # peri-col
         index = tx - BLOCK_SIZE
-        for i = 0:BLOCK_SIZE-1
-            for j = 0:i-1
-                peri_col[idx(index, i)] -= peri_col[idx(index, j)] * dia[idx(j, i)]
+        for i = 1:BLOCK_SIZE
+            for j = 1:i-1
+                peri_col[i, index] -= peri_col[j, index] * dia[i, j]
             end
-            peri_col[idx(index, i)] /= dia[idx(i, i)]
+            peri_col[i, index] /= dia[i, i]
         end
     end
 
     sync_threads()
 
-    if tx < BLOCK_SIZE # peri-row
+    if tx <= BLOCK_SIZE # peri-row
         index = tx
-        array_offset = (offset + 1) * matrix_dim + offset
-
-        for i = 1:BLOCK_SIZE-1
-            matrix[array_offset + (bx + 1) * BLOCK_SIZE + index + 1] =
-                peri_row[idx(i, index)]
-            array_offset += matrix_dim
+        for i = 2:BLOCK_SIZE
+            matrix[offset + index + bx * BLOCK_SIZE, offset + i] = peri_row[index, i]
         end
     else # peri-col
         index = tx - BLOCK_SIZE
-        array_offset = (offset + (bx + 1) * BLOCK_SIZE) * matrix_dim + offset
-
-        for i = 0:BLOCK_SIZE-1
-            matrix[array_offset + index + 1] = peri_col[idx(i, index)]
-            array_offset += matrix_dim
+        for i = 1:BLOCK_SIZE
+            matrix[offset + index, offset + bx * BLOCK_SIZE + i] = peri_col[index, i]
         end
     end
 
     return nothing
 end
 
-@target ptx function lud_internal(matrix, matrix_dim, offset)
-    peri_col = @cuStaticSharedMem(Float32, MATRIX_SIZE)
-    peri_row = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+@target ptx function lud_internal(matrix, offset)
+    peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
+    peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
     global_row_id = offset + blockIdx().y * BLOCK_SIZE
     global_col_id = offset + blockIdx().x * BLOCK_SIZE
 
-    tx = threadIdx().x - 1
-    ty = threadIdx().y - 1
+    tx = threadIdx().x
+    ty = threadIdx().y
 
-    peri_row[idx(ty, tx)] = matrix[(offset + ty) * matrix_dim + global_col_id + tx + 1]
-    peri_col[idx(ty, tx)] = matrix[(global_row_id + ty) * matrix_dim + offset + tx + 1]
+    peri_row[tx, ty] = matrix[global_col_id + tx, offset + ty]
+    peri_col[tx, ty] = matrix[offset + tx, global_row_id + ty]
 
     sync_threads()
 
     sum = 0f0
-    for i = 0:BLOCK_SIZE-1
-        sum += peri_col[idx(ty, i)] * peri_row[idx(i, tx)]
+    for i = 1:BLOCK_SIZE
+        sum += peri_col[i, ty] * peri_row[tx, i]
     end
-    matrix[(global_row_id + ty) * matrix_dim + global_col_id + tx + 1] -= sum
+    matrix[global_col_id + tx, global_row_id + ty] -= sum
 
     return nothing
 end
@@ -163,11 +136,11 @@ function lud_cuda(matrix, matrix_dim)
     while i < matrix_dim - BLOCK_SIZE
         @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
 
-        grid_size = Int((matrix_dim - i) / BLOCK_SIZE) - 1
+        grid_size = (matrix_dim-i)÷BLOCK_SIZE - 1
 
         @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, matrix_dim, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, matrix_dim, i)
+        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, i)
 
         i += BLOCK_SIZE
     end

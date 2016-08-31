@@ -7,18 +7,17 @@ function lud_verify(m, lu, matrix_dim)
             if i == k
                 l = 1
             else
-                l = lu[(i - 1) * matrix_dim + k]
+                l = lu[k,i]
             end
-            u = lu[(k - 1) * matrix_dim + j]
+            u = lu[j,k]
             sum += l * u
         end
-        tmp[i, j] = sum
+        tmp[j,i] = sum
     end
 
     for i = 1:matrix_dim, j = 1:matrix_dim
-        if abs(m[(i - 1) * matrix_dim + j] - tmp[i, j]) > 0.0001
-            @printf("dismatch at (%d, %d): (o)%f (n)%f\n", i - 1, j - 1,
-                m[(i - 1) * matrix_dim + j], tmp[i, j])
+        if abs(m[j,i] - tmp[j,i]) > 0.0001
+            warn("dismatch at ($j,$i): (o)$(m[j,i]) (n)$(tmp[j,i])")
         end
     end
 end
@@ -38,10 +37,10 @@ function create_matrix(size)
         coe[size - i] = coe_i
     end
 
-    matrix = Vector{Float32}(size * size)
+    matrix = Array{Float32}(size, size)
 
     for i = 1:size, j = 1:size
-        matrix[(i - 1) * size + j] = coe[size - i + j]
+        matrix[i,j] = coe[size - i + j]
     end
 
     return matrix
