@@ -1,11 +1,11 @@
 #!/usr/bin/env julia
 
-using CUDAnative
+using CUDAdrv, CUDAnative
 
 const MAX_THREADS_PER_BLOCK = 512
 
 immutable Node
-    starting::Int32;
+    starting::Int32
     no_of_edges::Int32
 end
 
