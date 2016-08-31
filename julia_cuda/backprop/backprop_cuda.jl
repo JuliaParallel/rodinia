@@ -5,7 +5,8 @@ const WIDTH = 16 # shared memory width
 const HEIGHT = 16 # shared memory height
 const THREADS = 256
 
-const SHARED_MEM_SIZE = (WIDTH + 1) * HEIGHT * sizeof(Float32)
+const SHARED_MEM_NELS = (WIDTH + 1) * HEIGHT
+const SHARED_MEM_SIZE = SHARED_MEM_NELS * sizeof(Float32)
 
 function bpnn_train_cuda(net, ctx)
     inp = net.input_n
@@ -39,13 +40,6 @@ function bpnn_train_cuda(net, ctx)
         inp, hid)
 
     synchronize(ctx)
-
-    # TODO
-    # cudaError_t error = cudaGetLastError();
-    # if (error != cudaSuccess) {
-    #     printf("bpnn kernel error: %s\n", cudaGetErrorString(error));
-    #     exit(EXIT_FAILURE);
-    # }
 
     partial_sum = Array(hidden_partial_sum)
 

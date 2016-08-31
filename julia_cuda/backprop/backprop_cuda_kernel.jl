@@ -16,10 +16,9 @@ end
     index = (hid + 1) * HEIGHT * by + (hid + 1) * ty + tx + 1 + (hid + 1)
     index_in = HEIGHT * by + ty + 1
 
-    shared_mem = cuSharedMem(Float32)
-    input_node = CuDeviceArray{Float32}(shared_mem)
-    weight_matrix = CuDeviceArray{Float32}(
-        shared_mem + HEIGHT * sizeof(Float32))
+    shared_mem = @cuDynamicSharedMem(Float32, SHARED_MEM_NELS)
+    input_node = view(shared_mem, 1:HEIGHT)
+    weight_matrix = view(shared_mem, HEIGHT+1:SHARED_MEM_NELS)
 
     if tx == 0
         input_node[ty + 1] = input_cuda[index_in + 1]
