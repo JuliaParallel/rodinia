@@ -15,7 +15,7 @@ function lrand48()
 	ccall((:lrand48, "libc"), Int64, ())
 end
 
-function free(ptr)
+function cfree(ptr)
     ccall((:free, "libc"), Void, (Ptr{Void},), ptr)
 end
 

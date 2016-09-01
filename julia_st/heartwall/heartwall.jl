@@ -315,7 +315,7 @@ function main(args)
 
         # Free memory for frame after each loop iteration, since AVI library allocates
         # memory for every frame fetched
-        free(public.d_frame)
+        cfree(public.d_frame)
 
         # Print frame progress
         @printf("%d ", public.frame_no)
