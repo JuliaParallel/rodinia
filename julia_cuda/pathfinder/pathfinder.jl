@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAnative
+using CUDAdrv, CUDAnative
 
 # Configuration
 const BLOCK_SIZE = 256
@@ -37,22 +37,12 @@ end
 
 @target ptx function kernel_dynproc(
     iteration,
-    gpu_wall, gpu_src, gpu_results, 
+    gpu_wall, gpu_src, gpu_result,
     cols, rows, start_step, border)
     
     # Define shared memory
-    #=
-    #cuSharedMem(Int64) returns the same pointer twice, we want separate values, 
-    prev = cuSharedMem(Int64)
-    result = cuSharedMem(Int64)
-    =#
-
-    #For now use 1 shared mem block together with offsets
-    shared_mem = cuSharedMem(Int64)  # size: 2*256*8 bytes (Int64 -> 8 bytes), indicated when calling using @cuda macro
-    # prev = shared_mem[0:256]
-    # result = shared_mem[265:512]
-    prev_offset = 0
-    result_offset = 256
+    prev = @cuStaticSharedMem(Int64, 256)
+    result = @cuStaticSharedMem(Int64, 256)
 
     bx = blockIdx().x
     tx = threadIdx().x
@@ -80,7 +70,7 @@ end
 
     if inrange(xidx, 1, cols)
         #prev[tx] = gpu_src[xidx]
-        shared_mem[prev_offset+tx] = gpu_src[xidx]
+        prev[tx] = gpu_src[xidx]
     end
 
     sync_threads()
@@ -91,34 +81,28 @@ end
         if inrange(tx, i+1, BLOCK_SIZE -i) && is_valid
             computed = true
 
-            #left = prev[W]
-            left = shared_mem[prev_offset+W]
-            #up = prev[tx]
-            up = shared_mem[prev_offset+tx]
-            #right = prev[E]
-            right = shared_mem[prev_offset+E]
+            left = prev[W]
+            up = prev[tx]
+            right = prev[E]
 
             shortest = dev_min(left, up)
             shortest = dev_min(shortest, right)
 
             index = cols * (start_step + (i-1)) + xidx
-            #result[tx] = shortest + gpu_wall[index]
-            shared_mem[result_offset+tx] = shortest + gpu_wall[index]
+            result[tx] = shortest + gpu_wall[index]
         end
         sync_threads()
         if i == iteration
             break
         end
         if computed
-            #prev[tx] = result[tx]
-            shared_mem[prev_offset+tx] = shared_mem[result_offset+tx]
+            prev[tx] = result[tx]
         end
         sync_threads()
     end
 
     if computed
-        #gpu_result[xidx] = result[tx]
-        gpu_results[xidx] = shared_mem[result_offset+tx]
+        gpu_result[xidx] = result[tx]
     end
 
     return nothing
@@ -179,7 +163,7 @@ function calcpath(wall, result, rows, cols,
         dst = tmp
         iter = min(pyramid_height, rows -t -1)
 
-        @cuda (dim_grid, dim_block, 256*2*8) kernel_dynproc(
+        @cuda (dim_grid, dim_block) kernel_dynproc(
             iter,
             wall, 
             result[src],        # Does not work with slice: CuIn(gpu_result[src,:])
