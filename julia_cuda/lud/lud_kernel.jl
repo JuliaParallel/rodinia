@@ -51,25 +51,27 @@ end
     bx = Int(blockIdx().x)
     tx = Int(threadIdx().x)
 
+    # FIXME: for some strange reason having bounds checking on the accesses below
+    #        introduces diverging results (even though non actually go out of bounds...)
     if tx <= BLOCK_SIZE
         index = tx
 
         for i = 1:BLOCK_SIZE÷2
-            dia[index, i] = matrix[offset+index, offset+i]
+            @inbounds dia[index, i] = matrix[offset+index, offset+i]
         end
 
         for i = 1:BLOCK_SIZE
-            peri_row[index, i] = matrix[offset + index + bx * BLOCK_SIZE, offset + i]
+            @inbounds peri_row[index, i] = matrix[offset + index + bx * BLOCK_SIZE, offset + i]
         end
     else
         index = tx - BLOCK_SIZE
 
         for i = 1+BLOCK_SIZE÷2:BLOCK_SIZE
-            dia[index, i] = matrix[offset + index, offset + i]
+            @inbounds dia[index, i] = matrix[offset + index, offset + i]
         end
 
         for i = 1:BLOCK_SIZE
-            peri_col[index, i] = matrix[offset + index, offset + i + bx * BLOCK_SIZE]
+            @inbounds peri_col[index, i] = matrix[offset + index, offset + i + bx * BLOCK_SIZE]
         end
     end
 
