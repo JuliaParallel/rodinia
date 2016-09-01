@@ -29,9 +29,9 @@ end
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    shared_mem = cuSharedMem(Int32)
-    temp = CuDeviceArray(shared_mem)
-    ref = CuDeviceArray(shared_mem + (BLOCK_SIZE + 1) * (BLOCK_SIZE + 1) * sizeof(Int32))
+    shared_mem = @cuDynamicSharedMem(Int32, (BLOCK_SIZE+1)^2 + BLOCK_SIZE^2)
+    temp = view(shared_mem, 1:(BLOCK_SIZE+1)^2)
+    ref = view(shared_mem, (BLOCK_SIZE+1)^2+1:(BLOCK_SIZE+1)^2+BLOCK_SIZE^2)
 
     if tx == 0
         temp[tidx(tx, 0)] = matrix_cuda[index_nw + 1]
@@ -100,9 +100,9 @@ end
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    shared_mem = cuSharedMem(Int32)
-    temp = CuDeviceArray(shared_mem)
-    ref = CuDeviceArray(shared_mem + (BLOCK_SIZE + 1) * (BLOCK_SIZE + 1) * sizeof(Int32))
+    shared_mem = @cuDynamicSharedMem(Int32, (BLOCK_SIZE+1)^2 + BLOCK_SIZE^2)
+    temp = view(shared_mem, 1:(BLOCK_SIZE+1)^2)
+    ref = view(shared_mem, (BLOCK_SIZE+1)^2+1:(BLOCK_SIZE+1)^2+BLOCK_SIZE^2)
 
     for ty = 0:BLOCK_SIZE-1
         ref[ridx(ty, tx)] = reference[index + cols * ty + 1]
