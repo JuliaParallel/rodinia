@@ -94,12 +94,12 @@ function main(args)
     end
     toc()
 
-    f = open("result.txt","w")
+    f = open("output.txt","w")
     for i in eachindex(h_cost)
         println(f,i-1,") cost:",h_cost[i])
     end
     close(f)
-    info("Result stored in result.txt")
+    info("Result stored in output.txt")
 end
 
 main(ARGS)
