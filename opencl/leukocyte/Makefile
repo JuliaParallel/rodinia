@@ -26,5 +26,5 @@ $(EXE): LDLIBS += -lm
 .PHONY: clean
 clean:
 	$(RM) $(EXE) $(OBJS)
-	-$(MAKE) -C $(MESCHACH_DIR) clean
+	-$(MAKE) -C $(MESCHACH_DIR) realclean
 	$(MAKE) -C $(AVI_DIR) clean

@@ -2,7 +2,7 @@ include ../common.mk
 
 EXE  = leukocyte
 OBJS = find_ellipse.o find_ellipse_kernel.o track_ellipse.o track_ellipse_kernel.o misc_math.o \
-       $(MESCHACH_DIR)/meschach.a \
+       $(MESCHACH_DIR)/libmeschach.a \
        $(AVI_DIR)/avilib.o
 
 .PHONY: all
@@ -26,5 +26,5 @@ $(EXE): LDLIBS += -lm -lstdc++
 .PHONY: clean
 clean:
 	$(RM) $(EXE) $(OBJS)
-	-$(MAKE) -C $(MESCHACH_DIR) clean
+	-$(MAKE) -C $(MESCHACH_DIR) realclean
 	$(MAKE) -C $(AVI_DIR) clean
