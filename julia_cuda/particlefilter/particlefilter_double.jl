@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAnative
+using CUDAdrv, CUDAnative
 
 # Variables
 
@@ -264,7 +264,7 @@ end
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
-    shared = cuSharedMem(Float64)   # size of 2 doubles
+    shared = @cuStaticSharedMem(Float64, 2)
     u1_i = 1
     sum_weights_i = 2
     # shared[1] == u1, shared[2] = sum_weights
@@ -334,7 +334,7 @@ end
     block_id = blockIdx().x
     i::Int = blockDim().x * (block_id-1) + threadIdx().x
 
-    buffer = cuSharedMem(Float64)   # 512 doubles
+    buffer = @cuStaticSharedMem(Float64, 512)
     if i <= Nparticles
         arrayX[i] = xj[i]
         arrayY[i] = yj[i]
@@ -469,7 +469,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_seed = CuArray(seed)
 
     for k=2:Nfr
-        @cuda (num_blocks, threads_per_block, 8*512) kernel_likelihood(
+        @cuda (num_blocks, threads_per_block) kernel_likelihood(
             g_arrayX, g_arrayY, 
             g_xj, g_yj, #CDF, 
             g_ind, 
@@ -482,7 +482,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
         @cuda (num_blocks, threads_per_block) kernel_sum(g_partial_sums, Nparticles)
 
-        @cuda (num_blocks, threads_per_block, 8*2) kernel_normalize_weights(
+        @cuda (num_blocks, threads_per_block) kernel_normalize_weights(
             g_weights, Nparticles,
             g_partial_sums, g_CDF, g_u, g_seed)
 

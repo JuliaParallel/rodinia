@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAnative
+using CUDAdrv, CUDAnative
 
 # Variables
 
