@@ -3,11 +3,6 @@ using CUDAnative
 
 const BLOCK_SIZE = 16
 
-@target ptx function cuda_maximum(a, b, c)
-    k = (a <= b) ? b : a
-    (k <= c) ? c : k
-end
-
 @target ptx function tidx(x, y)
     x * (BLOCK_SIZE + 1) + y + 1
 end
@@ -55,7 +50,7 @@ end
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[tidx(t_index_y, t_index_x)] = cuda_maximum(
+            temp[tidx(t_index_y, t_index_x)] = max(
                 temp[tidx(t_index_y - 1, t_index_x - 1)] +
                  ref[ridx(t_index_y - 1, t_index_x - 1)],
                 temp[tidx(t_index_y, t_index_x - 1)] - penalty,
@@ -70,7 +65,7 @@ end
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[tidx(t_index_y, t_index_x)] = cuda_maximum(
+            temp[tidx(t_index_y, t_index_x)] = max(
                 temp[tidx(t_index_y - 1, t_index_x - 1)] +
                  ref[ridx(t_index_y - 1, t_index_x - 1)],
                 temp[tidx(t_index_y, t_index_x - 1)] - penalty,
@@ -126,7 +121,7 @@ end
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[tidx(t_index_y, t_index_x)] = cuda_maximum(
+            temp[tidx(t_index_y, t_index_x)] = max(
                 temp[tidx(t_index_y - 1, t_index_x - 1)] +
                  ref[ridx(t_index_y - 1, t_index_x - 1)],
                 temp[tidx(t_index_y, t_index_x - 1)] - penalty,
@@ -141,7 +136,7 @@ end
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[tidx(t_index_y, t_index_x)] = cuda_maximum(
+            temp[tidx(t_index_y, t_index_x)] = max(
                 temp[tidx(t_index_y - 1, t_index_x - 1)] +
                  ref[ridx(t_index_y - 1, t_index_x - 1)],
                 temp[tidx(t_index_y, t_index_x - 1)] - penalty,
