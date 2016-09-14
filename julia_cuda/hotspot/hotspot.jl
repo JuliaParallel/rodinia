@@ -35,11 +35,6 @@ end
     return row * BLOCK_SIZE + col + 1
 end
 
-# Shared memory sizes and offsets.
-const SHMEM_TEMP_NELEM  = 1 * BLOCK_SIZE * BLOCK_SIZE
-const SHMEM_POWER_NELEM = 1 * BLOCK_SIZE * BLOCK_SIZE
-const SHMEM_NELEM       = 3 * BLOCK_SIZE * BLOCK_SIZE
-
 function writeoutput(vect, grid_rows, grid_cols, file)
     index = 0
     fp = open(file, "w")
@@ -62,6 +57,8 @@ function readinput(vect, grid_rows, grid_cols, file)
     close(fp)
 end
 
+const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
+
 @target ptx function calculate_temp(iteration,   # number of iteration
                                     power,       # power input
                                     temp_src,    # temperature input/output
@@ -73,11 +70,10 @@ end
                                     Cap,         # Capacitance
                                     Rx, Ry, Rz, step, time_elapsed)
 
-    shared_mem = @cuDynamicSharedMem(Float32, SHMEM_NELEM)
-    temp_on_cuda = view(shared_mem, 1:SHMEM_TEMP_NELEM)
-    power_on_cuda = view(shared_mem, SHMEM_TEMP_NELEM+1:SHMEM_TEMP_NELEM+SHMEM_POWER_NELEM)
+    temp_on_cuda = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    power_on_cuda = @cuStaticSharedMem(Float32, MATRIX_SIZE)
     # for saving temporary temperature result
-    temp_t = view(shared_mem, SHMEM_TEMP_NELEM+SHMEM_POWER_NELEM+1:SHMEM_NELEM)
+    temp_t = @cuStaticSharedMem(Float32, MATRIX_SIZE)
 
     amb_temp = 80.0
 
@@ -206,7 +202,7 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         temp = src
         src = dst
         dst = temp
-        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE), SHMEM_NELEM*sizeof(Float32)) calculate_temp(
+        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t), MatrixPower, MatrixTemp[src + 1],
             MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry,
             Rz, step, time_elapsed)
