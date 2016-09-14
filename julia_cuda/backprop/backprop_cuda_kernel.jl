@@ -6,26 +6,26 @@ include("backprop_cuda.jl")
                                             hidden_partial_sum,
                                             inp, hid)
     by = blockIdx().y - 1
-    tx = threadIdx().x - 1
-    ty = threadIdx().y - 1
+    tx = threadIdx().x
+    ty = threadIdx().y
 
-    index = (hid + 1) * HEIGHT * by + (hid + 1) * ty + tx + 1 + (hid + 1)
-    index_in = HEIGHT * by + ty + 1
+    index = (hid + 1) * HEIGHT * by + (hid + 1) * (ty - 1) + tx + (hid + 1)
+    index_in = HEIGHT * by + ty
 
     input_node = @cuStaticSharedMem(Float32, HEIGHT)
     weight_matrix = @cuStaticSharedMem(Float32, (HEIGHT, WIDTH))
 
-    if tx == 0
-        input_node[ty + 1] = input_cuda[index_in + 1]
+    if tx == 1
+        input_node[ty] = input_cuda[index_in + 1]
     end
 
     sync_threads()
 
-    weight_matrix[tx + 1, ty + 1] = input_hidden_cuda[index + 1]
+    weight_matrix[tx, ty] = input_hidden_cuda[index + 1]
 
     sync_threads()
 
-    weight_matrix[tx + 1, ty + 1] *= input_node[ty + 1]
+    weight_matrix[tx, ty] *= input_node[ty]
 
     sync_threads()
 
@@ -33,19 +33,19 @@ include("backprop_cuda.jl")
     # i = 1:log2(HEIGHT) than what is currently used.
     for i = 1:Int32(CUDAnative.log2(Float32(HEIGHT)))
         power_two = CUDAnative.pow(2f0, Int32(i))
-        if ty % power_two == 0
-            weight_matrix[tx + 1, ty + 1] +=
-                weight_matrix[tx + 1, ty + Int32(power_two / 2) + 1]
+        if ty % power_two == 1
+            weight_matrix[tx, ty] +=
+                weight_matrix[tx, ty + Int32(power_two / 2)]
         end
         sync_threads()
     end
 
-    input_hidden_cuda[index + 1] = weight_matrix[tx + 1, ty + 1]
+    input_hidden_cuda[index + 1] = weight_matrix[tx, ty]
 
     sync_threads()
 
-    if tx == 0
-        hidden_partial_sum[by * hid + ty + 1] = weight_matrix[ty + 1, tx + 1]
+    if tx == 1
+        hidden_partial_sum[by * hid + ty] = weight_matrix[ty, tx]
     end
 
     return nothing
