@@ -4,6 +4,8 @@ include("backprop_cuda.jl")
     return x * WIDTH + y + 1
 end
 
+const MATRIX_SIZE = HEIGHT * WIDTH
+
 @target ptx function bpnn_layerforward_CUDA(input_cuda,
                                             output_hidden_cuda,
                                             input_hidden_cuda,
@@ -16,9 +18,8 @@ end
     index = (hid + 1) * HEIGHT * by + (hid + 1) * ty + tx + 1 + (hid + 1)
     index_in = HEIGHT * by + ty + 1
 
-    shared_mem = @cuDynamicSharedMem(Float32, SHARED_MEM_NELS)
-    input_node = view(shared_mem, 1:HEIGHT)
-    weight_matrix = view(shared_mem, HEIGHT+1:SHARED_MEM_NELS)
+    input_node = @cuStaticSharedMem(Float32, HEIGHT)
+    weight_matrix = @cuStaticSharedMem(Float32, MATRIX_SIZE)
 
     if tx == 0
         input_node[ty + 1] = input_cuda[index_in + 1]

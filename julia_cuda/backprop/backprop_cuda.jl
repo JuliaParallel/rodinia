@@ -5,9 +5,6 @@ const WIDTH = 16 # shared memory width
 const HEIGHT = 16 # shared memory height
 const THREADS = 256
 
-const SHARED_MEM_NELS = (WIDTH + 1) * HEIGHT
-const SHARED_MEM_SIZE = SHARED_MEM_NELS * sizeof(Float32)
-
 function bpnn_train_cuda(net, ctx)
     inp = net.input_n
     hid = net.hidden_n
@@ -35,7 +32,7 @@ function bpnn_train_cuda(net, ctx)
 
     println("Performing GPU computation")
 
-    @cuda ((1, num_blocks), (16, 16), SHARED_MEM_SIZE) bpnn_layerforward_CUDA(
+    @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(
         input_cuda, output_hidden_cuda, input_hidden_cuda, hidden_partial_sum,
         inp, hid)
 
