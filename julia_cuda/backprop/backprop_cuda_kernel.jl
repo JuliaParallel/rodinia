@@ -1,11 +1,5 @@
 include("backprop_cuda.jl")
 
-@target ptx function idx(x, y)
-    return x * WIDTH + y + 1
-end
-
-const MATRIX_SIZE = HEIGHT * WIDTH
-
 @target ptx function bpnn_layerforward_CUDA(input_cuda,
                                             output_hidden_cuda,
                                             input_hidden_cuda,
@@ -19,7 +13,7 @@ const MATRIX_SIZE = HEIGHT * WIDTH
     index_in = HEIGHT * by + ty + 1
 
     input_node = @cuStaticSharedMem(Float32, HEIGHT)
-    weight_matrix = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    weight_matrix = @cuStaticSharedMem(Float32, (HEIGHT, WIDTH))
 
     if tx == 0
         input_node[ty + 1] = input_cuda[index_in + 1]
@@ -27,11 +21,11 @@ const MATRIX_SIZE = HEIGHT * WIDTH
 
     sync_threads()
 
-    weight_matrix[idx(ty, tx)] = input_hidden_cuda[index + 1]
+    weight_matrix[tx + 1, ty + 1] = input_hidden_cuda[index + 1]
 
     sync_threads()
 
-    weight_matrix[idx(ty, tx)] *= input_node[ty + 1]
+    weight_matrix[tx + 1, ty + 1] *= input_node[ty + 1]
 
     sync_threads()
 
@@ -40,18 +34,18 @@ const MATRIX_SIZE = HEIGHT * WIDTH
     for i = 1:Int32(CUDAnative.log2(Float32(HEIGHT)))
         power_two = CUDAnative.pow(2f0, Int32(i))
         if ty % power_two == 0
-            weight_matrix[idx(ty, tx)] +=
-                weight_matrix[idx(ty + Int32(power_two / 2), tx)]
+            weight_matrix[tx + 1, ty + 1] +=
+                weight_matrix[tx + 1, ty + Int32(power_two / 2) + 1]
         end
         sync_threads()
     end
 
-    input_hidden_cuda[index + 1] = weight_matrix[idx(ty, tx)]
+    input_hidden_cuda[index + 1] = weight_matrix[tx + 1, ty + 1]
 
     sync_threads()
 
     if tx == 0
-        hidden_partial_sum[by * hid + ty + 1] = weight_matrix[idx(tx, ty)]
+        hidden_partial_sum[by * hid + ty + 1] = weight_matrix[ty + 1, tx + 1]
     end
 
     return nothing
