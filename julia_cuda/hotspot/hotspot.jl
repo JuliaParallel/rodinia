@@ -76,8 +76,8 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     bx = blockIdx().x - 1
     by = blockIdx().y - 1
 
-    tx = threadIdx().x - 1
-    ty = threadIdx().y - 1
+    tx = threadIdx().x
+    ty = threadIdx().y
 
     step_div_Cap = step / Cap
 
@@ -100,8 +100,8 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     blkXmax = blkX + BLOCK_SIZE - 1
 
     # calculate the global thread coordination
-    yidx = blkY + ty
-    xidx = blkX + tx
+    yidx = blkY + ty - 1
+    xidx = blkX + tx - 1
 
     # load data if it is within the valid input range
     loadYidx = yidx
@@ -111,21 +111,21 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     if in_range(loadYidx, 0, grid_rows - 1) &&
        in_range(loadXidx, 0, grid_cols - 1)
         # Load the temperature data from global memory to shared memory
-        temp_on_cuda[tx + 1, ty + 1] = temp_src[index + 1]
+        temp_on_cuda[tx, ty] = temp_src[index + 1]
         # Load the power data from global memory to shared memory
-        power_on_cuda[tx + 1, ty + 1] = power[index + 1]
+        power_on_cuda[tx, ty] = power[index + 1]
     end
 
     sync_threads()
 
     # Effective range within this block that falls within the valid range of the
     # input data used to rule out computation outside the boundary.
-    validYmin = (blkY < 0) ? -blkY : 0
+    validYmin = (blkY < 0) ? -blkY + 1 : 1
     validYmax = (blkYmax > grid_rows - 1) ?
-                    BLOCK_SIZE - 1 - (blkYmax - grid_rows + 1) : BLOCK_SIZE - 1
-    validXmin = (blkX < 0) ? -blkX : 0
+                    BLOCK_SIZE - (blkYmax - grid_rows + 1) : BLOCK_SIZE
+    validXmin = (blkX < 0) ? -blkX + 1 : 1
     validXmax = (blkXmax > grid_cols - 1) ?
-                    BLOCK_SIZE - 1 - (blkXmax - grid_cols + 1) : BLOCK_SIZE - 1
+                    BLOCK_SIZE - (blkXmax - grid_cols + 1) : BLOCK_SIZE
 
     N = ty - 1
     S = ty + 1
@@ -138,30 +138,30 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     E = (E > validXmax) ? validXmax : E
 
     computed = false
-    for i = 0:iteration-1
+    for i = 1:iteration
         computed = false
-        if in_range(tx, i + 1, BLOCK_SIZE - i - 2) &&
-           in_range(ty, i + 1, BLOCK_SIZE - i - 2) &&
+        if in_range(tx, i + 1, BLOCK_SIZE - i) &&
+           in_range(ty, i + 1, BLOCK_SIZE - i) &&
            in_range(tx, validXmin, validXmax) &&
            in_range(ty, validYmin, validYmax)
             computed = true
-            t1 = temp_on_cuda[tx + 1, S  + 1] +
-                 temp_on_cuda[tx + 1, N  + 1] -
-                 temp_on_cuda[tx + 1, ty + 1] * 2.0
-            t2 = temp_on_cuda[E  + 1, ty + 1] +
-                 temp_on_cuda[W  + 1, ty + 1] -
-                 temp_on_cuda[tx + 1, ty + 1] * 2.0
-            temp_t[tx + 1, ty + 1] = Float32(temp_on_cuda[tx + 1, ty + 1] +
-                step_div_Cap * (power_on_cuda[tx + 1, ty + 1] + t1 * Ry_1 +
-                t2 * Rx_1 + (amb_temp - temp_on_cuda[tx + 1, ty + 1]) * Rz_1))
+            t1 = temp_on_cuda[tx, S ] +
+                 temp_on_cuda[tx, N ] -
+                 temp_on_cuda[tx, ty] * 2.0
+            t2 = temp_on_cuda[E , ty] +
+                 temp_on_cuda[W , ty] -
+                 temp_on_cuda[tx, ty] * 2.0
+            temp_t[tx, ty] = Float32(temp_on_cuda[tx, ty] +
+                step_div_Cap * (power_on_cuda[tx, ty] + t1 * Ry_1 +
+                t2 * Rx_1 + (amb_temp - temp_on_cuda[tx, ty]) * Rz_1))
         end
 
         sync_threads()
-        if i == iteration - 1
+        if i == iteration
             break
         end
         if computed # Assign the computation range
-            temp_on_cuda[tx + 1, ty + 1] = temp_t[tx + 1, ty + 1]
+            temp_on_cuda[tx, ty] = temp_t[tx, ty]
         end
         sync_threads()
     end
@@ -170,7 +170,7 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     # after the last iteration, only threads coordinated within the
     # small block perform the calculation and switch on ``computed''
     if computed
-        temp_dst[index + 1] = temp_t[tx + 1, ty + 1]
+        temp_dst[index + 1] = temp_t[tx, ty]
     end
 
     return nothing
