@@ -31,10 +31,6 @@ end
     return (x < min_x) ? min_x : ((x > max_x) ? max_x : x)
 end
 
-@target ptx function idx(row, col)
-    return row * BLOCK_SIZE + col + 1
-end
-
 function writeoutput(vect, grid_rows, grid_cols, file)
     index = 0
     fp = open(file, "w")
@@ -70,10 +66,10 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
                                     Cap,         # Capacitance
                                     Rx, Ry, Rz, step, time_elapsed)
 
-    temp_on_cuda = @cuStaticSharedMem(Float32, MATRIX_SIZE)
-    power_on_cuda = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    temp_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
+    power_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     # for saving temporary temperature result
-    temp_t = @cuStaticSharedMem(Float32, MATRIX_SIZE)
+    temp_t = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
 
     amb_temp = 80.0
 
@@ -115,9 +111,9 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     if in_range(loadYidx, 0, grid_rows - 1) &&
        in_range(loadXidx, 0, grid_cols - 1)
         # Load the temperature data from global memory to shared memory
-        temp_on_cuda[idx(ty, tx)] = temp_src[index + 1]
+        temp_on_cuda[tx + 1, ty + 1] = temp_src[index + 1]
         # Load the power data from global memory to shared memory
-        power_on_cuda[idx(ty, tx)] = power[index + 1]
+        power_on_cuda[tx + 1, ty + 1] = power[index + 1]
     end
 
     sync_threads()
@@ -149,15 +145,15 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
            in_range(tx, validXmin, validXmax) &&
            in_range(ty, validYmin, validYmax)
             computed = true
-            t1 = temp_on_cuda[idx(S , tx)] +
-                 temp_on_cuda[idx(N , tx)] -
-                 temp_on_cuda[idx(ty, tx)] * 2.0
-            t2 = temp_on_cuda[idx(ty, E )] +
-                 temp_on_cuda[idx(ty, W )] -
-                 temp_on_cuda[idx(ty, tx)] * 2.0
-            temp_t[idx(ty, tx)] = Float32(temp_on_cuda[idx(ty, tx)] +
-                step_div_Cap * (power_on_cuda[idx(ty, tx)] + t1 * Ry_1 +
-                t2 * Rx_1 + (amb_temp - temp_on_cuda[idx(ty, tx)]) * Rz_1))
+            t1 = temp_on_cuda[tx + 1, S  + 1] +
+                 temp_on_cuda[tx + 1, N  + 1] -
+                 temp_on_cuda[tx + 1, ty + 1] * 2.0
+            t2 = temp_on_cuda[E  + 1, ty + 1] +
+                 temp_on_cuda[W  + 1, ty + 1] -
+                 temp_on_cuda[tx + 1, ty + 1] * 2.0
+            temp_t[tx + 1, ty + 1] = Float32(temp_on_cuda[tx + 1, ty + 1] +
+                step_div_Cap * (power_on_cuda[tx + 1, ty + 1] + t1 * Ry_1 +
+                t2 * Rx_1 + (amb_temp - temp_on_cuda[tx + 1, ty + 1]) * Rz_1))
         end
 
         sync_threads()
@@ -165,7 +161,7 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
             break
         end
         if computed # Assign the computation range
-            temp_on_cuda[idx(ty, tx)] = temp_t[idx(ty, tx)]
+            temp_on_cuda[tx + 1, ty + 1] = temp_t[tx + 1, ty + 1]
         end
         sync_threads()
     end
@@ -174,7 +170,7 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
     # after the last iteration, only threads coordinated within the
     # small block perform the calculation and switch on ``computed''
     if computed
-        temp_dst[index + 1] = temp_t[idx(ty, tx)]
+        temp_dst[index + 1] = temp_t[tx + 1, ty + 1]
     end
 
     return nothing
