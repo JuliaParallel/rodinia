@@ -44,7 +44,7 @@ function main(args)
 
     sec = @elapsed begin
         d_matrix = CuArray(matrix)
-        lud_cuda(d_matrix, matrix_dim)
+        lud_cuda(dev, d_matrix, matrix_dim)
         matrix = Array(d_matrix)
     end
     info("Time consumed(ms): ", 1000sec)

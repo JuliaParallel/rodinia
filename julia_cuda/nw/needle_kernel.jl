@@ -3,15 +3,15 @@ using CUDAnative
 
 const BLOCK_SIZE = 16
 
-@target ptx function tidx(x, y)
+function tidx(x, y)
     x * (BLOCK_SIZE + 1) + y + 1
 end
 
-@target ptx function ridx(x, y)
+function ridx(x, y)
     x * BLOCK_SIZE + y + 1
 end
 
-@target ptx function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
+function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
     bx = blockIdx().x - 1
     tx = threadIdx().x - 1
@@ -82,7 +82,7 @@ end
     return nothing
 end
 
-@target ptx function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
+function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
     bx = blockIdx().x - 1
     tx = threadIdx().x - 1

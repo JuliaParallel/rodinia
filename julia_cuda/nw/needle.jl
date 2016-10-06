@@ -98,14 +98,14 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @cuda ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_1(
+        @cuda dev ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_1(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @cuda ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_2(
+        @cuda dev ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_2(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 

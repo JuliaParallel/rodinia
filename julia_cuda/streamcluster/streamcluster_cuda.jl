@@ -12,7 +12,7 @@ g_iter = 0 # counter for total # of g_iterations
 #=======================================#
 # Euclidean Distance
 #=======================================#
-@target ptx function d_dist(p1, p2, num, dim, coord_d)
+function d_dist(p1, p2, num, dim, coord_d)
     retval = 0f0
 
     for i = 0:dim-1
@@ -26,7 +26,7 @@ end
 #=======================================#
 # Kernel - Compute Cost
 #=======================================#
-@target ptx function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
+function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
 	                                     work_mem_d, center_table_d, switch_membership_d)
     # block ID and global thread ID
     const bid = blockIdx().x - 1 + gridDim().x * (blockIdx().y - 1)
@@ -151,7 +151,7 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
     num_blocks_y = floor(Int64, (num_blocks + MAXBLOCKS - 1) / MAXBLOCKS)
     num_blocks_x = floor(Int64, (num_blocks + num_blocks_y - 1) / num_blocks_y)
 
-    @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
+    @cuda dev ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
         num,                # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at

@@ -11,7 +11,7 @@ const OUTPUT = false
 
 # Helper function
 
-@target ptx function inrange(x, min, max)
+function inrange(x, min, max)
     return x >= min && x <= max
 end
 
@@ -19,7 +19,7 @@ function min(a, b)
     return a <= b ? a : b
 end
 
-@target ptx function dev_min(a, b)
+function dev_min(a, b)
     return a <= b ? a : b
 end
 
@@ -35,7 +35,7 @@ end
 
 # Device code
 
-@target ptx function kernel_dynproc(
+function kernel_dynproc(
     iteration,
     gpu_wall, gpu_src, gpu_result,
     cols, rows, start_step, border)
@@ -163,7 +163,7 @@ function calcpath(wall, result, rows, cols,
         dst = tmp
         iter = min(pyramid_height, rows -t -1)
 
-        @cuda (dim_grid, dim_block) kernel_dynproc(
+        @cuda dev (dim_grid, dim_block) kernel_dynproc(
             iter,
             wall, 
             result[src],        # Does not work with slice: CuIn(gpu_result[src,:])

@@ -23,11 +23,11 @@ chip_width = 0.016
 # ambient temperature, assuming no package at all
 amb_temp = 80.0
 
-@target ptx function in_range(x, min_x, max_x)
+function in_range(x, min_x, max_x)
     return x >= min_x && x <= max_x
 end
 
-@target ptx function clamp_range(x, min_x, max_x)
+function clamp_range(x, min_x, max_x)
     return (x < min_x) ? min_x : ((x > max_x) ? max_x : x)
 end
 
@@ -55,7 +55,7 @@ end
 
 const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
-@target ptx function calculate_temp(iteration,   # number of iteration
+function calculate_temp(iteration,   # number of iteration
                                     power,       # power input
                                     temp_src,    # temperature input/output
                                     temp_dst,    # temperature input/output
@@ -177,7 +177,7 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 end
 
 # compute N time steps
-function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
+function compute_tran_temp(dev, MatrixPower, MatrixTemp, col, row, total_iterations,
                            num_iterations, blockCols, blockRows, borderCols,
                            borderRows)
     grid_height = chip_height / row
@@ -198,7 +198,7 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         temp = src
         src = dst
         dst = temp
-        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
+        @cuda dev ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t), MatrixPower, MatrixTemp[src + 1],
             MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry,
             Rz, step, time_elapsed)
@@ -288,7 +288,7 @@ function main(args)
     MatrixPower = CuArray(FilesavingPower)
 
     println("Start computing the transient temperature")
-    ret = compute_tran_temp(MatrixPower, MatrixTemp, grid_cols, grid_rows,
+    ret = compute_tran_temp(dev, MatrixPower, MatrixTemp, grid_cols, grid_rows,
                                 total_iterations, pyramid_height, blockCols,
                                 blockRows, borderCols, borderRows)
     println("Ending simulation")

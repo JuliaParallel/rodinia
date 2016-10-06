@@ -1,6 +1,6 @@
 include("backprop_cuda.jl")
 
-@target ptx function bpnn_layerforward_CUDA(input_cuda,
+function bpnn_layerforward_CUDA(input_cuda,
                                             output_hidden_cuda,
                                             input_hidden_cuda,
                                             hidden_partial_sum,
@@ -51,7 +51,7 @@ include("backprop_cuda.jl")
     return nothing
 end
 
-@target ptx function bpnn_adjust_weights_cuda(delta, hid, ly, inp, w, oldw)
+function bpnn_adjust_weights_cuda(delta, hid, ly, inp, w, oldw)
     by = blockIdx().y - 1
     tx = threadIdx().x - 1
     ty = threadIdx().y - 1

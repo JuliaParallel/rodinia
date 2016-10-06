@@ -24,7 +24,7 @@ end
 
 # Calculates the Euclidean distance from each record in the database to the
 # target position.
-@target ptx function euclid(d_locations, d_distances, numRecords, lat, lng)
+function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
                 (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
     if globalId < numRecords
@@ -98,7 +98,7 @@ function main(args)
     d_distances = CuArray(Float32, numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda ((gridX, gridY), threadsPerBlock) euclid(
+    @cuda dev ((gridX, gridY), threadsPerBlock) euclid(
         d_locations, d_distances, numRecords, lat, lng)
 
     synchronize(ctx)

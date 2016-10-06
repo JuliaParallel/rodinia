@@ -9,7 +9,7 @@ immutable Node
     no_of_edges::Int32
 end
 
-@target ptx function kernel_1(g_graph_nodes,
+function kernel_1(g_graph_nodes,
                               g_graph_edges,
                               g_graph_mask,
                               g_updating_graph_mask,
@@ -32,7 +32,7 @@ end
     return nothing
 end
 
-@target ptx function kernel_2(g_graph_mask,
+function kernel_2(g_graph_mask,
                               g_updating_graph_mask,
                               g_graph_visited,
                               g_over,
@@ -140,13 +140,13 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        @cuda (grid, threads, 0) kernel_1(
+        @cuda dev (grid, threads, 0) kernel_1(
             g_graph_nodes, g_graph_edges, g_graph_mask,
             g_updating_graph_mask, g_graph_visited,
             g_cost, Int32(no_of_nodes)
         )
 
-        @cuda (grid, threads, 0) kernel_2(
+        @cuda dev (grid, threads, 0) kernel_2(
             g_graph_mask, g_updating_graph_mask, g_graph_visited,
             g_stop, Int32(no_of_nodes)
         )

@@ -3,7 +3,7 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
 using CUDAdrv, CUDAnative
 
-@target ptx function lud_diagonal(matrix, matrix_dim, offset)
+function lud_diagonal(matrix, matrix_dim, offset)
     shadow = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
     tx = threadIdx().x
@@ -41,7 +41,7 @@ using CUDAdrv, CUDAnative
     return nothing
 end
 
-@target ptx function lud_perimeter(matrix, matrix_dim, offset)
+function lud_perimeter(matrix, matrix_dim, offset)
     dia = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
@@ -109,7 +109,7 @@ end
     return nothing
 end
 
-@target ptx function lud_internal(matrix, offset)
+function lud_internal(matrix, offset)
     peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
@@ -133,19 +133,19 @@ end
     return nothing
 end
 
-function lud_cuda(matrix, matrix_dim)
+function lud_cuda(dev, matrix, matrix_dim)
     i = 0
     while i < matrix_dim - BLOCK_SIZE
-        @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
+        @cuda dev dev (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
 
         grid_size = (matrix_dim-i)÷BLOCK_SIZE - 1
 
-        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, matrix_dim, i)
+        @cuda dev dev (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, matrix_dim, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, i)
+        @cuda dev dev ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, i)
 
         i += BLOCK_SIZE
     end
 
-    @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
+    @cuda dev dev (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
 end

@@ -175,7 +175,7 @@ end
 # Particle filter
 # Helper functions
 
-@target ptx @inline function cdf_calc(
+@inline function cdf_calc(
     CDF,        # Out
     weights,    # Int
     Nparticles)
@@ -185,13 +185,13 @@ end
     end
 end
 
-@target ptx @inline function d_randu(seed, index)
+@inline function d_randu(seed, index)
     num = A * seed[index] + C
     seed[index] = num % M
     return CUDAnative.abs(seed[index]/M)
 end
 
-@target ptx @inline function d_randn(seed, index)
+@inline function d_randn(seed, index)
     pi = 3.14159265358979323846
     u = d_randu(seed, index)
     v = d_randu(seed, index)
@@ -200,7 +200,7 @@ end
     return CUDAnative.sqrt(rt) * cosine
 end
 
-@target ptx @inline function calc_likelihood_sum(I, ind, num_ones, index)
+@inline function calc_likelihood_sum(I, ind, num_ones, index)
     likelihood_sum = Float64(0)
     for x=1:num_ones
         i = ind[(index-1) * num_ones + x]
@@ -211,7 +211,7 @@ end
     return likelihood_sum
 end
 
-@target ptx @inline function dev_round_double(value)
+@inline function dev_round_double(value)
     if value < 0
         new_value = Int(CUDAnative.ceil(value))
     else
@@ -227,7 +227,7 @@ end
 
 # Kernels
 
-@target ptx function kernel_find_index(
+function kernel_find_index(
     arrayX, arrayY, CDF,
     u, xj, yj,
     weights, Nparticles)
@@ -253,7 +253,7 @@ end
     sync_threads()
 end
 
-@target ptx function kernel_normalize_weights(
+function kernel_normalize_weights(
     weights,        # InOut
     Nparticles,
     partial_sums,   # In
@@ -298,7 +298,7 @@ end
     return nothing
 end
 
-@target ptx function kernel_sum(partial_sums, Nparticles)
+function kernel_sum(partial_sums, Nparticles)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -314,7 +314,7 @@ end
     return nothing
 end
 
-@target ptx function kernel_likelihood(
+function kernel_likelihood(
     arrayX,         # Out
     arrayY,         # Out
     xj,             # In
@@ -469,7 +469,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_seed = CuArray(seed)
 
     for k=2:Nfr
-        @cuda (num_blocks, threads_per_block) kernel_likelihood(
+        @cuda dev (num_blocks, threads_per_block) kernel_likelihood(
             g_arrayX, g_arrayY, 
             g_xj, g_yj, #CDF, 
             g_ind, 
@@ -480,13 +480,13 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
             Nparticles, count_ones, max_size, k, IszY, Nfr, 
             g_seed, g_partial_sums)
 
-        @cuda (num_blocks, threads_per_block) kernel_sum(g_partial_sums, Nparticles)
+        @cuda dev (num_blocks, threads_per_block) kernel_sum(g_partial_sums, Nparticles)
 
-        @cuda (num_blocks, threads_per_block) kernel_normalize_weights(
+        @cuda dev (num_blocks, threads_per_block) kernel_normalize_weights(
             g_weights, Nparticles,
             g_partial_sums, g_CDF, g_u, g_seed)
 
-        @cuda (num_blocks, threads_per_block) kernel_find_index(
+        @cuda dev (num_blocks, threads_per_block) kernel_find_index(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
     end
     synchronize(default_stream())

@@ -347,7 +347,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
         copy!(g_CDF, CDF)
         copy!(g_u, u)
 
-        @cuda (num_blocks, threads_per_block) kernel_kernel(
+        @cuda dev (num_blocks, threads_per_block) kernel_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, Nparticles)
         synchronize(ctx)
         exec_time = gettime()
@@ -377,7 +377,7 @@ end
 
 # Kernel
 
-@target ptx function kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
+function kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
     
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
