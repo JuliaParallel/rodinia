@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -ue
+
+LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia -L leukocyte.jl -e "start()" 5 ../../data/leukocyte/testfile.avi
+# LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia --color=yes -L leukocyte.jl -e "start()" 5 ../../data/leukocyte/testfile.avi
+# LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia --color=yes -L leukocyte.jl -e "@code_warntype IMGVF_cuda(Int64,Array{Array{Float64,2},1},Float64,Float64,Float64,Int64,Float64)" 5 ../../data/leukocyte/testfile.avi
+# LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia --color=yes -L leukocyte.jl -e "code_warntype(STDOUT,IMGVF_kernel,(CuDeviceArray{Float32},CuDeviceArray{Float32},Int64,Int64,Float64,Float64,Float64,Int64,Float64))" 5 ../../data/leukocyte/testfile.avi
+# LD_LIBRARY_PATH=../../common/avi /usr/bin/env julia --color=no -L leukocyte.jl -e "code_llvm(STDOUT,IMGVF_kernel,(CuDeviceArray{Float32},CuDeviceArray{Float32},Int64,Int64,Float64,Float64,Float64,Int64,Float64))" 5 ../../data/leukocyte/testfile.avi
