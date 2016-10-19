@@ -19,7 +19,6 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
     const lambda = 8.0 * mu + 1.0
     # 41 * 81, @cuStaticSharedMem can't deal with expressions -- even in constants
     const IMGVF_SIZE = 3321
-    # threads_per_block * 4, idem as above
 
     # Shared copy of the matrix being computed
     IMGVF = @cuStaticSharedMem(Float32, (IMGVF_SIZE,))
