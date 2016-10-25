@@ -29,6 +29,9 @@ function main(args, dev)
         exit(1)
     end
 
+    # Create precomputed CUDA GICOV constants
+    GICOV_constants = compute_constants()
+
     Iter = 20
     ns = 4
     k_count = 0
@@ -58,12 +61,12 @@ function main(args, dev)
     # Dilate the GICOV matrix
     tic()
     strel = structuring_element(12)
-    img_dilated = dilate_f(max_gicov, strel)
+    img_dilated = dilate(dev, max_gicov, GICOV_constants)
     dilate_end_time = toq()
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
-    crow,ccol = findn((max_gicov .!= 0.0) & (img_dilated .== max_gicov))
+    crow,ccol = findn((max_gicov .!= 0.0) & double_eq.(img_dilated,max_gicov))
     # convert to zero-based indices for parity with the C code (don't
     # use map in the above expression, because it's very slow)
     crow,ccol = crow.-1,ccol.-1

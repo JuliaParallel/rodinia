@@ -1,3 +1,5 @@
+include("find_ellipse_kernel.jl")
+
 # Defines the region in the video frame containing the blood vessel
 const TOP = 110
 const BOTTOM = 328
@@ -46,6 +48,31 @@ end
 function chop_flip_image(image, top, bottom, left, right, scaled::Bool)
     scale = scaled ? 1.0/255.0 : 1.0
     image[size(image,1)-top:-1:size(image,1)-bottom,left+1:right+1] * scale
+end
+
+
+# Computes and then transfers to the GPU all of the
+#  constant matrices required by the GPU kernels
+function compute_constants()
+    # Compute the sine and cosine of the angle to each point in each sample
+    # circle
+    #  (which are the same across all sample circles)
+    theta = [n * 2.0 * C_PI/NPOINTS for n in 0:NPOINTS-1]
+    host_cos_angle = cos.(theta)
+    host_sin_angle = sin.(theta)
+
+    # Compute the (x,y) pixel offsets of each sample point in each sample
+    # circle
+    host_tX = [trunc(Int32,(MIN_RAD+2*k)*host_cos_angle[n+1]) for k in 0:NCIRCLES-1,n in 0:NPOINTS-1]
+    host_tY = [trunc(Int32,(MIN_RAD+2*k)*host_sin_angle[n+1]) for k in 0:NCIRCLES-1,n in 0:NPOINTS-1]
+
+    # Compute the structuring element used in dilation
+    host_strel = structuring_element(12)
+
+    # Transfer the computed matrices to the GPU (well, make it possible
+    # to transfer them)
+    transfer_constants(host_sin_angle, host_cos_angle, host_tY, host_tX,
+            host_strel)
 end
 
 
@@ -124,36 +151,9 @@ end
 
 
 # Performs an image dilation on the specified matrix
-#  using the specified structuring element
-function dilate_f(img_in, strel)
-
-    dilated = similar(img_in)
-
-    # Find the center of the structuring element
-    el_center_i = div(size(strel,1),2)
-    el_center_j = div(size(strel,2),2)
-
-    # Iterate across the input matrix
-    for i in 0:size(img_in,1)-1, j in 0:size(img_in,2)-1
-        max = 0.0
-
-        # Iterate across the structuring element
-        for el_i in 0:size(strel,1)-1, el_j in 0:size(strel,2)-1
-            y = i - el_center_i + el_i
-            x = j - el_center_j + el_j
-            # Make sure we have not gone off the edge of the matrix
-            if (0 <= y < size(img_in,1)) & (0 <= x < size(img_in,2)) &
-               (strel[el_i+1,el_j+1] != 0.0)
-                temp = img_in[y+1,x+1]
-                if temp > max
-                    max = temp
-                end
-            end
-        end
-        # Store the maximum value found
-        dilated[i+1,j+1] = max
-    end
-    dilated
+function dilate(dev,img_in, GICOV_constants)
+    # Offload the dilation to the GPU
+    dilate_CUDA(dev,img_in,GICOV_constants)
 end
 
 
