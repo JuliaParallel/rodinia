@@ -4,8 +4,6 @@ include("needle_kernel.jl")
 include("../../common/julia/wrappers.jl")
 
 const LIMIT = -999
-const SHARED_MEM_SIZE = ((BLOCK_SIZE + 1) ^ 2 + BLOCK_SIZE ^ 2) * sizeof(Int32)
-
 function maximum(a, b, c)
     k = (a <= b) ? b : a
     (k <= c) ? c : k
@@ -99,14 +97,14 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @cuda dev ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_1(
+        @cuda dev ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @cuda dev ((i, 1), (BLOCK_SIZE, 1), SHARED_MEM_SIZE) needle_cuda_shared_2(
+        @cuda dev ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 

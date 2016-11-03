@@ -11,6 +11,9 @@ function ridx(x, y)
     x * BLOCK_SIZE + y + 1
 end
 
+const TEMP_NELEM = (BLOCK_SIZE+1)^2
+const REF_NELEM = BLOCK_SIZE^2
+
 function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
     bx = blockIdx().x - 1
@@ -24,9 +27,8 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    shared_mem = @cuDynamicSharedMem(Int32, (BLOCK_SIZE+1)^2 + BLOCK_SIZE^2)
-    temp = view(shared_mem, 1:(BLOCK_SIZE+1)^2)
-    ref = view(shared_mem, (BLOCK_SIZE+1)^2+1:(BLOCK_SIZE+1)^2+BLOCK_SIZE^2)
+    temp = @cuStaticSharedMem(Int32, TEMP_NELEM)
+    ref = @cuStaticSharedMem(Int32, REF_NELEM)
 
     if tx == 0
         temp[tidx(tx, 0)] = matrix_cuda[index_nw + 1]
@@ -95,9 +97,8 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    shared_mem = @cuDynamicSharedMem(Int32, (BLOCK_SIZE+1)^2 + BLOCK_SIZE^2)
-    temp = view(shared_mem, 1:(BLOCK_SIZE+1)^2)
-    ref = view(shared_mem, (BLOCK_SIZE+1)^2+1:(BLOCK_SIZE+1)^2+BLOCK_SIZE^2)
+    temp = @cuStaticSharedMem(Int32, TEMP_NELEM)
+    ref = @cuStaticSharedMem(Int32, REF_NELEM)
 
     for ty = 0:BLOCK_SIZE-1
         ref[ridx(ty, tx)] = reference[index + cols * ty + 1]
