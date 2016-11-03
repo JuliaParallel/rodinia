@@ -4,6 +4,7 @@ using CUDAnative
 const BLOCK_SIZE = 16
 const BLOCK_SIZE_P1 = BLOCK_SIZE + 1
 
+# FIXME: remove @inbouds (is work-around for shared memory bug)
 function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
     bx = blockIdx().x - 1
@@ -21,20 +22,20 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
     ref = @cuStaticSharedMem(Int32, (BLOCK_SIZE, BLOCK_SIZE))
 
     if tx == 0
-        temp[1, tx + 1] = matrix_cuda[index_nw + 1]
+        @inbounds temp[1, tx + 1] = matrix_cuda[index_nw + 1]
     end
 
     for ty = 0:BLOCK_SIZE-1
-        ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
+        @inbounds ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
     end
 
     sync_threads()
 
-    temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
+    @inbounds temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
 
     sync_threads()
 
-    temp[tx + 2, 1] = matrix_cuda[index_n + 1]
+    @inbounds temp[tx + 2, 1] = matrix_cuda[index_n + 1]
 
     sync_threads()
 
@@ -42,7 +43,7 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[t_index_x + 1, t_index_y + 1] = max(
+            @inbounds temp[t_index_x + 1, t_index_y + 1] = max(
                 temp[t_index_x, t_index_y] +
                  ref[t_index_x, t_index_y],
                 temp[t_index_x, t_index_y + 1] - penalty,
@@ -57,7 +58,7 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[t_index_x + 1, t_index_y + 1] = max(
+            @inbounds temp[t_index_x + 1, t_index_y + 1] = max(
                 temp[t_index_x, t_index_y] +
                  ref[t_index_x, t_index_y],
                 temp[t_index_x, t_index_y + 1] - penalty,
@@ -68,12 +69,13 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
     end
 
     for ty = 0:BLOCK_SIZE-1
-        matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
+        @inbounds matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
 
     return nothing
 end
 
+# FIXME: remove @inbouds (is work-around for shared memory bug)
 function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
     bx = blockIdx().x - 1
@@ -91,20 +93,20 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
     ref = @cuStaticSharedMem(Int32, (BLOCK_SIZE, BLOCK_SIZE))
 
     for ty = 0:BLOCK_SIZE-1
-        ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
+        @inbounds ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
     end
 
     sync_threads()
 
     if tx == 0
-        temp[1, tx + 1] = matrix_cuda[index_nw + 1]
+        @inbounds temp[1, tx + 1] = matrix_cuda[index_nw + 1]
     end
 
-    temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
+    @inbounds temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
 
     sync_threads()
 
-    temp[tx + 2, 1] = matrix_cuda[index_n + 1]
+    @inbounds temp[tx + 2, 1] = matrix_cuda[index_n + 1]
 
     sync_threads()
 
@@ -112,7 +114,7 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[t_index_x + 1, t_index_y + 1] = max(
+            @inbounds temp[t_index_x + 1, t_index_y + 1] = max(
                 temp[t_index_x, t_index_y] +
                  ref[t_index_x, t_index_y],
                 temp[t_index_x, t_index_y + 1] - penalty,
@@ -127,7 +129,7 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[t_index_x + 1, t_index_y + 1] = max(
+            @inbounds temp[t_index_x + 1, t_index_y + 1] = max(
                 temp[t_index_x, t_index_y] +
                  ref[t_index_x, t_index_y],
                 temp[t_index_x, t_index_y + 1] - penalty,
@@ -138,7 +140,7 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
     end
 
     for ty = 0:BLOCK_SIZE-1
-        matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
+        @inbounds matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
 
     return nothing
