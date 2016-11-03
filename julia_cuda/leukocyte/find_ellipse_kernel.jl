@@ -21,7 +21,6 @@ function transfer_constants(host_sin_angle, host_cos_angle, host_tX, host_tY,
 end
 
 
-
 # Kernel to compute the dilation of the GICOV matrix produced by the GICOV
 # kernel
 # Each element (i, j) of the output matrix is set equal to the maximal value in
@@ -48,8 +47,7 @@ function dilate_kernel(img_dev, c_strel, dilated_out)
         y = i - el_center_i + el_i
         x = j - el_center_j + el_j
         # Make sure we have not gone off the edge of the matrix
-        @inbounds if (0 <= y < size(img_dev,1)) & (0 <= x < size(img_dev,2)) &
-           (c_strel[el_i+1,el_j+1] != 0.0)
+        @inbounds if (0 <= y < size(img_dev,1)) & (0 <= x < size(img_dev,2)) & (c_strel[el_i+1,el_j+1] != 0.0)
             @inbounds temp = img_dev[y+1,x+1]
             if temp > max
                 max = temp
