@@ -3,6 +3,7 @@
 include("needle_kernel.jl")
 include("../../common/julia/wrappers.jl")
 
+const LIMIT = -999
 const SHARED_MEM_SIZE = ((BLOCK_SIZE + 1) ^ 2 + BLOCK_SIZE ^ 2) * sizeof(Int32)
 
 function maximum(a, b, c)
