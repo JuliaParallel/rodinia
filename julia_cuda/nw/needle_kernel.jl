@@ -2,17 +2,7 @@ using CUDAdrv
 using CUDAnative
 
 const BLOCK_SIZE = 16
-
-function tidx(x, y)
-    x * (BLOCK_SIZE + 1) + y + 1
-end
-
-function ridx(x, y)
-    x * BLOCK_SIZE + y + 1
-end
-
-const TEMP_NELEM = (BLOCK_SIZE+1)^2
-const REF_NELEM = BLOCK_SIZE^2
+const BLOCK_SIZE_P1 = BLOCK_SIZE + 1
 
 function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
                                           i, block_width)
@@ -27,24 +17,24 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    temp = @cuStaticSharedMem(Int32, TEMP_NELEM)
-    ref = @cuStaticSharedMem(Int32, REF_NELEM)
+    temp = @cuStaticSharedMem(Int32, (BLOCK_SIZE_P1, BLOCK_SIZE_P1))
+    ref = @cuStaticSharedMem(Int32, (BLOCK_SIZE, BLOCK_SIZE))
 
     if tx == 0
-        temp[tidx(tx, 0)] = matrix_cuda[index_nw + 1]
+        temp[1, tx + 1] = matrix_cuda[index_nw + 1]
     end
 
     for ty = 0:BLOCK_SIZE-1
-        ref[ridx(ty, tx)] = reference[index + cols * ty + 1]
+        ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
     end
 
     sync_threads()
 
-    temp[tidx(tx + 1, 0)] = matrix_cuda[index_w + cols * tx + 1]
+    temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
 
     sync_threads()
 
-    temp[tidx(0, tx + 1)] = matrix_cuda[index_n + 1]
+    temp[tx + 2, 1] = matrix_cuda[index_n + 1]
 
     sync_threads()
 
@@ -52,11 +42,11 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[tidx(t_index_y, t_index_x)] = max(
-                temp[tidx(t_index_y - 1, t_index_x - 1)] +
-                 ref[ridx(t_index_y - 1, t_index_x - 1)],
-                temp[tidx(t_index_y, t_index_x - 1)] - penalty,
-                temp[tidx(t_index_y - 1, t_index_x)] - penalty)
+            temp[t_index_x + 1, t_index_y + 1] = max(
+                temp[t_index_x, t_index_y] +
+                 ref[t_index_x, t_index_y],
+                temp[t_index_x, t_index_y + 1] - penalty,
+                temp[t_index_x + 1, t_index_y] - penalty)
         end
         sync_threads()
     end
@@ -67,18 +57,18 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[tidx(t_index_y, t_index_x)] = max(
-                temp[tidx(t_index_y - 1, t_index_x - 1)] +
-                 ref[ridx(t_index_y - 1, t_index_x - 1)],
-                temp[tidx(t_index_y, t_index_x - 1)] - penalty,
-                temp[tidx(t_index_y - 1, t_index_x)] - penalty)
+            temp[t_index_x + 1, t_index_y + 1] = max(
+                temp[t_index_x, t_index_y] +
+                 ref[t_index_x, t_index_y],
+                temp[t_index_x, t_index_y + 1] - penalty,
+                temp[t_index_x + 1, t_index_y] - penalty)
         end
         sync_threads()
         m -= 1
     end
 
     for ty = 0:BLOCK_SIZE-1
-        matrix_cuda[index + ty * cols + 1] = temp[tidx(ty + 1, tx + 1)]
+        matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
 
     return nothing
@@ -97,24 +87,24 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
     index_w  = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x + cols
     index_nw = cols * BLOCK_SIZE * b_index_y + BLOCK_SIZE * b_index_x
 
-    temp = @cuStaticSharedMem(Int32, TEMP_NELEM)
-    ref = @cuStaticSharedMem(Int32, REF_NELEM)
+    temp = @cuStaticSharedMem(Int32, (BLOCK_SIZE_P1, BLOCK_SIZE_P1))
+    ref = @cuStaticSharedMem(Int32, (BLOCK_SIZE, BLOCK_SIZE))
 
     for ty = 0:BLOCK_SIZE-1
-        ref[ridx(ty, tx)] = reference[index + cols * ty + 1]
+        ref[tx + 1, ty + 1] = reference[index + cols * ty + 1]
     end
 
     sync_threads()
 
     if tx == 0
-        temp[tidx(tx, 0)] = matrix_cuda[index_nw + 1]
+        temp[1, tx + 1] = matrix_cuda[index_nw + 1]
     end
 
-    temp[tidx(tx + 1, 0)] = matrix_cuda[index_w + cols * tx + 1]
+    temp[1, tx + 2] = matrix_cuda[index_w + cols * tx + 1]
 
     sync_threads()
 
-    temp[tidx(0, tx + 1)] = matrix_cuda[index_n + 1]
+    temp[tx + 2, 1] = matrix_cuda[index_n + 1]
 
     sync_threads()
 
@@ -122,11 +112,11 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + 1
             t_index_y = m - tx + 1
-            temp[tidx(t_index_y, t_index_x)] = max(
-                temp[tidx(t_index_y - 1, t_index_x - 1)] +
-                 ref[ridx(t_index_y - 1, t_index_x - 1)],
-                temp[tidx(t_index_y, t_index_x - 1)] - penalty,
-                temp[tidx(t_index_y - 1, t_index_x)] - penalty)
+            temp[t_index_x + 1, t_index_y + 1] = max(
+                temp[t_index_x, t_index_y] +
+                 ref[t_index_x, t_index_y],
+                temp[t_index_x, t_index_y + 1] - penalty,
+                temp[t_index_x + 1, t_index_y] - penalty)
         end
         sync_threads()
     end
@@ -137,18 +127,18 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty,
         if tx <= m
             t_index_x = tx + BLOCK_SIZE - m
             t_index_y = BLOCK_SIZE - tx
-            temp[tidx(t_index_y, t_index_x)] = max(
-                temp[tidx(t_index_y - 1, t_index_x - 1)] +
-                 ref[ridx(t_index_y - 1, t_index_x - 1)],
-                temp[tidx(t_index_y, t_index_x - 1)] - penalty,
-                temp[tidx(t_index_y - 1, t_index_x)] - penalty)
+            temp[t_index_x + 1, t_index_y + 1] = max(
+                temp[t_index_x, t_index_y] +
+                 ref[t_index_x, t_index_y],
+                temp[t_index_x, t_index_y + 1] - penalty,
+                temp[t_index_x + 1, t_index_y] - penalty)
         end
         sync_threads()
         m -= 1
     end
 
     for ty = 0:BLOCK_SIZE-1
-        matrix_cuda[index + ty * cols + 1] = temp[tidx(ty + 1, tx + 1)]
+        matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
 
     return nothing
