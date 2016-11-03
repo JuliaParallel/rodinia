@@ -1,5 +1,12 @@
 using CUDAdrv, CUDAnative
 
+# The number of sample points in each ellipse (stencil)
+const NPOINTS = 150
+# The maximum radius of a sample ellipse
+const MAX_RAD = 20
+# The total number of sample ellipses
+const NCIRCLES = 7
+
 type CUDAConstValues
         c_sin_angle::CuArray{Float32,1}
         c_cos_angle::CuArray{Float32,1}
@@ -7,6 +14,112 @@ type CUDAConstValues
         c_tY::CuArray{Int32,2}
         c_strel::CuArray{Float32,2}
 end
+
+
+# Kernel to find the maximal GICOV value at each pixel of a
+#  video frame, based on the input x- and y-gradient matrices
+function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
+        c_tX, c_tY, device_gicov_out)
+
+    # Determine this thread's pixel
+    i = blockIdx().x + MAX_RAD + 2 - 1
+    j = threadIdx().x + MAX_RAD + 2 - 1
+
+    # Initialize the maximal GICOV score to 0
+    max_GICOV::Float32 = 0
+
+    # Iterate across each stencil
+    for k in 0:NCIRCLES-1
+        # Variables used to compute the mean and variance
+        #  of the gradients along the current stencil
+        sum::Float32 = 0
+        M2::Float32 = 0
+        mean::Float32 = 0
+
+        founderr = 0
+
+        # Iterate across each sample point in the current stencil
+        for n in 0:NPOINTS-1
+            # Determine the x- and y-coordinates of the current sample
+            # point
+            @inbounds y = j + c_tY[k+1,n+1]
+            @inbounds x = i + c_tX[k+1,n+1]
+
+            # Compute the combined gradient value at the current sample
+            # point
+            if (0 <= x < size(device_grad_x,1)) & (0 <= y < size(device_grad_x,2))
+              @inbounds p = device_grad_x[x+1,y+1] * c_cos_angle[n+1] + device_grad_y[x+1,y+1] * c_sin_angle[n+1]
+            else
+              if founderr == 0
+                @inbounds aa = convert(Int32,c_tX[k+1,n+1])
+                @inbounds bb = convert(Int32,c_tY[k+1,n+1])
+                @cuprintf("invalid grad access: (%d,%d) -> (%d,%d) -> (%d,%d)\n",convert(Int32,i),convert(Int32,j),aa,bb,convert(Int32,x),convert(Int32,y))
+                founderr = 1
+              end
+              p::Float32 = 0.0
+            end
+
+            # Update the running total
+            sum += p
+
+            # Partially compute the variance
+            delta = p - mean
+            mean = mean + (delta / (n + 1))
+            M2 = M2 + (delta * (p - mean))
+        end
+
+        # Compute the mean gradient value across all sample points
+        # Finish computing the mean
+        mean = sum / NPOINTS
+
+        # Finish computing the variance
+        var = M2 / (NPOINTS - 1)
+
+        # Keep track of the maximal GICOV value seen so far
+        if (((mean * mean) / var) > max_GICOV)
+            max_GICOV = (mean * mean) / var
+        end
+    end
+
+    # Store the maximal GICOV value
+    if (0 <= i < size(device_gicov_out,1)) &
+       (0 <= j < size(device_gicov_out,2))
+      @inbounds device_gicov_out[i+1,j+1] = max_GICOV
+    else
+      @cuprintf("invalid blockid,threadid = %d,%d\n",blockIdx().x,threadIdx().x)
+    end
+
+    return nothing
+end
+
+
+# Sets up and invokes the GICOV kernel and returns its output
+function GICOV_CUDA(dev, host_grad_x, host_grad_y, GICOV_constants)
+    const MaxR = MAX_RAD + 2
+
+    # Allocate device memory
+    # TODO: should be put in texture memory
+    device_grad_x = CuArray(convert(Array{Float32,2},host_grad_x)')
+    device_grad_y = CuArray(convert(Array{Float32,2},host_grad_y)')
+
+    # Allocate & initialize device memory for result
+    # (some elements are not assigned values in the kernel)
+    device_gicov_out = CuArray(zeros(Float32,size(device_grad_x,1),size(device_grad_y,2)))
+
+    # Setup execution parameters
+    num_blocks = size(host_grad_y,2) - (2 * MaxR)
+    threads_per_block = size(host_grad_x,1) - (2 * MaxR)
+
+    @cuda dev (num_blocks, threads_per_block) GICOV_kernel(
+            device_grad_y, device_grad_x,
+            GICOV_constants.c_cos_angle, GICOV_constants.c_sin_angle,
+            GICOV_constants.c_tY, GICOV_constants.c_tX,
+            device_gicov_out)
+
+    synchronize(default_stream())
+    Array(device_gicov_out)'
+end
+
 
 # Transfers pre-computed constants used by the two kernels to the GPU
 function transfer_constants(host_sin_angle, host_cos_angle, host_tX, host_tY,

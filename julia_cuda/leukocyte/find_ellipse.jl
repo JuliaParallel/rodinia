@@ -78,69 +78,11 @@ end
 
 # Given x- and y-gradients of a video frame, computes the GICOV
 #  score for each sample ellipse at every pixel in the frame
-function ellipsematching(grad_x, grad_y)
-    # Compute the sine and cosine of the angle to each point in each sample
-    # circle
-    #  (which are the same across all sample circles)
-    theta = [n * 2.0 * C_PI/NPOINTS for n in 0:NPOINTS-1]
-    cos_angle = cos.(theta)
-    sin_angle = sin.(theta)
+function GICOV(dev, grad_x, grad_y, GICOV_constants)
+    # Offload the GICOV score computation to the GPU
+    gicov = GICOV_CUDA(dev,grad_x,grad_y,GICOV_constants)
 
-    # Compute the (x,y) pixel offsets of each sample point in each sample
-    # circle
-    tX = [trunc(Int32,(MIN_RAD+2*k)*cos_angle[n+1]) for k in 0:NCIRCLES-1,n in 0:NPOINTS-1]
-    tY = [trunc(Int32,(MIN_RAD+2*k)*sin_angle[n+1]) for k in 0:NCIRCLES-1,n in 0:NPOINTS-1]
-
-    const MaxR = MAX_RAD + 2
-
-    # Allocate the result matrix
-    height = size(grad_x,1)
-    width = size(grad_x,2)
-    gicov = zeros(Float64,height,width)
-
-    # Scan from left to right, top to bottom, computing GICOV values
-    for i in MaxR:width-MaxR-1
-        Grad = Array{Float64}(NPOINTS)
-        for j in MaxR:height-MaxR-1
-            # Initialize the maximal GICOV score to 0
-            max_GICOV = 0.0
-
-            # Iterate across each stencil
-            for k in 0:NCIRCLES-1
-                # Iterate across each sample point in the current stencil
-                for n in 0:NPOINTS-1
-                    # Determine the x- and y-coordinates of the current sample
-                    # point
-                    y = j + tY[k+1,n+1]
-                    x = i + tX[k+1,n+1]
-
-                    # Compute the combined gradient value at the current sample
-                    # point
-                    Grad[n+1] = grad_x[y+1,x+1] * cos_angle[n+1] +
-                                grad_y[y+1,x+1] * sin_angle[n+1]
-                end
-
-                # Compute the mean gradient value across all sample points
-                mean = sum(Grad)/NPOINTS
-
-                # Compute the variance of the gradient values
-                var = 0.0
-                for n in 1:NPOINTS
-                    sum = Grad[n] - mean
-                    var += sum^2
-                end
-                var = var / (NPOINTS - 1)
-
-                # Keep track of the maximal GICOV value seen so far
-                if mean^2 / var > max_GICOV
-                    gicov[j+1,i+1] = mean / sqrt(var)
-                    max_GICOV = mean^2 / var
-                end
-            end
-        end
-    end
-
-    gicov
+    convert(Array{Float64,2},gicov)
 end
 
 

@@ -52,21 +52,18 @@ function main(args, dev)
 
     # Get GICOV matrix corresponding to image gradients
     tic()
-    gicov = ellipsematching(grad_x, grad_y)
-
-    # Square GICOV values
-    max_gicov = gicov.^2
+    gicov = GICOV(dev, grad_x, grad_y, GICOV_constants)
     GICOV_end_time = toq()
 
     # Dilate the GICOV matrix
     tic()
     strel = structuring_element(12)
-    img_dilated = dilate(dev, max_gicov, GICOV_constants)
+    img_dilated = dilate(dev, gicov, GICOV_constants)
     dilate_end_time = toq()
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
-    crow,ccol = findn((max_gicov .!= 0.0) & double_eq.(img_dilated,max_gicov))
+    crow,ccol = findn(!double_eq.(gicov,0.0) & double_eq.(img_dilated,gicov))
     # convert to zero-based indices for parity with the C code (don't
     # use map in the above expression, because it's very slow)
     crow,ccol = crow.-1,ccol.-1
@@ -75,7 +72,7 @@ function main(args, dev)
     crow = crow[sortedy]
     ccol = ccol[sortedy]
 
-    GICOV_spots = [gicov[crow[i]+1,ccol[i]+1] for i in 1:size(crow,1)]
+    GICOV_spots = [sqrt(gicov[crow[i]+1,ccol[i]+1]) for i in 1:size(crow,1)]
 
     result_indices = find(crow .> 26 & crow .< BOTTOM - TOP + 39)
     x_result = ccol[result_indices]
