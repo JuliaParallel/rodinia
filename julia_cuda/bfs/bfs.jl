@@ -129,7 +129,7 @@ function main(args)
     g_updating_graph_mask = CuArray(h_updating_graph_mask)
     g_graph_visited = CuArray(h_graph_visited)
     g_cost = CuArray(h_cost)
-    g_stop = CuArray(Bool, 1)
+    g_stop = CuArray{Bool}(1)
 
     k = 0
     info("Start traversing the tree")

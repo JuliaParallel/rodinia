@@ -284,7 +284,7 @@ function main(args)
 
     MatrixTemp = Array{CuArray{Float32}}(2)
     MatrixTemp[1] = CuArray(FilesavingTemp)
-    MatrixTemp[2] = CuArray(Float32, size)
+    MatrixTemp[2] = CuArray{Float32}(size)
     MatrixPower = CuArray(FilesavingPower)
 
     println("Start computing the transient temperature")

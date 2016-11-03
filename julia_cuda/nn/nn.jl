@@ -95,7 +95,7 @@ function main(args)
 
     # Allocate memory on device and copy data from host to device.
     d_locations = CuArray(locations)
-    d_distances = CuArray(Float32, numRecords)
+    d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
     @cuda dev ((gridX, gridY), threadsPerBlock) euclid(

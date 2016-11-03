@@ -178,7 +178,7 @@ end
 function dilate_CUDA(dev, img_in, GICOV_constants)
     # TODO: should be put in texture memory
     img_dev = CuArray(img_in)
-    dilated_out = CuArray(Float32,(size(img_in,1),size(img_in,2)))
+    dilated_out = CuArray{Float32}((size(img_in,1),size(img_in,2)))
 
     num_threads = size(img_in,1) * size(img_in,2)
     threads_per_block = 176

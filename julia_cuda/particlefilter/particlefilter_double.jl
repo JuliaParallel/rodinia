@@ -444,15 +444,15 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
     # Initial likelihood to 0.0
     g_likelihood = CuArray(zeros(Float64, Nparticles))
-    g_arrayX = CuArray(Float64, Nparticles)
-    g_arrayY = CuArray(Float64, Nparticles)
+    g_arrayX = CuArray{Float64}(Nparticles)
+    g_arrayY = CuArray{Float64}(Nparticles)
     xj = Array{Float64, 1}(Nparticles)
     yj = Array{Float64, 1}(Nparticles)
-    g_CDF = CuArray(Float64, Nparticles)
+    g_CDF = CuArray{Float64}(Nparticles)
 
-    g_ind = CuArray(Int, count_ones * Nparticles)
-    g_u = CuArray(Float64, Nparticles)
-    g_partial_sums = CuArray(Float64, Nparticles)
+    g_ind = CuArray{Int}(count_ones * Nparticles)
+    g_u = CuArray{Float64}(Nparticles)
+    g_partial_sums = CuArray{Float64}(Nparticles)
 
     for x=1:Nparticles
         xj[x] = xe

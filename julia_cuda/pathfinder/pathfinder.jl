@@ -196,7 +196,7 @@ function main(args)
     # Setup GPU memory
     gpu_result = Array{CuArray{Int64,1},1}(2)
     gpu_result[1] = CuArray(wall[:,1])
-    gpu_result[2] = CuArray(Int64, cols)
+    gpu_result[2] = CuArray{Int64}(cols)
 
     gpu_wall = CuArray(wall[cols+1:end])
 

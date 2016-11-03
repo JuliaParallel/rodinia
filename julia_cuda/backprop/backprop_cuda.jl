@@ -26,9 +26,9 @@ function bpnn_train_cuda(net, ctx)
     end
 
     input_cuda = CuArray(net.input_units)
-    output_hidden_cuda = CuArray(Float32, hid + 1)
+    output_hidden_cuda = CuArray{Float32}(hid + 1)
     input_hidden_cuda = CuArray(input_weights_one_dim)
-    hidden_partial_sum = CuArray(Float32, num_blocks * WIDTH)
+    hidden_partial_sum = CuArray{Float32}(num_blocks * WIDTH)
 
     println("Performing GPU computation")
 
