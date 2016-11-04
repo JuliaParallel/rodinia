@@ -40,8 +40,8 @@ function kernel_dynproc(
     cols, rows, start_step, border)
     
     # Define shared memory
-    prev = @cuStaticSharedMem(Int64, 256)
-    result = @cuStaticSharedMem(Int64, 256)
+    prev = @cuStaticSharedMem(Int64, BLOCK_SIZE)
+    result = @cuStaticSharedMem(Int64, BLOCK_SIZE)
 
     bx = blockIdx().x
     tx::Int64 = threadIdx().x
@@ -68,7 +68,6 @@ function kernel_dynproc(
     is_valid = inrange(tx, valid_x_min, valid_x_max)
 
     if inrange(xidx, 1, cols)
-        #prev[tx] = gpu_src[xidx]
         prev[tx] = gpu_src[xidx]
     end
 
