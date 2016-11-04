@@ -67,9 +67,9 @@ function main(args)
 
     synchronize(ctx)
 
-    usableDeviceMemory = freeDeviceMemory * 85 / 100 # 85% arbitrary throttle
+    usableDeviceMemory = floor(UInt, freeDeviceMemory * 85 / 100) # 85% arbitrary throttle
         # to compensate for known CUDA bug
-    maxThreads = usableDeviceMemory / 12 # 4 bytes in 3 vectors per thread
+    maxThreads = floor(UInt, usableDeviceMemory / 12) # 4 bytes in 3 vectors per thread
 
     if numRecords > maxThreads
         println(STDERR, "Error: Input too large.")
