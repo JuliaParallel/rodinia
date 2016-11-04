@@ -139,10 +139,6 @@ function loadData(filename)
         # read each record
         while !eof(fp)
             record = chomp(readline(fp))
-            if eof(fp)
-                break
-            end
-
             # Parse for lat and lng
             lat, lng = map(x -> parse(Float32, x),
                 split(record[LATITUDE_POS:end]))
