@@ -44,7 +44,7 @@ function kernel_dynproc(
     result = @cuStaticSharedMem(Int64, 256)
 
     bx = blockIdx().x
-    tx = threadIdx().x
+    tx::Int64 = threadIdx().x
 
     # Will this be a problem: references to global vars
     # but will likely be replaced by a constant when jitting, or not?
