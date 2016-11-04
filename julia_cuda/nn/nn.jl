@@ -27,7 +27,7 @@ end
 function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
                 (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
-    if globalId < numRecords
+    if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
             sqrt((lat - latLong.lat) * (lat - latLong.lat) +
