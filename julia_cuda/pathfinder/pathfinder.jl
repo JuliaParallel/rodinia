@@ -7,7 +7,6 @@ const BLOCK_SIZE = 256
 const HALO = 1
 
 const M_SEED = 7
-const OUTPUT = false
 
 # Helper function
 
@@ -131,7 +130,7 @@ function init(args)
     end
 
     # Print wall
-    if OUTPUT
+    @static if haskey(ENV, "OUTPUT")
         file = open("output.txt", "w")
         println(file, "wall:")
         for i = 1:rows
@@ -214,8 +213,8 @@ function main(args)
     # Store the result into a file
     # TODO: static because it boxes no_of_nodes (#15276)
     @static if haskey(ENV, "OUTPUT")
-        open("output.txt", "w") do fpo
-            println(fpo, "wall:")
+        open("output.txt", "a") do fpo
+            println(fpo, "data:")
 
             for i=1:cols
                 print(fpo, "$(wall[i]) ")
