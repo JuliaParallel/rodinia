@@ -231,9 +231,7 @@ function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
         # Transpose to go from column major to row major (or rewrite the kernel indexing)
         I_Float32 = convert(Array{Float32,1},reshape(I[i]',size(I[i],1)*size(I[i],2)))
         I_dev[i] = CuArray(I_Float32)
-        # no copy(CuArray) :/
-        # IMGVF_dev[i] = copy(I_dev[i])
-        IMGVF_dev[i] = CuArray(I_Float32)
+        IMGVF_dev[i] = copy(I_dev[i])
         # I_dev[i] should be CuIn(), but I get "identifier not found"?
         @cuda dev (1,threads_per_block) IMGVF_kernel(I_dev[i], IMGVF_dev[i], size(I[i],1), size(I[i],2), vx, vy, e, max_iterations, cutoff)
     end
