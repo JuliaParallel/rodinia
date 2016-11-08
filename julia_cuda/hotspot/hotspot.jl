@@ -297,10 +297,6 @@ function main(args)
     if haskey(ENV, "OUTPUT")
         writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt")
     end
-
-    free(MatrixPower)
-    free(MatrixTemp[1])
-    free(MatrixTemp[2])
 end
 
 main(ARGS)

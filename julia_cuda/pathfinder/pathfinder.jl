@@ -205,10 +205,6 @@ function main(args)
 
     result = Array(gpu_result[final_ret])
 
-    free(gpu_result[1])
-    free(gpu_result[2])
-    free(gpu_wall)
-
     # Store the result into a file
     # TODO: static because it boxes no_of_nodes (#15276)
     @static if haskey(ENV, "OUTPUT")

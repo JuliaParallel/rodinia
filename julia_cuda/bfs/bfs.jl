@@ -160,12 +160,6 @@ function main(args)
 
     # Copy result back + free
     h_cost = Array(g_cost)
-    free(g_graph_nodes)
-    free(g_graph_edges)
-    free(g_graph_mask)
-    free(g_updating_graph_mask)
-    free(g_graph_visited)
-    free(g_cost)
 
     info("Kernel Executed $k times")
 

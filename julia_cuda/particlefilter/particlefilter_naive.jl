@@ -366,13 +366,6 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
         reset = gettime()
         println("TIME TO RESET: $(elapsedtime(exec_time, reset))")
     end
-
-    free(g_arrayX)
-    free(g_arrayY)
-    free(g_CDF)
-    free(g_u)
-    free(g_xj)
-    free(g_yj)
 end
 
 # Kernel

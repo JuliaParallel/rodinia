@@ -110,9 +110,6 @@ function main(args)
 
     output_itemsets = Array(matrix_cuda)
 
-    free(matrix_cuda)
-    free(reference_cuda)
-
     if haskey(ENV, "OUTPUT")
         fpo = open("output.txt", "w")
         @printf(fpo, "print traceback value GPU:\n")

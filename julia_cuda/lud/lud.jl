@@ -49,8 +49,6 @@ function main(args)
     end
     info("Time consumed(ms): ", 1000sec)
 
-    free(d_matrix)
-
     if verify
         info("After LUD")
         info(">>>Verify<<<<")

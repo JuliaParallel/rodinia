@@ -118,9 +118,6 @@ function main(args)
         end
         close(out)
     end
-
-    free(d_locations)
-    free(d_distances)
 end
 
 function loadData(filename)

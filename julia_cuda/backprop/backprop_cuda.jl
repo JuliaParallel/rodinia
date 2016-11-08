@@ -60,7 +60,6 @@ function bpnn_train_cuda(net, ctx)
     hidden_delta_cuda = CuArray(net.hidden_delta)
     input_prev_weights_cuda = CuArray(input_weights_prev_one_dim)
 
-    free(input_hidden_cuda)
     input_hidden_cuda = CuArray(input_weights_one_dim)
 
 	@cuda dev ((1, num_blocks), (16, 16)) bpnn_adjust_weights_cuda(hidden_delta_cuda, hid,
@@ -68,10 +67,4 @@ function bpnn_train_cuda(net, ctx)
 
 	net.input_units = Array(input_cuda)
 
-    free(input_cuda)
-    free(output_hidden_cuda)
-    free(input_hidden_cuda)
-    free(hidden_partial_sum)
-    free(input_prev_weights_cuda)
-    free(hidden_delta_cuda)
 end

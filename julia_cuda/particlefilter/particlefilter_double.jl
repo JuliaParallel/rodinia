@@ -495,20 +495,6 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     arrayY = Array(g_arrayY)
     weights = Array(g_weights)
 
-    free(g_likelihood)
-    free(g_arrayX)
-    free(g_arrayY)
-    free(g_CDF)
-    free(g_ind)
-    free(g_u)
-    free(g_partial_sums)
-    free(g_xj)
-    free(g_yj)
-    free(g_objxy)
-    free(g_I)
-    free(g_weights)
-    free(g_seed)
-
     xe = ye = 0
     for x=1:Nparticles
         xe += arrayX[x] * weights[x]
