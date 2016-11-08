@@ -36,8 +36,6 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
         M2::Float32 = 0
         mean::Float32 = 0
 
-        founderr = 0
-
         # Iterate across each sample point in the current stencil
         for n in 0:NPOINTS-1
             # Determine the x- and y-coordinates of the current sample
@@ -47,17 +45,7 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
 
             # Compute the combined gradient value at the current sample
             # point
-            if (0 <= x < size(device_grad_x,1)) & (0 <= y < size(device_grad_x,2))
-              @inbounds p = device_grad_x[x+1,y+1] * c_cos_angle[n+1] + device_grad_y[x+1,y+1] * c_sin_angle[n+1]
-            else
-              if founderr == 0
-                @inbounds aa = convert(Int32,c_tX[k+1,n+1])
-                @inbounds bb = convert(Int32,c_tY[k+1,n+1])
-                @cuprintf("invalid grad access: (%d,%d) -> (%d,%d) -> (%d,%d)\n",convert(Int32,i),convert(Int32,j),aa,bb,convert(Int32,x),convert(Int32,y))
-                founderr = 1
-              end
-              p::Float32 = 0.0
-            end
+            @inbounds p = device_grad_x[x+1,y+1] * c_cos_angle[n+1] + device_grad_y[x+1,y+1] * c_sin_angle[n+1]
 
             # Update the running total
             sum += p
