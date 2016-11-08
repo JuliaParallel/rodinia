@@ -349,13 +349,11 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
 
         @cuda dev (num_blocks, threads_per_block) kernel_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, Nparticles)
-        synchronize(ctx)
+        copy!(xj, g_xj)
+        copy!(yj, g_yj)
         exec_time = gettime()
 
         println("CUDA EXEC TOOK: $(elapsedtime(utime, exec_time))")
-
-        copy!(xj, g_xj)
-        copy!(yj, g_yj)
 
         for x=1:Nparticles
             arrayX[x] = xj[x]

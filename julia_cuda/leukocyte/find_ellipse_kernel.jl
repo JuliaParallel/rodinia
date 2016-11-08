@@ -104,7 +104,6 @@ function GICOV_CUDA(dev, host_grad_x, host_grad_y, GICOV_constants)
             GICOV_constants.c_tY, GICOV_constants.c_tX,
             device_gicov_out)
 
-    synchronize(default_stream())
     Array(device_gicov_out)'
 end
 
@@ -173,7 +172,6 @@ function dilate_CUDA(dev, img_in, GICOV_constants)
     num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
 
     @cuda dev (num_blocks,threads_per_block) dilate_kernel(img_dev,GICOV_constants.c_strel,dilated_out)
-    synchronize(default_stream())
 
     Array(dilated_out)
 end

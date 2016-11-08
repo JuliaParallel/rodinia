@@ -164,8 +164,6 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
         switch_membership_d # out: changes in membership
     )
 
-    synchronize(ctx)
-
     # TODO
     # // error check
     # error = cudaGetLastError();

@@ -489,7 +489,6 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
         @cuda dev (num_blocks, threads_per_block) kernel_find_index(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
     end
-    synchronize(default_stream())
 
     arrayX = Array(g_arrayX)
     arrayY = Array(g_arrayY)

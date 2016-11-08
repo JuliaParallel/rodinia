@@ -36,8 +36,6 @@ function bpnn_train_cuda(net, ctx)
         input_cuda, output_hidden_cuda, input_hidden_cuda, hidden_partial_sum,
         inp, hid)
 
-    synchronize(ctx)
-
     partial_sum = Array(hidden_partial_sum)
 
     for j = 1:hid

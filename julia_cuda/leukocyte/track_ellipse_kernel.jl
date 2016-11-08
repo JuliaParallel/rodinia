@@ -236,8 +236,6 @@ function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
         @cuda dev (1,threads_per_block) IMGVF_kernel(I_dev[i], IMGVF_dev[i], size(I[i],1), size(I[i],2), vx, vy, e, max_iterations, cutoff)
     end
 
-    synchronize(default_stream())
-
     # Copy results back to host
     IMGVF = similar(I)
     for i in eachindex(IMGVF)

@@ -101,8 +101,6 @@ function main(args)
     @cuda dev ((gridX, gridY), threadsPerBlock) euclid(
         d_locations, d_distances, numRecords, lat, lng)
 
-    synchronize(ctx)
-
     # Copy data from device memory to host memory.
     distances = Array(d_distances)
 
