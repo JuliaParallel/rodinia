@@ -179,5 +179,3 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
-
-destroy(ctx)
