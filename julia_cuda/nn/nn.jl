@@ -52,7 +52,7 @@ function main(args)
     ctx = CuContext(dev)
 
     # Scaling calculations - added by Sam Kauffman
-    synchronize(ctx)
+    synchronize()
 
     maxGridX = attribute(dev, CUDAdrv.MAX_GRID_DIM_X)
     maxThreadsPerBlock = attribute(dev, CUDAdrv.MAX_THREADS_PER_BLOCK)
@@ -65,7 +65,7 @@ function main(args)
     freeDeviceMemory = freeDeviceMemory[]
     totalDeviceMemory = totalDeviceMemory[]
 
-    synchronize(ctx)
+    synchronize()
 
     usableDeviceMemory = floor(UInt, freeDeviceMemory * 85 / 100) # 85% arbitrary throttle
         # to compensate for known CUDA bug
