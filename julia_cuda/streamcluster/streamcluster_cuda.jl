@@ -59,7 +59,7 @@ const g_coord_h = Ref{Array{Float32}}()
 #=======================================#
 function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
                switch_membership, isCoordChanged, serial_t, cpu_to_gpu_t,
-               gpu_to_cpu_t, alloc_t, kernel_t, free_t)
+               gpu_to_cpu_t, alloc_t, kernel_t)
 
     global g_iter
     global g_coord_h
@@ -250,24 +250,6 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
         synchronize(stop)
         serial_t[] += elapsed(start, stop)
         record(start)
-    end
-
-    #=======================================#
-    # DEALLOCATE GPU MEMORY
-    #=======================================#
-    free(p_wd)
-    free(p_ad)
-    free(p_cd)
-    free(work_mem_d)
-    free(center_table_d)
-    free(switch_membership_d)
-
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        free_t[] += elapsed(start, stop)
-        destroy(start)
-        destroy(stop)
     end
 
     g_iter += 1

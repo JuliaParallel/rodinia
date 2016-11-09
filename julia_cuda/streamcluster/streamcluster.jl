@@ -17,7 +17,6 @@ g_isCoordChanged = false
 
 # GPU Timing Info
 const g_alloc_t = Ref{Float32}(0f0)
-const g_free_t  = Ref{Float32}(0f0)
 
 const g_kernel_t = Ref{Float32}(0f0)
 const g_serial_t = Ref{Float32}(0f0)
@@ -220,7 +219,7 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
             change += pgain(ctx, feasible[x + 1], points, z, k, kmax, g_is_center,
                             g_center_table, g_switch_membership, g_isCoordChanged,
                             g_serial_t, g_cpu_to_gpu_t, g_gpu_to_cpu_t, g_alloc_t,
-                            g_kernel_t, g_free_t)
+                            g_kernel_t)
         end
 
         cost -= change
@@ -734,7 +733,6 @@ function main(args)
         @printf("time CPU to GPU memory copy = %lfs\n", g_cpu_to_gpu_t[] / 1000)
         @printf("time GPU to CPU memory copy back = %lfs\n", g_gpu_to_cpu_t[] / 1000)
         @printf("time GPU malloc = %lfs\n", g_alloc_t[] / 1000)
-        @printf("time GPU free = %lfs\n", g_free_t[] / 1000)
         @printf("time kernel = %lfs\n", g_kernel_t[] / 1000)
     end
 end
