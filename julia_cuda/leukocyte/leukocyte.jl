@@ -183,4 +183,6 @@ function start()
     ctx = CuContext(dev)
 
     main(ARGS, dev)
+
+    destroy(ctx)
 end

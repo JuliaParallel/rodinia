@@ -54,6 +54,8 @@ function main(args)
         info(">>>Verify<<<<")
         lud_verify(matrix_copy, matrix, matrix_dim)
     end
+
+    destroy(ctx)
 end
 
 main(ARGS)
