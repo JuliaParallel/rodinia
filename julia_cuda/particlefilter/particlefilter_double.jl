@@ -213,9 +213,9 @@ end
 
 @inline function dev_round_double(value)
     if value < 0
-        new_value = Int(CUDAnative.ceil(value))
+        new_value = trunc(Int,CUDAnative.ceil(value))
     else
-        new_value = Int(CUDAnative.floor(value))
+        new_value = trunc(Int,CUDAnative.floor(value))
     end
     if value - new_value < 0.5
         return new_value
@@ -304,7 +304,7 @@ function kernel_sum(partial_sums, Nparticles)
 
     if i==1
         sum = 0.0
-        num_blocks = Int(CUDAnative.ceil(Nparticles/threads_per_block))
+        num_blocks = trunc(Int,CUDAnative.ceil(Nparticles/threads_per_block))
         for x=1:num_blocks
             sum += partial_sums[x]
         end
@@ -375,7 +375,7 @@ function kernel_likelihood(
     end
     sync_threads()
 
-    s = Int64(blockDim().x/2)
+    s = div(blockDim().x,2)
     while s > 0
         if threadIdx().x <= s
             v = buffer[threadIdx().x]
