@@ -382,6 +382,7 @@ function kernel_likelihood(
             v += buffer[threadIdx().x + s]
             buffer[threadIdx().x] = v
         end
+        sync_threads()
         s>>=1
     end
     if threadIdx().x == 1
