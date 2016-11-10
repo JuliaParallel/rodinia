@@ -31,11 +31,11 @@ function bpnn_layerforward_CUDA(input_cuda,
 
     # TODO: Since HEIGHT is an integer, there might be a nicer way to express
     # i = 1:log2(HEIGHT) than what is currently used.
-    for i = 1:Int32(CUDAnative.log2(Float32(HEIGHT)))
-        power_two = CUDAnative.pow(2f0, Int32(i))
+    for i = 1:trunc(Int32,CUDAnative.log2(Float32(HEIGHT)))
+        power_two = CUDAnative.pow(2f0, trunc(Int32,i))
         if ty % power_two == 1
             weight_matrix[tx, ty] +=
-                weight_matrix[tx, ty + Int32(power_two / 2)]
+                weight_matrix[tx, ty + trunc(Int32,power_two / 2)]
         end
         sync_threads()
     end
