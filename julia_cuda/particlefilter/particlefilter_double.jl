@@ -500,11 +500,20 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
         ye += arrayY[x] * weights[x]
     end
 
-    println("XE: $xe")
-    println("YE: $ye")
+    if haskey(ENV, "OUTPUT")
+        outf = open("output.txt", "w")
+    else
+        outf = STDOUT
+    end
+    println(outf,"XE: $xe")
+    println(outf,"YE: $ye")
     distance = sqrt((xe - Int(rounddouble(IszX/2.0)))^2
                    +(ye - Int(rounddouble(IszY/2.0)))^2)
-    println(distance)
+    println(outf,"distance: $distance")
+
+    if haskey(ENV, "OUTPUT")
+      close(outf)
+    end
 
 end
 
