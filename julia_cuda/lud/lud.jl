@@ -42,7 +42,7 @@ function main(args)
     dev = CuDevice(0)
     ctx = CuContext(dev)
 
-    sec = @elapsed begin
+    sec = CUDAdrv.@elapsed begin
         d_matrix = CuArray(matrix)
         lud_cuda(dev, d_matrix, matrix_dim)
         matrix = Array(d_matrix)
@@ -54,8 +54,6 @@ function main(args)
         info(">>>Verify<<<<")
         lud_verify(matrix_copy, matrix, matrix_dim)
     end
-
-    destroy(ctx)
 end
 
 main(ARGS)
