@@ -1,6 +1,6 @@
 include common.mk
 
-SUITES := data openmp cuda opencl julia_cuda julia_st
+SUITES := data openmp cuda opencl julia_cuda julia_st results
 
 .PHONY: compile
 compile: $(SUITES)
