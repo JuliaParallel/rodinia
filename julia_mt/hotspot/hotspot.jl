@@ -162,8 +162,8 @@ function main(args)
     if length(args) != 5
         usage(args)
     end
-    grid_rows = get(tryparse(Int32,args[1]),0)
-    grid_cols = get(tryparse(Int32,args[2]),0)
+    grid_rows = get(tryparse(Int64,args[1]),0)
+    grid_cols = get(tryparse(Int64,args[2]),0)
     sim_time = get(tryparse(Int32,args[3]),0)
     if (grid_rows <= 0) |
        (grid_cols <= 0) |
