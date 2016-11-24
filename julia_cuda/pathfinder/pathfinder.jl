@@ -161,7 +161,7 @@ function calcpath(wall, result, rows, cols,
         dst = tmp
         iter = min(pyramid_height, rows -t -1)
 
-        @cuda dev (dim_grid, dim_block) kernel_dynproc(
+        @cuda (dim_grid, dim_block) kernel_dynproc(
             iter,
             wall, 
             result[src],        # Does not work with slice: CuIn(gpu_result[src,:])
