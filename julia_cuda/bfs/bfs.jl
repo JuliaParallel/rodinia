@@ -140,13 +140,13 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        @cuda dev (grid, threads, 0) kernel_1(
+        @cuda (grid, threads, 0) kernel_1(
             g_graph_nodes, g_graph_edges, g_graph_mask,
             g_updating_graph_mask, g_graph_visited,
             g_cost, Int32(no_of_nodes)
         )
 
-        @cuda dev (grid, threads, 0) kernel_2(
+        @cuda (grid, threads, 0) kernel_2(
             g_graph_mask, g_updating_graph_mask, g_graph_visited,
             g_stop, Int32(no_of_nodes)
         )
