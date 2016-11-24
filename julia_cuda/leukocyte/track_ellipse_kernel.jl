@@ -233,7 +233,7 @@ function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
         I_dev[i] = CuArray(I_Float32)
         IMGVF_dev[i] = copy(I_dev[i])
         # I_dev[i] should be CuIn(), but I get "identifier not found"?
-        @cuda dev (1,threads_per_block) IMGVF_kernel(I_dev[i], IMGVF_dev[i], size(I[i],1), size(I[i],2), vx, vy, e, max_iterations, cutoff)
+        @cuda (1,threads_per_block) IMGVF_kernel(I_dev[i], IMGVF_dev[i], size(I[i],1), size(I[i],2), vx, vy, e, max_iterations, cutoff)
     end
 
     # Copy results back to host
