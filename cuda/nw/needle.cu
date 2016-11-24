@@ -188,72 +188,68 @@ void runTest(int argc, char **argv) {
     cudaMemcpy(output_itemsets, matrix_cuda, sizeof(int) * size,
                cudaMemcpyDeviceToHost);
 
-//#define TRACEBACK
-#ifdef TRACEBACK
+    if (getenv("OUTPUT")) {
+        FILE *fpo = fopen("output.txt", "w");
+        fprintf(fpo, "print traceback value GPU:\n");
 
-    FILE *fpo = fopen("result.txt", "w");
-    fprintf(fpo, "print traceback value GPU:\n");
+        for (int i = max_rows - 2, j = max_rows - 2; i >= 0, j >= 0;) {
+            int nw, n, w, traceback;
+            if (i == max_rows - 2 && j == max_rows - 2)
+                fprintf(fpo, "%d ", // print the first element
+                    output_itemsets[i * max_cols + j]);
+            if (i == 0 && j == 0)
+                break;
+            if (i > 0 && j > 0) {
+                nw = output_itemsets[(i - 1) * max_cols + j - 1];
+                w = output_itemsets[i * max_cols + j - 1];
+                n = output_itemsets[(i - 1) * max_cols + j];
+            } else if (i == 0) {
+                nw = n = LIMIT;
+                w = output_itemsets[i * max_cols + j - 1];
+            } else if (j == 0) {
+                nw = w = LIMIT;
+                n = output_itemsets[(i - 1) * max_cols + j];
+            } else {
+            }
 
-    for (int i = max_rows - 2, j = max_rows - 2; i >= 0, j >= 0;) {
-        int nw, n, w, traceback;
-        if (i == max_rows - 2 && j == max_rows - 2)
-            fprintf(
-                fpo, "%d ",
-                output_itemsets[i * max_cols + j]); // print the first element
-        if (i == 0 && j == 0)
-            break;
-        if (i > 0 && j > 0) {
-            nw = output_itemsets[(i - 1) * max_cols + j - 1];
-            w = output_itemsets[i * max_cols + j - 1];
-            n = output_itemsets[(i - 1) * max_cols + j];
-        } else if (i == 0) {
-            nw = n = LIMIT;
-            w = output_itemsets[i * max_cols + j - 1];
-        } else if (j == 0) {
-            nw = w = LIMIT;
-            n = output_itemsets[(i - 1) * max_cols + j];
-        } else {
+            // traceback = maximum(nw, w, n);
+            int new_nw, new_w, new_n;
+            new_nw = nw + referrence[i * max_cols + j];
+            new_w = w - penalty;
+            new_n = n - penalty;
+
+            traceback = maximum(new_nw, new_w, new_n);
+            if (traceback == new_nw)
+                traceback = nw;
+            if (traceback == new_w)
+                traceback = w;
+            if (traceback == new_n)
+                traceback = n;
+
+            fprintf(fpo, "%d ", traceback);
+
+            if (traceback == nw) {
+                i--;
+                j--;
+                continue;
+            }
+
+            else if (traceback == w) {
+                j--;
+                continue;
+            }
+
+            else if (traceback == n) {
+                i--;
+                continue;
+            }
+
+            else
+                ;
         }
 
-        // traceback = maximum(nw, w, n);
-        int new_nw, new_w, new_n;
-        new_nw = nw + referrence[i * max_cols + j];
-        new_w = w - penalty;
-        new_n = n - penalty;
-
-        traceback = maximum(new_nw, new_w, new_n);
-        if (traceback == new_nw)
-            traceback = nw;
-        if (traceback == new_w)
-            traceback = w;
-        if (traceback == new_n)
-            traceback = n;
-
-        fprintf(fpo, "%d ", traceback);
-
-        if (traceback == nw) {
-            i--;
-            j--;
-            continue;
-        }
-
-        else if (traceback == w) {
-            j--;
-            continue;
-        }
-
-        else if (traceback == n) {
-            i--;
-            continue;
-        }
-
-        else
-            ;
+        fclose(fpo);
     }
-
-    fclose(fpo);
-
-#endif
 
     cudaFree(referrence_cuda);
     cudaFree(matrix_cuda);
