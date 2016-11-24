@@ -12,4 +12,3 @@
 
 #define GPU
 #define TIMER
-//#define OUTPUT

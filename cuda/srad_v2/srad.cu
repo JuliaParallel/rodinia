@@ -240,16 +240,18 @@ void runTest(int argc, char **argv) {
 
     cudaThreadSynchronize();
 
-#ifdef OUTPUT
-    // Printing output
-    printf("Printing Output:\n");
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            printf("%.5f ", J[i * cols + j]);
+    if (getenv("OUTPUT")){
+        // Printing output
+        printf("Printing Output.\n");
+        FILE* fp = fopen("output.txt", "w");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                fprintf(fp, "%.5f ", J[i * cols + j]);
+            }
+            fprintf(fp, "\n");
         }
-        printf("\n");
+        fclose(fp);
     }
-#endif
 
     printf("Computation Done\n");
 
