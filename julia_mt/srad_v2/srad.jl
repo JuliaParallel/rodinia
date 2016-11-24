@@ -56,7 +56,7 @@ function main(args)
 
     srand(7)
     I = rand(Float32,rows,cols)
-    J::SharedArray{Float32,2} = SharedArray(Float32,(rows,cols),init = J -> J[Base.localindexes(J)] = exp(I[Base.localindexes(J)]))
+    J::SharedArray{Float32,2} = SharedArray(Float32,(rows,cols),init = J -> J[Base.localindexes(J)] = exp.(I[Base.localindexes(J)]))
     c::SharedArray{Float32,2} = SharedArray(Float32,(rows,cols))
 
     println("Start the SRAD main loop")
