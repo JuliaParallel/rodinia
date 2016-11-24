@@ -347,7 +347,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
         copy!(g_CDF, CDF)
         copy!(g_u, u)
 
-        @cuda dev (num_blocks, threads_per_block) kernel_kernel(
+        @cuda (num_blocks, threads_per_block) kernel_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, Nparticles)
         copy!(xj, g_xj)
         copy!(yj, g_yj)
