@@ -198,7 +198,7 @@ function compute_tran_temp(dev, MatrixPower, MatrixTemp, col, row, total_iterati
         temp = src
         src = dst
         dst = temp
-        @cuda dev ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
+        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t), MatrixPower, MatrixTemp[src + 1],
             MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry,
             Rz, step, time_elapsed)
