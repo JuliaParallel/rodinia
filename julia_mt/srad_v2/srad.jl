@@ -23,8 +23,8 @@ function main(args)
     if length(args) != 8
       usage()
     end
-    rows = parse(Int32,args[1])
-    cols = parse(Int32,args[2])
+    rows = parse(Int64,args[1])
+    cols = parse(Int64,args[2])
     if ((rows % 16) != 0) | ((cols % 16) != 0)
         println(STDERR,"rows and cols must be mutiples of 16")
         exit(1)
