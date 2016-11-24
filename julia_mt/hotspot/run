@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-OUTPUT=x /usr/bin/env julia -O -p $((`nproc` - 1)) -L hotspot.jl -e "main(ARGS)" 512 512 2 ../../data/hotspot/temp_512 ../../data/hotspot/power_512 
+julia -p $((`nproc` - 1)) -L hotspot.jl -e "main(ARGS)" 512 512 2 ../../data/hotspot/temp_512 ../../data/hotspot/power_512
