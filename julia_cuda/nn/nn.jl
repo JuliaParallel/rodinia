@@ -98,7 +98,7 @@ function main(args)
     d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda dev ((gridX, gridY), threadsPerBlock) euclid(
+    @cuda ((gridX, gridY), threadsPerBlock) euclid(
         d_locations, d_distances, numRecords, lat, lng)
 
     # Copy data from device memory to host memory.
