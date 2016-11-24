@@ -1,7 +1,5 @@
 #!/usr/bin/env julia
 
-OUTPUT = false
-
 function usage()
     prog = basename(Base.source_path())
 #    println(STDERR,"Usage ",prog," <rows> <cols> <y1> <y2> <x1> <x2> <no. of threads><lamda> <no. of iter>")
@@ -134,13 +132,15 @@ function main(args)
 
     println("Computation done")
 
-    if OUTPUT
+    if haskey(ENV,"OUTPUT")
+        f = open("output.txt","w")
         for i in 1:size(J,1)
             for j in 1:size(J,2)
-               print(@sprintf("%.5f ",J[i,j])) 
+               print(f,@sprintf("%.5f ",J[i,j]))
             end
-            println()
+            println(f)
         end
+        close(f)
     end
 end
 
