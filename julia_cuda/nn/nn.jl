@@ -189,11 +189,9 @@ function parseCommandline(args)
             help = "the longitude for nearest neighbors (default: 0)"
         "-q" # quiet
             action = :store_true
-            default = false
             help = "Quiet mode. Suppress all text output."
         "-t" # timing
             action = :store_true
-            default = false
             help = "Print timing information."
         "-p" # platform
             arg_type = Int
