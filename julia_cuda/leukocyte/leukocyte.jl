@@ -63,7 +63,7 @@ function main(args, dev)
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
-    crow,ccol = findn(!double_eq.(gicov,0.0) & double_eq.(img_dilated,gicov))
+    crow,ccol = findn(!double_eq.(gicov,0.0) .& double_eq.(img_dilated,gicov))
     # convert to zero-based indices for parity with the C code (don't
     # use map in the above expression, because it's very slow)
     crow,ccol = crow.-1,ccol.-1
@@ -74,7 +74,7 @@ function main(args, dev)
 
     GICOV_spots = [sqrt(gicov[crow[i]+1,ccol[i]+1]) for i in 1:size(crow,1)]
 
-    result_indices = find(crow .> 26 & crow .< BOTTOM - TOP + 39)
+    result_indices = find((crow .> 26) .& (crow .< BOTTOM - TOP + 39))
     x_result = ccol[result_indices]
     y_result = crow[result_indices] .- 40
     G = GICOV_spots[result_indices]

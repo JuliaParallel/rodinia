@@ -95,10 +95,10 @@ function ellipsetrack(dev, video, xc0, yc0, Nc, R, Np, Nf)
 
         # Determine the range of the subimage surrounding the current
         # position
-        u1[:] = trunc(Int32,max.(xci[:] - 4.0 * R + 0.5, 0))
-        u2[:] = trunc(Int32,min.(xci[:] + 4.0 * R + 0.5, Iw - 1))
-        v1[:] = trunc(Int32,max.(yci[:] - 2.0 * R + 1.5, 0))
-        v2[:] = trunc(Int32,min.(yci[:] + 2.0 * R + 1.5, Ih - 1))
+        u1[:] = trunc.(Int32,max.(xci[:] - 4.0 * R + 0.5, 0))
+        u2[:] = trunc.(Int32,min.(xci[:] + 4.0 * R + 0.5, Iw - 1))
+        v1[:] = trunc.(Int32,max.(yci[:] - 2.0 * R + 1.5, 0))
+        v2[:] = trunc.(Int32,min.(yci[:] + 2.0 * R + 1.5, Ih - 1))
 
         # Extract the subimage
         for cell_num in eachindex(Isub)
