@@ -1,6 +1,6 @@
 include common.mk
 
-BENCHMARKS := $(sort $(dir $(wildcard */)))
+BENCHMARKS := $(sort $(filter-out $(wildcard _*/),$(dir $(wildcard */))))
 
 .PHONY: all
 all: $(BENCHMARKS)
