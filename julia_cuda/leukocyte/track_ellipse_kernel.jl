@@ -41,13 +41,14 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
     i::Int32 = 0
 
     # Load the initial IMGVF matrix into shared memory
-    thread_id::Int32 = threadIdx().x
+    thread_id::Int32 = threadIdx().x - 1
+
     for thread_block in 0:max-1
-        offset = div(thread_block,threads_per_block)
+        offset = thread_block * threads_per_block
         i = div(thread_id + offset, n)
-        j = mod1(thread_id + offset, n)
+        j = mod(thread_id + offset, n)
         if i < m
-            @inbounds IMGVF[i * n + j] = IMGVF_global[i * n + j]
+            IMGVF[i * n + j + 1] = IMGVF_global[i * n + j + 1]
         end
     end
     sync_threads()
@@ -82,7 +83,7 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
         j = tid_mod - tbsize_mod
 
         # Iterate over virtual thread blocks
-        for thread_block in 1:max
+        for thread_block in 0:max-1
             # Store the index of this thread's previous matrix element
             #  (used in the buffering scheme below)
             old_i = i
@@ -213,9 +214,9 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
     for thread_block in 0:max-1
         offset = thread_block * threads_per_block
         i = div(thread_id + offset, n)
-        j = mod1(thread_id + offset, n)
+        j = mod(thread_id + offset, n)
         if (i < m)
-            @inbounds IMGVF_global[i * n + j] = IMGVF[(i * n) + j]
+            IMGVF_global[i * n + j + 1] = IMGVF[(i * n) + j + 1]
         end
     end
     return nothing
