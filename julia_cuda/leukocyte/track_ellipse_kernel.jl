@@ -12,13 +12,19 @@ function heaviside(z)
     return result
 end
 
+function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
+                      max_iterations, cutoff)
 
-function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_iterations, cutoff)
     # Constants
     const mu = 0.5
     const lambda = 8.0 * mu + 1.0
     # 41 * 81, @cuStaticSharedMem can't deal with expressions -- even in constants
     const IMGVF_SIZE = 3321
+
+    cell_num = blockIdx().x
+    m = m_array[cell_num]
+    n = n_array[cell_num]
+    cell_offset = offsets[cell_num]
 
     # Shared copy of the matrix being computed
     IMGVF = @cuStaticSharedMem(Float32, (IMGVF_SIZE,))
@@ -48,7 +54,7 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
         i = div(thread_id + offset, n)
         j = mod(thread_id + offset, n)
         if i < m
-            IMGVF[i * n + j + 1] = IMGVF_global[i * n + j + 1]
+            IMGVF[i * n + j + 1] = IMGVF_flat[cell_offset + i * n + j + 1]
         end
     end
     sync_threads()
@@ -140,7 +146,7 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
                               (UHe * U + (DHe * D + LHe * L) + RHe * R +
                                URHe * UR + (DRHe * DR + ULHe * UL) + DLHe * DL)
                 # 2) Compute IMGVF -= (1 / lambda)(I .* (IMGVF - I))
-                @inbounds vI = I[i * n + j + 1]
+                @inbounds vI = I_flat[cell_offset + i * n + j + 1]
                 new_val -= ((1.0 / lambda) * vI * (new_val - vI));
             end
 
@@ -216,7 +222,7 @@ function IMGVF_kernel(I, IMGVF_global, m::Integer, n::Integer, vx, vy, e, max_it
         i = div(thread_id + offset, n)
         j = mod(thread_id + offset, n)
         if (i < m)
-            IMGVF_global[i * n + j + 1] = IMGVF[(i * n) + j + 1]
+            IMGVF_flat[cell_offset + i * n + j + 1] = IMGVF[(i * n) + j + 1]
         end
     end
     return nothing
@@ -226,22 +232,63 @@ end
 function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
 
     # Copy input matrices to device
-    I_dev::Array{CuArray{Float32,1},1} = Array{CuArray{Float32,1}}(size(I,1))
-    IMGVF_dev::Array{CuArray{Float32,1},1} = Array{CuArray{Float32,1}}(size(I,1))
-    for i in eachindex(I)
-        # Transpose to go from column major to row major (or rewrite the kernel indexing)
-        I_Float32 = convert(Array{Float32,1},reshape(I[i]',size(I[i],1)*size(I[i],2)))
-        I_dev[i] = CuArray(I_Float32)
-        IMGVF_dev[i] = copy(I_dev[i])
-        # I_dev[i] should be CuIn(), but I get "identifier not found"?
-        @cuda (1,threads_per_block) IMGVF_kernel(I_dev[i], IMGVF_dev[i], size(I[i],1), size(I[i],2), vx, vy, e, max_iterations, cutoff)
+    num_cells = size(I,1)
+    m_array = Array{Int32}(num_cells)
+    n_array = Array{Int32}(num_cells)
+    offsets = Array{Int32}(num_cells)
+
+    total_size = 0
+
+    for c = 1:num_cells
+
+        m = size(I[c],1)
+        n = size(I[c],2)
+
+        m_array[c] = m
+        n_array[c] = n
+        offsets[c] = total_size
+        total_size += m * n
     end
 
+    I_flat = Array{Float32}(total_size)
+
+    for c = 1:num_cells
+
+        m = m_array[c]
+        n = n_array[c]
+        offset = offsets[c]
+        I_c = I[c]
+
+        for i = 1:m, j = 1:n
+            I_flat[offset + (i - 1) * n + j] = I_c[i,j]
+        end
+    end
+
+    dev_I_flat = CuArray(I_flat)
+    dev_IMGVF_flat = CuArray(I_flat)
+    dev_m_array = CuArray(m_array)
+    dev_n_array = CuArray(n_array)
+    dev_offsets = CuArray(offsets)
+
+    @cuda (num_cells, threads_per_block) IMGVF_kernel(dev_I_flat,
+        dev_IMGVF_flat, dev_m_array, dev_n_array, dev_offsets, vx, vy, e,
+        max_iterations, cutoff)
+
     # Copy results back to host
-    IMGVF = similar(I)
-    for i in eachindex(IMGVF)
-        # Reverse transposition
-        IMGVF[i] = reshape(Array(IMGVF_dev[i]),size(I[i],2),size(I[i],1))'
+    IMGVF = Array{Array{Float32,2}}(num_cells)
+    IMGVF_flat = Array(dev_IMGVF_flat)
+
+    for c = 1:num_cells
+
+        m = m_array[c]
+        n = n_array[c]
+        offset = offsets[c]
+        IMGVF_c = Array{Float32}(m, n)
+        IMGVF[c] = IMGVF_c
+
+        for i = 1:m, j = 1:n
+            IMGVF_c[i,j] = IMGVF_flat[offset + (i - 1) * n + j]
+        end
     end
     IMGVF
 end
