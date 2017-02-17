@@ -1,3 +1,5 @@
+#!/usr/bin/env julia
+
 using CUDAnative
 
 include("../../common/julia/libavi.jl")
@@ -178,11 +180,9 @@ function main(args, dev)
     print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
 end
 
-function start()
-    dev = CuDevice(0)
-    ctx = CuContext(dev)
+dev = CuDevice(0)
+ctx = CuContext(dev)
 
-    main(ARGS, dev)
+main(ARGS, dev)
 
-    destroy(ctx)
-end
+destroy(ctx)
