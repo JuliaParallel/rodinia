@@ -8,8 +8,7 @@ const next_lowest_power_of_two = 256
 # Regularized version of the Heaviside step function:
 # He(x) = (atan(x) / pi) + 0.5
 function heaviside(z)
-    result = CUDAnative.atan(z) * (1.0 / C_PI) + 0.5
-    return result
+    CUDAnative.atan(z) * (Float32(1) / Float32(C_PI)) + Float32(0.5)
 end
 
 function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
@@ -72,9 +71,8 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
     const tbsize_mod = threads_per_block % n
 
     # Constant used in the computation of Heaviside values
-    const one_over_e = 1.0/e
+    const one_over_e = Float32(1) / Float32(e)
 
-     
     # Iteratively compute the IMGVF matrix until the computation has
     #  converged or we have reached the maximum number of iterations
     iterations = 0
@@ -271,8 +269,8 @@ function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
     dev_offsets = CuArray(offsets)
 
     @cuda (num_cells, threads_per_block) IMGVF_kernel(dev_I_flat,
-        dev_IMGVF_flat, dev_m_array, dev_n_array, dev_offsets, vx, vy, e,
-        max_iterations, cutoff)
+        dev_IMGVF_flat, dev_m_array, dev_n_array, dev_offsets, Float32(vx),
+        Float32(vy), Float32(e), max_iterations, Float32(cutoff))
 
     # Copy results back to host
     IMGVF = Array{Array{Float32,2}}(num_cells)

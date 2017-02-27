@@ -185,7 +185,7 @@ function MGVF(dev, IE, vx, vy, Nc)
     eps = cpow(2.0, -52.0)
     const epsilon = 0.0000000001
     # Maximum number of iterations to compute the MGVF matrix
-    const iterations = 500
+    const iterations = Int32(500)
 
     for cell_num in eachindex(IE)
         m = size(IE[cell_num],1)
