@@ -148,6 +148,8 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
                 new_val -= ((1.0 / lambda) * vI * (new_val - vI));
             end
 
+            sync_threads()
+
             # Save the previous virtual thread block's value (if it exists)
             if thread_block > 0
                 offset = (thread_block - 1) * threads_per_block
