@@ -167,6 +167,8 @@ __global__ void IMGVF_kernel(float **IMGVF_array, float **I_array, int *m_array,
                 new_val -= ((1.0 / LAMBDA) * vI * (new_val - vI));
             }
 
+            __syncthreads();
+
             // Save the previous virtual thread block's value (if it exists)
             if (thread_block > 0) {
                 offset = (thread_block - 1) * threads_per_block;
