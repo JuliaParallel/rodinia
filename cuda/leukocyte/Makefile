@@ -14,8 +14,9 @@ $(MESCHACH_DIR)/makefile:
 $(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR)
 CPPFLAGS += -I$(MESCHACH_DIR) -D_FORCE_INLINES
-find_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
 misc_math.o: $(MESCHACH_DIR)/libmeschach.a
+find_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
+track_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
 track_ellipse_kernel.o: $(MESCHACH_DIR)/libmeschach.a
 
 AVI_DIR=../../common/avi
