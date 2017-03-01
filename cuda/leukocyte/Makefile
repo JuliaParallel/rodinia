@@ -9,9 +9,9 @@ OBJS = find_ellipse.o find_ellipse_kernel.o track_ellipse.o track_ellipse_kernel
 all: $(EXE)
 
 MESCHACH_DIR = ../../common/meschach
-$(MESCHACH_DIR)/Makefile:
+$(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/Makefile
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR)
 CPPFLAGS += -I$(MESCHACH_DIR) -D_FORCE_INLINES
 find_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
