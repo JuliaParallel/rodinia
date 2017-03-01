@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -ue
+
+# TODO reduce relative error
+OUTPUT=1 ./run
+numdiff -s ',\n' -r 0.04 result.txt ../../results/leukocyte/result.txt
