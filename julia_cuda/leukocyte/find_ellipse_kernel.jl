@@ -22,14 +22,14 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
         c_tX, c_tY, device_gicov_out)
 
     # Determine this thread's pixel
-    i = blockIdx().x + MAX_RAD + 2 - 1
-    j = threadIdx().x + MAX_RAD + 2 - 1
+    i = blockIdx().x + MAX_RAD + 2
+    j = threadIdx().x + MAX_RAD + 2
 
     # Initialize the maximal GICOV score to 0
     max_GICOV::Float32 = 0
 
     # Iterate across each stencil
-    for k in 0:NCIRCLES-1
+    for k in 1:NCIRCLES
         # Variables used to compute the mean and variance
         #  of the gradients along the current stencil
         sum::Float32 = 0
@@ -37,22 +37,22 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
         mean::Float32 = 0
 
         # Iterate across each sample point in the current stencil
-        for n in 0:NPOINTS-1
+        for n in 1:NPOINTS
             # Determine the x- and y-coordinates of the current sample
             # point
-            @inbounds y = j + c_tY[k+1,n+1]
-            @inbounds x = i + c_tX[k+1,n+1]
+            @inbounds y = j + c_tY[k,n]
+            @inbounds x = i + c_tX[k,n]
 
             # Compute the combined gradient value at the current sample
             # point
-            @inbounds p = device_grad_x[x+1,y+1] * c_cos_angle[n+1] + device_grad_y[x+1,y+1] * c_sin_angle[n+1]
+            @inbounds p = device_grad_x[x,y] * c_cos_angle[n] + device_grad_y[x,y] * c_sin_angle[n]
 
             # Update the running total
             sum += p
 
             # Partially compute the variance
             delta = p - mean
-            mean = mean + (delta / (n + 1))
+            mean = mean + (delta / n)
             M2 = M2 + (delta * (p - mean))
         end
 
@@ -70,9 +70,9 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle,
     end
 
     # Store the maximal GICOV value
-    if (0 <= i < size(device_gicov_out,1)) &
-       (0 <= j < size(device_gicov_out,2))
-      @inbounds device_gicov_out[i+1,j+1] = max_GICOV
+    if (1 <= i <= size(device_gicov_out,1)) &
+       (1 <= j <= size(device_gicov_out,2))
+      @inbounds device_gicov_out[i,j] = max_GICOV
     else
       @cuprintf("invalid blockid,threadid = %d,%d\n",blockIdx().x,threadIdx().x)
     end
