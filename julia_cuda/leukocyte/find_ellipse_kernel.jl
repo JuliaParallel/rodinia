@@ -143,12 +143,12 @@ function dilate_kernel(img_dev, c_strel, dilated_out)
     max::Float32 = 0.0
 
     # Iterate across the structuring element
-    for el_i in 0:size(c_strel,1)-1, el_j in 0:size(c_strel,2)-1
+    for el_i in 1:size(c_strel,1), el_j in 1:size(c_strel,2)
         y = i - el_center_i + el_i
         x = j - el_center_j + el_j
         # Make sure we have not gone off the edge of the matrix
-        @inbounds if (0 <= y < size(img_dev,1)) & (0 <= x < size(img_dev,2)) & (c_strel[el_i+1,el_j+1] != 0.0)
-            @inbounds temp = img_dev[y+1,x+1]
+        @inbounds if (1 <= y <= size(img_dev,1)) & (1 <= x <= size(img_dev,2)) & (c_strel[el_i,el_j] != 0.0)
+            @inbounds temp = img_dev[y,x]
             if temp > max
                 max = temp
             end
