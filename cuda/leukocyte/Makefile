@@ -13,7 +13,7 @@ $(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
 $(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR)
-CPPFLAGS += -I$(MESCHACH_DIR) -D_FORCE_INLINES
+CPPFLAGS += -I$(MESCHACH_DIR)
 misc_math.o: $(MESCHACH_DIR)/libmeschach.a
 find_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
 track_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
