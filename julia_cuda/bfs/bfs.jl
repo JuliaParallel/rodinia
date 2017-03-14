@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
 const MAX_THREADS_PER_BLOCK = 512
 
@@ -118,8 +119,8 @@ function main(args)
     info("Read File")
 
     # setup execution parameters
-    grid = (num_of_blocks, 1, 1)
-    threads = (num_of_threads_per_block, 1, 1)
+    grid = num_of_blocks
+    threads = num_of_threads_per_block
 
 
     # Manual copies to device
@@ -140,13 +141,13 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        @cuda (grid, threads, 0) kernel_1(
+        @measure "kernel_1" @cuda (grid, threads) kernel_1(
             g_graph_nodes, g_graph_edges, g_graph_mask,
             g_updating_graph_mask, g_graph_visited,
             g_cost, Int32(no_of_nodes)
         )
 
-        @cuda (grid, threads, 0) kernel_2(
+        @measure "kernel_2" @cuda (grid, threads) kernel_2(
             g_graph_mask, g_updating_graph_mask, g_graph_visited,
             g_stop, Int32(no_of_nodes)
         )
@@ -179,5 +180,6 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+report()
 
 destroy(ctx)

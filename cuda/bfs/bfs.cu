@@ -26,6 +26,8 @@
 #include <math.h>
 #include <cuda.h>
 
+#include "../../common/cuda/kernelprofile.h"
+
 #define MAX_THREADS_PER_BLOCK 512
 
 int no_of_nodes;
@@ -193,14 +195,17 @@ void BFSGraph(int argc, char **argv) {
         // if no thread changes this value then the loop stops
         stop = false;
         cudaMemcpy(d_over, &stop, sizeof(bool), cudaMemcpyHostToDevice);
-        Kernel<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
-                                     d_updating_graph_mask, d_graph_visited,
-                                     d_cost, no_of_nodes);
+        MEASURE("kernel_1", (
+            Kernel<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
+                                         d_updating_graph_mask, d_graph_visited,
+                                         d_cost, no_of_nodes)
+        ));
         // check if kernel execution generated and error
 
-
-        Kernel2<<<grid, threads, 0>>>(d_graph_mask, d_updating_graph_mask,
-                                      d_graph_visited, d_over, no_of_nodes);
+        MEASURE("kernel_2", (
+            Kernel2<<<grid, threads, 0>>>(d_graph_mask, d_updating_graph_mask,
+                                          d_graph_visited, d_over, no_of_nodes)
+        ));
         // check if kernel execution generated and error
 
 
@@ -222,6 +227,8 @@ void BFSGraph(int argc, char **argv) {
             fprintf(fpo, "%d) cost:%d\n", i, h_cost[i]);
         fclose(fpo);
     }
+
+    measure_report();
 
     // cleanup memory
     free(h_graph_nodes);
