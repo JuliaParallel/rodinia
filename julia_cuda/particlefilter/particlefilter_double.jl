@@ -228,9 +228,16 @@ end
 # Kernels
 
 function kernel_find_index(
-    arrayX, arrayY, CDF,
-    u, xj, yj,
-    weights, Nparticles)
+    arrayX_len, arrayX_ptr, arrayY_len, arrayY_ptr, CDF_len, CDF_ptr, u_len,
+    u_ptr, xj_len, xj_ptr, yj_len, yj_ptr, weights_len, weights_ptr, Nparticles)
+
+    arrayX = CuDeviceArray(arrayX_len, arrayX_ptr)
+    arrayY = CuDeviceArray(arrayY_len, arrayY_ptr)
+    CDF = CuDeviceArray(CDF_len, CDF_ptr)
+    u = CuDeviceArray(u_len, u_ptr)
+    xj = CuDeviceArray(xj_len, xj_ptr)
+    yj = CuDeviceArray(yj_len, yj_ptr)
+    weights = CuDeviceArray(weights_len, weights_ptr)
     
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
@@ -488,7 +495,10 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
             g_partial_sums, g_CDF, g_u, g_seed)
 
         @cuda (num_blocks, threads_per_block) kernel_find_index(
-            g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
+            length(g_arrayX), pointer(g_arrayX), length(g_arrayY),
+            pointer(g_arrayY), length(g_CDF), pointer(g_CDF), length(g_u),
+            pointer(g_u), length(g_xj), pointer(g_xj), length(g_yj),
+            pointer(g_yj), length(g_weights), pointer(g_weights), Nparticles)
     end
 
     arrayX = Array(g_arrayX)
