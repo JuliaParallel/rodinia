@@ -3,25 +3,28 @@
 using CUDAdrv, CUDAnative
 include("../../common/julia/kernelprofile.jl")
 
-const MAX_THREADS_PER_BLOCK = 512
+const MAX_THREADS_PER_BLOCK = UInt32(512)
 
-immutable Node
+struct Node
     starting::Int32
     no_of_edges::Int32
 end
 
-function kernel_1(g_graph_nodes,
-                              g_graph_edges,
-                              g_graph_mask,
-                              g_updating_graph_mask,
-                              g_graph_visited,
-                              g_cost,
-                              no_of_nodes)
+function kernel_1(g_graph_nodes_ptr, g_graph_edges_ptr, g_graph_mask_ptr,
+                  g_updating_graph_mask_ptr, g_graph_visited_ptr, g_cost_ptr,
+                  no_of_nodes, edge_list_size)
+    g_graph_nodes = CuDeviceArray(no_of_nodes, g_graph_nodes_ptr)
+    g_graph_edges = CuDeviceArray(edge_list_size, g_graph_edges_ptr)
+    g_graph_mask = CuDeviceArray(no_of_nodes, g_graph_mask_ptr)
+    g_updating_graph_mask = CuDeviceArray(no_of_nodes, g_updating_graph_mask_ptr)
+    g_graph_visited = CuDeviceArray(no_of_nodes, g_graph_visited_ptr)
+    g_cost = CuDeviceArray(no_of_nodes, g_cost_ptr)
+
     tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x;
     if tid <= no_of_nodes && g_graph_mask[tid]
         g_graph_mask[tid] = false
         for i = g_graph_nodes[tid].starting:(g_graph_nodes[tid].starting +
-                                             g_graph_nodes[tid].no_of_edges - 1)
+                                             g_graph_nodes[tid].no_of_edges - Int32(1))
             id = g_graph_edges[i]
             if !g_graph_visited[id]
                 g_cost[id] = g_cost[tid] + Int32(1)
@@ -33,12 +36,14 @@ function kernel_1(g_graph_nodes,
     return nothing
 end
 
-function kernel_2(g_graph_mask,
-                              g_updating_graph_mask,
-                              g_graph_visited,
-                              g_over,
-                              no_of_nodes)
-    tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x;
+function kernel_2(g_graph_mask_ptr, g_updating_graph_mask_ptr, g_graph_visited_ptr,
+                  g_over_ptr, no_of_nodes)
+    g_graph_mask = CuDeviceArray(no_of_nodes, g_graph_mask_ptr)
+    g_updating_graph_mask = CuDeviceArray(no_of_nodes, g_updating_graph_mask_ptr)
+    g_graph_visited = CuDeviceArray(no_of_nodes, g_graph_visited_ptr)
+    g_over = CuDeviceArray(1, g_over_ptr)
+
+    tid = (blockIdx().x - UInt32(1)) * MAX_THREADS_PER_BLOCK + threadIdx().x;
     if tid <= no_of_nodes && g_updating_graph_mask[tid]
         g_graph_mask[tid] = true
         g_graph_visited[tid] = true
@@ -75,7 +80,7 @@ function main(args)
     info("Reading File")
     fp = open(input_f)
 
-   no_of_nodes = parse(Int, readline(fp))
+    no_of_nodes = parse(Int, readline(fp))
 
     num_of_blocks = 1
     num_of_threads_per_block = no_of_nodes
@@ -88,11 +93,11 @@ function main(args)
     end
 
     # allocate host memory
-    h_graph_nodes = Array{Node, 1}(no_of_nodes)
-    h_graph_mask = Array{Bool, 1}(no_of_nodes)
-    h_updating_graph_mask = Array{Bool, 1}(no_of_nodes)
-    h_graph_visited = Array{Bool, 1}(no_of_nodes)
-    h_cost = Array{Int32, 1}(no_of_nodes)
+    h_graph_nodes = Vector{Node}(no_of_nodes)
+    h_graph_mask = Vector{Bool}(no_of_nodes)
+    h_updating_graph_mask = Vector{Bool}(no_of_nodes)
+    h_graph_visited = Vector{Bool}(no_of_nodes)
+    h_cost = Vector{Int32}(no_of_nodes)
 
     # initalize the memory
     for i = 1:no_of_nodes
@@ -121,7 +126,7 @@ function main(args)
 
     skipchars(fp, isspace)
 
-    h_graph_edges = Array{Int32, 1}(edge_list_size)
+    h_graph_edges = Vector{Int32}(edge_list_size)
     for i = 1:edge_list_size
         id, cost = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
         h_graph_edges[i] = id+1
@@ -154,14 +159,14 @@ function main(args)
         copy!(g_stop, stop)
 
         @measure "kernel_1" @cuda (grid, threads) kernel_1(
-            g_graph_nodes, g_graph_edges, g_graph_mask,
-            g_updating_graph_mask, g_graph_visited,
-            g_cost, Int32(no_of_nodes)
+            pointer(g_graph_nodes), pointer(g_graph_edges), pointer(g_graph_mask),
+            pointer(g_updating_graph_mask), pointer(g_graph_visited),
+            pointer(g_cost), no_of_nodes, edge_list_size
         )
 
         @measure "kernel_2" @cuda (grid, threads) kernel_2(
-            g_graph_mask, g_updating_graph_mask, g_graph_visited,
-            g_stop, Int32(no_of_nodes)
+            pointer(g_graph_mask), pointer(g_updating_graph_mask), pointer(g_graph_visited),
+            pointer(g_stop), no_of_nodes
         )
 
         k += 1
