@@ -49,15 +49,22 @@ function kernel_2(g_graph_mask,
     return nothing
 end
 
-function parseline{T<:Number}(::Type{T}, f)
-    while true
-        line = chomp(readline(f))
-        if length(line) > 0
-            return map(s -> parse(T, s), split(line))::Vector{T}
-        end
+# generate an expression (strs=split(str,delim); tuple(parse(Ts[1],strs[1], ...)))
+@generated function parse_tuple(::Type{Ts}, str, delim) where Ts <: Tuple
+    @gensym strs
+    ex = Expr(:tuple)
+    for i in 1:length(Ts.parameters)
+        push!(ex.args, :(parse($(Ts.parameters[i]), $strs[$i])))
     end
-    return T[]
+    quote
+        $(Expr(:meta, :inline))
+        $strs = split(str, delim)
+        $ex
+    end
 end
+
+# a more sane alternative, 20% slower because of the Vector allocation:
+Base.parse(::Type{Vector{T}}, str, delim) where T = map(x->parse(T, x), split(str, delim))
 
 function main(args)
     if length(args) != 1
@@ -68,7 +75,7 @@ function main(args)
     info("Reading File")
     fp = open(input_f)
 
-    no_of_nodes, = parseline(Int, fp)
+   no_of_nodes = parse(Int, readline(fp))
 
     num_of_blocks = 1
     num_of_threads_per_block = no_of_nodes
@@ -89,7 +96,7 @@ function main(args)
 
     # initalize the memory
     for i = 1:no_of_nodes
-        start, edgeno = parseline(Int, fp)
+        start, edgeno = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
         h_graph_nodes[i] = Node(start+1, edgeno)
         h_graph_mask[i] = false
         h_updating_graph_mask[i] = false
@@ -97,22 +104,27 @@ function main(args)
         h_cost[i] = -1
     end
 
+    skipchars(fp, isspace)
+
     # read the source node from the file
-    source, = parseline(Int, fp)
+    source = parse(Int, readline(fp))
     source += 1
+
+    skipchars(fp, isspace)
 
     # set the source node as true in the mask
     h_graph_mask[source] = true
     h_graph_visited[source] = true
     h_cost[source] = 0
 
-    edge_list_size, = parseline(Int, fp)
+    edge_list_size = parse(Int, readline(fp))
+
+    skipchars(fp, isspace)
 
     h_graph_edges = Array{Int32, 1}(edge_list_size)
     for i = 1:edge_list_size
-        id = parse(Int, readuntil(fp, " "))+1
-        cost = parse(Int, readuntil(fp, "\n"))
-        h_graph_edges[i] = id
+        id, cost = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
+        h_graph_edges[i] = id+1
     end
 
     close(fp)
