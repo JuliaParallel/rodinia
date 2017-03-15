@@ -41,13 +41,14 @@ LDLIBS   += -lcudart
 # NVCC compilation
 #
 
-# NOTE: passing -lcuda to nvcc is redundant
+# NOTE: passing -lcuda to nvcc is redundant, and shouldn't happen via -Xcompiler
 # TODO: pass all CXXFLAGS to nvcc using -Xcompiler (i.e. -O3, -g, etc.)
 NONCUDA_LDLIBS = $(filter-out -lcuda -lcudart,$(LDLIBS))
 
 ifneq ($(strip $(NONCUDA_LDLIBS)),)
-NVCC_LDLIBS = -Xcompiler $(call join-list,$(NONCUDA_LDLIBS),$(COMMA))
+NVCC_LDLIBS += -Xcompiler $(call join-list,$(NONCUDA_LDLIBS),$(COMMA))
 endif
+NVCC_LDLIBS += -lcuda
 
 NVCCFLAGS += -arch=sm_35 -O3
 ifdef DEBUG
