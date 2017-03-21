@@ -32,8 +32,8 @@ function kernel_dynproc(
     cols, rows, start_step, border)
     
     # Define shared memory
-    prev = @cuStaticSharedMem(Int64, BLOCK_SIZE)
-    result = @cuStaticSharedMem(Int64, BLOCK_SIZE)
+    prev = @cuStaticSharedMem(Int32, BLOCK_SIZE)
+    result = @cuStaticSharedMem(Int32, BLOCK_SIZE)
 
     bx = blockIdx().x
     tx = threadIdx().x
@@ -115,9 +115,9 @@ function init(args)
 
     # Initialize en fill wall
     # Switch semantics of row & col -> easy copy to gpu array in run function
-    wall = Array{Int64}(cols, rows)
+    wall = Array{Int32}(cols, rows)
     for i = 1:length(wall)
-        wall[i] = Int64(rand() % 10)
+        wall[i] = Int32(rand() % 10)
     end
 
     # Print wall
@@ -184,9 +184,9 @@ function main(args)
         target_block: [$small_block_col]""")
 
     # Setup GPU memory
-    gpu_result = Array{CuArray{Int64,1},1}(2)
+    gpu_result = Array{CuArray{Int32,1}}(2)
     gpu_result[1] = CuArray(wall[:,1])
-    gpu_result[2] = CuArray{Int64}(cols)
+    gpu_result[2] = CuArray{Int32}(cols)
 
     gpu_wall = CuArray(wall[cols+1:end])
 
