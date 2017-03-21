@@ -3,7 +3,8 @@ const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
 using CUDAdrv, CUDAnative
 
-function lud_diagonal(matrix, matrix_dim, offset)
+function lud_diagonal(matrix_ptr, matrix_dim, offset)
+    matrix = CuDeviceArray((matrix_dim, matrix_dim), matrix_ptr)
     shadow = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
     tx = threadIdx().x
@@ -41,7 +42,8 @@ function lud_diagonal(matrix, matrix_dim, offset)
     return nothing
 end
 
-function lud_perimeter(matrix, matrix_dim, offset)
+function lud_perimeter(matrix_ptr, matrix_dim, offset)
+    matrix = CuDeviceArray((matrix_dim, matrix_dim), matrix_ptr)
     dia = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
@@ -109,7 +111,8 @@ function lud_perimeter(matrix, matrix_dim, offset)
     return nothing
 end
 
-function lud_internal(matrix, offset)
+function lud_internal(matrix_ptr, matrix_dim, offset)
+    matrix = CuDeviceArray((matrix_dim, matrix_dim), matrix_ptr)
     peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
@@ -136,16 +139,17 @@ end
 function lud_cuda(dev, matrix, matrix_dim)
     i = 0
     while i < matrix_dim - BLOCK_SIZE
-        @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
+        @cuda (1, BLOCK_SIZE) lud_diagonal(pointer(matrix), matrix_dim, i)
 
         grid_size = (matrix_dim-i)÷BLOCK_SIZE - 1
 
-        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, matrix_dim, i)
+        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(pointer(matrix), matrix_dim, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, i)
+        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(
+            pointer(matrix), matrix_dim, i)
 
         i += BLOCK_SIZE
     end
 
-    @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, matrix_dim, i)
+    @cuda (1, BLOCK_SIZE) lud_diagonal(pointer(matrix), matrix_dim, i)
 end
