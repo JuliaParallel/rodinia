@@ -14,14 +14,6 @@ function inrange(x, min, max)
     return x >= min && x <= max
 end
 
-function min(a, b)
-    return a <= b ? a : b
-end
-
-function dev_min(a, b)
-    return a <= b ? a : b
-end
-
 # Override rng functions with libc implementations
 function srand(seed)
     ccall( (:srand, "libc"), Void, (Int,), seed)
@@ -44,7 +36,7 @@ function kernel_dynproc(
     result = @cuStaticSharedMem(Int64, BLOCK_SIZE)
 
     bx = blockIdx().x
-    tx::Int64 = threadIdx().x
+    tx = threadIdx().x
 
     # Will this be a problem: references to global vars
     # but will likely be replaced by a constant when jitting, or not?
@@ -62,8 +54,8 @@ function kernel_dynproc(
 
     W = tx - 1
     E = tx + 1
-    W = (W < valid_x_min) ? valid_x_min : W
-    E = (E > valid_x_max) ? valid_x_max : E
+    W = max(W, valid_x_min)
+    E = min(E, valid_x_max)
 
     is_valid = inrange(tx, valid_x_min, valid_x_max)
 
@@ -83,8 +75,8 @@ function kernel_dynproc(
             up = prev[tx]
             right = prev[E]
 
-            shortest = dev_min(left, up)
-            shortest = dev_min(shortest, right)
+            shortest = min(left, up)
+            shortest = min(shortest, right)
 
             index = cols * (start_step + (i-1)) + xidx
             result[tx] = shortest + gpu_wall[index]
