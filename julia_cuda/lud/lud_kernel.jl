@@ -10,7 +10,7 @@ function lud_diagonal(matrix_ptr, matrix_dim, offset)
     tx = threadIdx().x
 
     for i = 1:BLOCK_SIZE
-        shadow[tx, i] = matrix[offset + tx, offset+i]
+        @inbounds shadow[tx, i] = matrix[offset + tx, offset+i]
     end
 
     sync_threads()
@@ -18,16 +18,16 @@ function lud_diagonal(matrix_ptr, matrix_dim, offset)
     for i = 1:BLOCK_SIZE-1
         if tx > i
             for j = 1:i-1
-                shadow[i, tx] -= shadow[j, tx] * shadow[i, j]
+                @inbounds shadow[i, tx] -= shadow[j, tx] * shadow[i, j]
             end
-            shadow[i, tx] /= shadow[i, i]
+            @inbounds shadow[i, tx] /= shadow[i, i]
         end
 
         sync_threads()
 
         if tx > i
             for j = 1:i
-                shadow[tx, i + 1] -= shadow[j, i + 1] * shadow[tx, j]
+                @inbounds shadow[tx, i + 1] -= shadow[j, i + 1] * shadow[tx, j]
             end
         end
 
@@ -36,7 +36,7 @@ function lud_diagonal(matrix_ptr, matrix_dim, offset)
 
     # The first row is not modified, it is no need to write it back to the global memory.
     for i = 2:BLOCK_SIZE
-        matrix[offset + tx, offset + i] = shadow[tx, i]
+        @inbounds matrix[offset + tx, offset + i] = shadow[tx, i]
     end
 
     return nothing
@@ -82,15 +82,15 @@ function lud_perimeter(matrix_ptr, matrix_dim, offset)
     if tx <= BLOCK_SIZE # peri-row
         index = tx
         for i = 2:BLOCK_SIZE, j = 1:i-1
-            peri_row[index, i] -= dia[j, i] * peri_row[index, j]
+            @inbounds peri_row[index, i] -= dia[j, i] * peri_row[index, j]
         end
     else # peri-col
         index = tx - BLOCK_SIZE
         for i = 1:BLOCK_SIZE
             for j = 1:i-1
-                peri_col[i, index] -= peri_col[j, index] * dia[i, j]
+                @inbounds peri_col[i, index] -= peri_col[j, index] * dia[i, j]
             end
-            peri_col[i, index] /= dia[i, i]
+            @inbounds peri_col[i, index] /= dia[i, i]
         end
     end
 
@@ -99,12 +99,12 @@ function lud_perimeter(matrix_ptr, matrix_dim, offset)
     if tx <= BLOCK_SIZE # peri-row
         index = tx
         for i = 2:BLOCK_SIZE
-            matrix[offset + index + bx * BLOCK_SIZE, offset + i] = peri_row[index, i]
+            @inbounds matrix[offset + index + bx * BLOCK_SIZE, offset + i] = peri_row[index, i]
         end
     else # peri-col
         index = tx - BLOCK_SIZE
         for i = 1:BLOCK_SIZE
-            matrix[offset + index, offset + bx * BLOCK_SIZE + i] = peri_col[index, i]
+            @inbounds matrix[offset + index, offset + bx * BLOCK_SIZE + i] = peri_col[index, i]
         end
     end
 
@@ -122,16 +122,16 @@ function lud_internal(matrix_ptr, matrix_dim, offset)
     tx = threadIdx().x
     ty = threadIdx().y
 
-    peri_row[tx, ty] = matrix[global_col_id + tx, offset + ty]
-    peri_col[tx, ty] = matrix[offset + tx, global_row_id + ty]
+    @inbounds peri_row[tx, ty] = matrix[global_col_id + tx, offset + ty]
+    @inbounds peri_col[tx, ty] = matrix[offset + tx, global_row_id + ty]
 
     sync_threads()
 
     sum = 0f0
     for i = 1:BLOCK_SIZE
-        sum += peri_col[i, ty] * peri_row[tx, i]
+        @inbounds sum += peri_col[i, ty] * peri_row[tx, i]
     end
-    matrix[global_col_id + tx, global_row_id + ty] -= sum
+    @inbounds matrix[global_col_id + tx, global_row_id + ty] -= sum
 
     return nothing
 end
