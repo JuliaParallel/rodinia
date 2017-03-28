@@ -32,9 +32,10 @@ function bpnn_train_cuda(net, ctx)
 
     println("Performing GPU computation")
 
-    @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(
-        input_cuda, output_hidden_cuda, input_hidden_cuda, hidden_partial_sum,
-        inp, hid)
+    @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(pointer(input_cuda),
+        length(input_cuda), pointer(output_hidden_cuda), length(output_hidden_cuda),
+        pointer(input_hidden_cuda), length(input_hidden_cuda),
+        pointer(hidden_partial_sum), length(hidden_partial_sum), inp, hid)
 
     partial_sum = Array(hidden_partial_sum)
 
