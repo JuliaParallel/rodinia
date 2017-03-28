@@ -17,11 +17,11 @@ const FACTOR_CHIP = 0.5
 const EXPAND_RATE = 2
 
 # chip parameters
-t_chip = 0.0005
-chip_height = 0.016
-chip_width = 0.016
+const t_chip = 0.0005f0
+const chip_height = 0.016f0
+const chip_width = 0.016f0
 # ambient temperature, assuming no package at all
-amb_temp = 80.0
+const amb_temp = 80f0
 
 function in_range(x, min_x, max_x)
     return x >= min_x && x <= max_x
@@ -70,8 +70,6 @@ function calculate_temp(iteration,   # number of iteration
     power_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     # for saving temporary temperature result
     temp_t = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
-
-    amb_temp = 80.0
 
     bx = blockIdx().x - 1
     by = blockIdx().y - 1
@@ -147,10 +145,10 @@ function calculate_temp(iteration,   # number of iteration
             computed = true
             t1 = temp_on_cuda[tx, S ] +
                  temp_on_cuda[tx, N ] -
-                 temp_on_cuda[tx, ty] * 2.0
+                 temp_on_cuda[tx, ty] * 2f0
             t2 = temp_on_cuda[E , ty] +
                  temp_on_cuda[W , ty] -
-                 temp_on_cuda[tx, ty] * 2.0
+                 temp_on_cuda[tx, ty] * 2f0
             temp_t[tx, ty] = Float32(temp_on_cuda[tx, ty] +
                 step_div_Cap * (power_on_cuda[tx, ty] + t1 * Ry_1 +
                 t2 * Rx_1 + (amb_temp - temp_on_cuda[tx, ty]) * Rz_1))
@@ -183,14 +181,14 @@ function compute_tran_temp(dev, MatrixPower, MatrixTemp, col, row, total_iterati
     grid_height = chip_height / row
     grid_width = chip_width / col
 
-    Cap = FACTOR_CHIP * SPEC_HEAT_SI * t_chip * grid_width * grid_height
-    Rx = grid_width / (2.0 * K_SI * t_chip * grid_height)
-    Ry = grid_height / (2.0 * K_SI * t_chip * grid_width)
-    Rz = t_chip / (K_SI * grid_height * grid_width)
+    Cap = Float32(FACTOR_CHIP * SPEC_HEAT_SI * t_chip * grid_width * grid_height)
+    Rx = Float32(grid_width / (2.0 * K_SI * t_chip * grid_height))
+    Ry = Float32(grid_height / (2.0 * K_SI * t_chip * grid_width))
+    Rz = Float32(t_chip / (K_SI * grid_height * grid_width))
 
     max_slope = MAX_PD / (FACTOR_CHIP * t_chip * SPEC_HEAT_SI)
-    step = PRECISION / max_slope
-    time_elapsed = 0.001
+    step = Float32(PRECISION / max_slope)
+    time_elapsed = 0.001f0
     src = 1
     dst = 0
 
@@ -213,13 +211,13 @@ function main(args)
     s = ArgParseSettings()
     @add_arg_table s begin
         "grid_rows_cols"
-            arg_type = Int
+            arg_type = Int32
             required = true
             help = "number of rows/cols in the grid (positive integer)"
         "pyramid_height"
-            arg_type = Int
+            arg_type = Int32
             required = true
-            default = 1
+            default = Int32(1)
             help = "pyramid height (positive integer)"
         "sim_time"
             arg_type = Int
@@ -261,13 +259,13 @@ function main(args)
     ctx = CuContext(dev)
 
     # --------------- pyramid parameters ---------------
-    borderCols = floor(Int, pyramid_height * EXPAND_RATE / 2)
-    borderRows = floor(Int, pyramid_height * EXPAND_RATE / 2)
+    borderCols = floor(Int32, pyramid_height * EXPAND_RATE / 2)
+    borderRows = floor(Int32, pyramid_height * EXPAND_RATE / 2)
     smallBlockCol = BLOCK_SIZE - pyramid_height * EXPAND_RATE
     smallBlockRow = BLOCK_SIZE - pyramid_height * EXPAND_RATE
-    blockCols = floor(Int, grid_cols / smallBlockCol) +
+    blockCols = floor(Int32, grid_cols / smallBlockCol) +
         ((grid_cols % smallBlockCol == 0) ? 0 : 1)
-    blockRows = floor(Int, grid_rows / smallBlockRow) +
+    blockRows = floor(Int32, grid_rows / smallBlockRow) +
         ((grid_rows % smallBlockRow == 0) ? 0 : 1)
 
     FilesavingTemp = Array{Float32}(size)
