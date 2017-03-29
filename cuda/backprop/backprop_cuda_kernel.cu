@@ -39,9 +39,7 @@ __global__ void bpnn_layerforward_CUDA(float *input_cuda,
 
     __syncthreads();
 
-    for (int i = 1; i <= __log2f(HEIGHT); i++) {
-
-        int power_two = __powf(2, i);
+    for (int power_two = 2; power_two <= HEIGHT; power_two *= 2) {
 
         if (ty % power_two == 0)
             weight_matrix[ty][tx] =
