@@ -26,12 +26,12 @@ function bpnn_layerforward_CUDA(input_cuda_ptr,
     weight_matrix = @cuStaticSharedMem(Float32, (HEIGHT, WIDTH))
 
     if tx == 1
-        input_node[ty] = input_cuda[index_in + 1]
+        @inbounds input_node[ty] = input_cuda[index_in + 1]
     end
 
     sync_threads()
 
-    weight_matrix[tx, ty] = input_hidden_cuda[index + 1]
+    @inbounds weight_matrix[tx, ty] = input_hidden_cuda[index + 1]
 
     sync_threads()
 
@@ -42,18 +42,18 @@ function bpnn_layerforward_CUDA(input_cuda_ptr,
     power_two = 2
     while power_two <= HEIGHT
         if ty % power_two == 1
-            weight_matrix[tx, ty] += weight_matrix[tx, ty + power_two ÷ 2]
+            @inbounds weight_matrix[tx, ty] += weight_matrix[tx, ty + power_two ÷ 2]
         end
         power_two *= 2
         sync_threads()
     end
 
-    input_hidden_cuda[index + 1] = weight_matrix[tx, ty]
+    @inbounds input_hidden_cuda[index + 1] = weight_matrix[tx, ty]
 
     sync_threads()
 
     if tx == 1
-        hidden_partial_sum[by * hid + ty] = weight_matrix[ty, tx]
+        @inbounds hidden_partial_sum[by * hid + ty] = weight_matrix[ty, tx]
     end
 
     return nothing
