@@ -1,6 +1,7 @@
-#include "find_ellipse_kernel.h"
-// #include <cutil.h>
 #include <stdio.h>
+
+#include "find_ellipse_kernel.h"
+#include "../../common/cuda/kernelprofile.h"
 
 
 // The number of sample points in each ellipse (stencil)
@@ -115,7 +116,9 @@ float *GICOV_CUDA(int grad_m, int grad_n, float *host_grad_x,
     int threads_per_block = grad_m - (2 * MaxR);
 
     // Execute the GICOV kernel
-    GICOV_kernel<<<num_blocks, threads_per_block>>>(grad_m, device_gicov);
+    MEASURE("GICOV", (
+        GICOV_kernel<<<num_blocks, threads_per_block>>>(grad_m, device_gicov)
+    ));
 
     // Check for kernel errors
     cudaThreadSynchronize();
@@ -210,8 +213,10 @@ float *dilate_CUDA(int max_gicov_m, int max_gicov_n, int strel_m, int strel_n) {
         (int)(((float)num_threads / (float)threads_per_block) + 0.5);
 
     // Execute the dilation kernel
-    dilate_kernel<<<num_blocks, threads_per_block>>>(
-        max_gicov_m, max_gicov_n, strel_m, strel_n, device_img_dilated);
+    MEASURE("dilate", (
+        dilate_kernel<<<num_blocks, threads_per_block>>>(
+            max_gicov_m, max_gicov_n, strel_m, strel_n, device_img_dilated)
+    ));
 
     // Check for kernel errors
     cudaThreadSynchronize();

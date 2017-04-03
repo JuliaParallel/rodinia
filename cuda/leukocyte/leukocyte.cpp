@@ -1,5 +1,6 @@
 #include "find_ellipse.h"
 #include "track_ellipse.h"
+#include "../../common/cuda/kernelprofile_report.h"
 
 int main(int argc, char **argv) {
 
@@ -273,6 +274,8 @@ int main(int argc, char **argv) {
     // Report total program execution time
     printf("\nTotal application run time: %.5f seconds\n",
            ((float)(get_time() - program_start_time)) / (1000 * 1000));
+
+    measure_report();
 
     return 0;
 }
