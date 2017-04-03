@@ -1,5 +1,8 @@
-#ifndef TRACK_ELLIPSE_H
-#define TRACK_ELLIPSE_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "find_ellipse.h"
 
@@ -17,4 +20,6 @@ extern double ***alloc_3d_double(int x, int y, int z);
 extern void free_2d_double(double **p);
 extern void free_3d_double(double ***p);
 
+#ifdef __cplusplus
+}
 #endif

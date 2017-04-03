@@ -1,6 +1,8 @@
 #include "track_ellipse.h"
 #include "track_ellipse_kernel.h"
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 
 void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
                   int Nf) {

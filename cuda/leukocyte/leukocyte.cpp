@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
     avi_t *cell_file = AVI_open_input_file(video_file_name, 1);
     if (cell_file == NULL) {
-        AVI_print_error("Error with AVI_open_input_file");
+        AVI_print_error(strdup("Error with AVI_open_input_file"));
         return -1;
     }
 

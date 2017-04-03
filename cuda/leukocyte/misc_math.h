@@ -1,7 +1,13 @@
-#ifndef MISC_MATH_H
-#define MISC_MATH_H
+#pragma once
 
-#include "matrix.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <matrix.h>
+#undef catch
+#undef min
+#undef max
 
 #define PI 3.14159
 
@@ -12,4 +18,6 @@ extern MAT *gradient_y(MAT *input);
 extern double mean(VEC *in);
 extern double std_dev(VEC *in);
 
+#ifdef __cplusplus
+}
 #endif

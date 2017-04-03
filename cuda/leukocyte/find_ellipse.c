@@ -1,6 +1,7 @@
+#include <sys/time.h>
+
 #include "find_ellipse.h"
 #include "find_ellipse_kernel.h"
-#include <sys/time.h>
 
 // The number of sample points per ellipse
 #define NPOINTS 150

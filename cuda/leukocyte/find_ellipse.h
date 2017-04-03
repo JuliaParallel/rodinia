@@ -1,11 +1,15 @@
-#ifndef FIND_ELLIPSE_H
-#define FIND_ELLIPSE_H
+#pragma once
 
-#include "avilib.h"
-#include "matrix.h"
-#include "misc_math.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <math.h>
 #include <stdlib.h>
+
+#include <avilib.h>
+
+#include "misc_math.h"
 
 // Defines the region in the video frame containing the blood vessel
 #define TOP 110
@@ -35,4 +39,6 @@ extern float *structuring_element(int radius);
 extern double m_min(MAT *m);
 extern double m_max(MAT *m);
 
+#ifdef __cplusplus
+}
 #endif
