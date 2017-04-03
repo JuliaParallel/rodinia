@@ -65,7 +65,7 @@ function main(args, dev)
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
-    crow,ccol = findn(!double_eq.(gicov,0.0) .& double_eq.(img_dilated,gicov))
+    crow,ccol = findn(.!double_eq.(gicov,0.0) .& double_eq.(img_dilated,gicov))
     # convert to zero-based indices for parity with the C code (don't
     # use map in the above expression, because it's very slow)
     crow,ccol = crow.-1,ccol.-1
