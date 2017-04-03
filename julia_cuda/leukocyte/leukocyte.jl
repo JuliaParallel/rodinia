@@ -4,6 +4,7 @@ using CUDAnative
 
 include("../../common/julia/libavi.jl")
 include("../../common/julia/wrappers.jl")
+include("../../common/julia/kernelprofile.jl")
 include("misc_math.jl")
 include("find_ellipse.jl")
 include("track_ellipse.jl")
@@ -178,6 +179,8 @@ function main(args, dev)
 
     # Report total program execution time
     print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
+
+    report()
 end
 
 dev = CuDevice(0)
