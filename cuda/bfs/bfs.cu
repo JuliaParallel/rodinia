@@ -26,7 +26,7 @@
 #include <math.h>
 #include <cuda.h>
 
-#include "../../common/cuda/kernelprofile.h"
+#include "../../common/cuda/kernelprofile_report.h"
 
 #define MAX_THREADS_PER_BLOCK 512
 
