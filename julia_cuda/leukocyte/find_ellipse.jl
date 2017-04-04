@@ -71,7 +71,7 @@ function compute_constants()
 
     # Transfer the computed matrices to the GPU (well, make it possible
     # to transfer them)
-    transfer_constants(host_sin_angle, host_cos_angle, host_tY, host_tX,
+    transfer_constants(host_sin_angle, host_cos_angle, host_tX, host_tY,
             host_strel)
 end
 
