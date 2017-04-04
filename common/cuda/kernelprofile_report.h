@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include "kernelprofile.h"
 
 std::map<std::string, std::vector<Invocation> > kernels;
