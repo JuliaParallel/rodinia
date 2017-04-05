@@ -16,3 +16,6 @@ endif
 $(foreach MAKEFILE,$(MAKEFILE_LIST),\
 	$(eval -include $(shell dirname $(realpath $(MAKEFILE)))/Make.user)\
 )
+
+# we often call Make recursively, in which case we need to forward variables
+export
