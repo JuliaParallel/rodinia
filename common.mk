@@ -12,7 +12,7 @@ CFLAGS   += -g
 CXXFLAGS += -g
 endif
 
-ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-ifeq (exists, $(shell [ -e $(ROOT)/Make.user ] && echo exists ))
-include $(ROOT)/Make.user
-endif
+# include Make.user relative to every active Makefile
+$(foreach MAKEFILE,$(MAKEFILE_LIST),\
+	$(eval -include $(shell dirname $(realpath $(MAKEFILE)))/Make.user)\
+)
