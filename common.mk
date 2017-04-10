@@ -12,7 +12,8 @@ CFLAGS   += -g
 CXXFLAGS += -g
 endif
 
-# include Make.user relative to every active Makefile
-$(foreach MAKEFILE,$(MAKEFILE_LIST),\
-	$(eval -include $(shell dirname $(realpath $(MAKEFILE)))/Make.user)\
+# include Make.user relative to every active Makefile, exactly once
+MAKEFILE_DIRS = $(foreach MAKEFILE,$(realpath $(MAKEFILE_LIST)), $(shell dirname $(MAKEFILE)))
+$(foreach DIR,$(sort $(MAKEFILE_DIRS)),\
+	$(eval -include $(DIR)/Make.user)\
 )
