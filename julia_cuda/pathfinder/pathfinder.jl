@@ -1,45 +1,65 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
-# Configuration
 const BLOCK_SIZE = 256
-const HALO = 1
+const HALO = 1  # halo width along one direction when advancing to the next iteration
 
-const M_SEED = 7
-
-# Helper function
-
-function inrange(x, min, max)
-    return x >= min && x <= max
-end
+const OUTPUT = haskey(ENV, "OUTPUT")
 
 # Override rng functions with libc implementations
 function srand(seed)
     ccall( (:srand, "libc"), Void, (Int,), seed)
 end
-
 function rand()
     r = ccall( (:rand, "libc"), Int, ())
     return r
 end
 
-# Device code
+function init(args)
+    if length(args) == 3
+        cols = parse(Int, args[1])
+        rows = parse(Int, args[2])
+        pyramid_height = parse(Int, args[3])
+    else
+        println("Usage: dynproc row_len col_len pyramid_height")
+        exit(0)
+    end
 
-function kernel_dynproc(
-    iteration,
-    gpu_wall, gpu_src, gpu_result,
-    cols, rows, start_step, border)
-    
-    # Define shared memory
+    srand(7)
+
+    # Initialize en fill wall
+    # Switch semantics of row & col -> easy copy to gpu array in run function
+    wall = Array{Int32}(cols, rows)
+    for i = 1:length(wall)
+        wall[i] = Int32(rand() % 10)
+    end
+
+    if OUTPUT
+        file = open("output.txt", "w")
+        println(file, "wall:")
+        for i = 1:rows
+            for j = 1:cols
+                print(file, "$(wall[j,i]) ")
+            end
+            println(file, "")
+        end
+        close(file)
+    end
+
+    return wall, rows, cols, pyramid_height
+end
+
+inrange(x, min, max) = x >= min && x <= max
+
+function dynproc_kernel(iteration, gpu_wall, gpu_src, gpu_result, cols, rows, start_step, border)
     prev = @cuStaticSharedMem(Int32, BLOCK_SIZE)
     result = @cuStaticSharedMem(Int32, BLOCK_SIZE)
 
     bx = blockIdx().x
     tx = threadIdx().x
 
-    # Will this be a problem: references to global vars
-    # but will likely be replaced by a constant when jitting, or not?
     small_block_cols = BLOCK_SIZE - iteration * HALO * 2
 
     blk_x = small_block_cols * (bx-1) - border;
@@ -54,8 +74,8 @@ function kernel_dynproc(
 
     W = tx - 1
     E = tx + 1
-    W = max(W, valid_x_min)
-    E = min(E, valid_x_max)
+    W = (W < valid_x_min) ? valid_x_min : W
+    E = (E > valid_x_max) ? valid_x_max : E
 
     is_valid = inrange(tx, valid_x_min, valid_x_max)
 
@@ -98,48 +118,8 @@ function kernel_dynproc(
     return nothing
 end
 
-# Host code
-
-function init(args)
-
-    if length(args) == 3 
-        cols = parse(Int, args[1])
-        rows = parse(Int, args[2])
-        pyramid_height = parse(Int, args[3])
-    else
-        println("Usage: dynproc row_len col_len pyramid_height")
-        exit(0) 
-    end
-
-    srand(M_SEED)
-
-    # Initialize en fill wall
-    # Switch semantics of row & col -> easy copy to gpu array in run function
-    wall = Array{Int32}(cols, rows)
-    for i = 1:length(wall)
-        wall[i] = Int32(rand() % 10)
-    end
-
-    # Print wall
-    @static if haskey(ENV, "OUTPUT")
-        file = open("output.txt", "w")
-        println(file, "wall:")
-        for i = 1:rows
-            for j = 1:cols
-                print(file, "$(wall[j,i]) ")
-            end
-            println(file, "")
-        end
-        close(file)
-    end
-
-    return wall, rows, cols, pyramid_height
-
-end
-
-function calcpath(wall, result, rows, cols, 
-    pyramid_height, block_cols, border_cols)
-
+"""compute N time steps"""
+function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_cols)
     dim_block = BLOCK_SIZE
     dim_grid = block_cols
 
@@ -147,19 +127,16 @@ function calcpath(wall, result, rows, cols,
     dst = 1
 
     for t = 0:pyramid_height:rows-1
+        src,dst = dst,src
+        iter = min(pyramid_height, rows-t-1)
 
-        tmp = src
-        src = dst
-        dst = tmp
-        iter = min(pyramid_height, rows -t -1)
-
-        @cuda (dim_grid, dim_block) kernel_dynproc(
+        @measure "dynproc" @cuda (dim_grid, dim_block) dynproc_kernel(
             iter,
-            wall, 
-            result[src],        # Does not work with slice: CuIn(gpu_result[src,:])
+            wall,
+            result[src],
             result[dst],
             cols, rows, t, border_cols
-        ) 
+        )
     end
 
     return dst
@@ -174,14 +151,12 @@ function main(args)
     small_block_col = BLOCK_SIZE - pyramid_height*HALO * 2
     block_cols = floor(Int, cols/small_block_col) + ((cols % small_block_col == 0) ? 0 : 1)
 
-    
-    println(
-        """pyramid_height: $pyramid_height
-        grid_size: [$cols]
-        border: [$border_cols]
-        block_size: $BLOCK_SIZE
-        block_grid: [$block_cols]
-        target_block: [$small_block_col]""")
+    println("""pyramid_height: $pyramid_height
+               grid_size: [$cols]
+               border: [$border_cols]
+               block_size: $BLOCK_SIZE
+               block_grid: [$block_cols]
+               target_block: [$small_block_col]""")
 
     # Setup GPU memory
     gpu_result = Array{CuArray{Int32,1}}(2)
@@ -190,7 +165,7 @@ function main(args)
 
     gpu_wall = CuArray(wall[cols+1:end])
 
-    final_ret = calcpath(
+    final_ret = calc_path(
         gpu_wall, gpu_result,
         rows, cols, pyramid_height,
         block_cols, border_cols)
@@ -198,8 +173,7 @@ function main(args)
     result = Array(gpu_result[final_ret])
 
     # Store the result into a file
-    # TODO: static because it boxes no_of_nodes (#15276)
-    @static if haskey(ENV, "OUTPUT")
+    if OUTPUT
         open("output.txt", "a") do fpo
             println(fpo, "data:")
 
@@ -222,5 +196,6 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+report()
 
 destroy(ctx)

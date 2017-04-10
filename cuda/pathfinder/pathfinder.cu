@@ -3,13 +3,10 @@
 #include <time.h>
 #include <assert.h>
 
-#define BLOCK_SIZE 256
-#define STR_SIZE 256
-#define DEVICE 0
-#define HALO                                                                   \
-    1 // halo width along one direction when advancing to the next iteration
+#include "../../common/cuda/kernelprofile_report.h"
 
-void run(int argc, char **argv);
+#define BLOCK_SIZE 256
+#define HALO 1  // halo width along one direction when advancing to the next iteration
 
 int rows, cols;
 int *data;
@@ -57,7 +54,6 @@ void init(int argc, char **argv) {
 void fatal(char *s) { fprintf(stderr, "error: %s\n", s); }
 
 #define IN_RANGE(x, min, max) ((x) >= (min) && (x) <= (max))
-#define CLAMP_RANGE(x, min, max) x = (x < (min)) ? min : ((x > (max)) ? max : x)
 #define MIN(a, b) ((a) <= (b) ? (a) : (b))
 
 __global__ void dynproc_kernel(int iteration, int *gpuWall, int *gpuSrc,
@@ -104,7 +100,9 @@ __global__ void dynproc_kernel(int iteration, int *gpuWall, int *gpuSrc,
     if (IN_RANGE(xidx, 0, cols - 1)) {
         prev[tx] = gpuSrc[xidx];
     }
-    __syncthreads(); // [Ronny] Added sync to avoid race on prev Aug. 14 2012
+
+    __syncthreads();
+
     bool computed;
     for (int i = 0; i < iteration; i++) {
         computed = false;
@@ -123,8 +121,7 @@ __global__ void dynproc_kernel(int iteration, int *gpuWall, int *gpuSrc,
             break;
         if (computed) // Assign the computation range
             prev[tx] = result[tx];
-        __syncthreads(); // [Ronny] Added sync to avoid race on prev Aug. 14
-                         // 2012
+        __syncthreads();
     }
 
     // update the global memory
@@ -148,25 +145,16 @@ int calc_path(int *gpuWall, int *gpuResult[2], int rows, int cols,
         int temp = src;
         src = dst;
         dst = temp;
-        dynproc_kernel<<<dimGrid, dimBlock>>>(
-            MIN(pyramid_height, rows - t - 1), gpuWall, gpuResult[src],
-            gpuResult[dst], cols, rows, t, borderCols);
+        MEASURE("dynproc", (
+            dynproc_kernel<<<dimGrid, dimBlock>>>(
+                MIN(pyramid_height, rows - t - 1), gpuWall, gpuResult[src],
+                gpuResult[dst], cols, rows, t, borderCols)
+        ));
     }
     return dst;
 }
 
 int main(int argc, char **argv) {
-    int num_devices;
-    cudaGetDeviceCount(&num_devices);
-    if (num_devices > 1)
-        cudaSetDevice(DEVICE);
-
-    run(argc, argv);
-
-    return EXIT_SUCCESS;
-}
-
-void run(int argc, char **argv) {
     init(argc, argv);
 
     /* --------------- pyramid parameters --------------- */
@@ -221,6 +209,8 @@ void run(int argc, char **argv) {
         fclose(file);
     }
 
+    measure_report();
+
     cudaFree(gpuWall);
     cudaFree(gpuResult[0]);
     cudaFree(gpuResult[1]);
@@ -228,4 +218,6 @@ void run(int argc, char **argv) {
     delete[] data;
     delete[] wall;
     delete[] result;
+
+    return EXIT_SUCCESS;
 }
