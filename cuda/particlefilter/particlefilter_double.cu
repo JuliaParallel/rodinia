@@ -7,6 +7,9 @@
 #include <fcntl.h>
 #include <float.h>
 #include <sys/time.h>
+
+#include "../../common/cuda/kernelprofile_report.h"
+
 #define BLOCK_X 16
 #define BLOCK_Y 16
 #define PI 3.1415926535897932
@@ -742,7 +745,6 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
     }
 
     int k;
-    int indX, indY;
     // start send
     long long send_start = get_time();
     check_error(cudaMemcpy(I_GPU, I, sizeof(unsigned char) * IszX * IszY * Nfr,
@@ -764,19 +766,27 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
 
     for (k = 1; k < Nfr; k++) {
 
-        likelihood_kernel<<<num_blocks, threads_per_block>>>(
-            arrayX_GPU, arrayY_GPU, xj_GPU, yj_GPU, CDF_GPU, ind_GPU, objxy_GPU,
-            likelihood_GPU, I_GPU, u_GPU, weights_GPU, Nparticles, countOnes,
-            max_size, k, IszY, Nfr, seed_GPU, partial_sums);
+        MEASURE("likelihood", (
+            likelihood_kernel<<<num_blocks, threads_per_block>>>(
+                arrayX_GPU, arrayY_GPU, xj_GPU, yj_GPU, CDF_GPU, ind_GPU, objxy_GPU,
+                likelihood_GPU, I_GPU, u_GPU, weights_GPU, Nparticles, countOnes,
+                max_size, k, IszY, Nfr, seed_GPU, partial_sums)
+        ));
 
-        sum_kernel<<<num_blocks, threads_per_block>>>(partial_sums, Nparticles);
+        MEASURE("sum", (
+            sum_kernel<<<num_blocks, threads_per_block>>>(partial_sums, Nparticles)
+        ));
 
-        normalize_weights_kernel<<<num_blocks, threads_per_block>>>(
-            weights_GPU, Nparticles, partial_sums, CDF_GPU, u_GPU, seed_GPU);
+        MEASURE("normalize_weights", (
+            normalize_weights_kernel<<<num_blocks, threads_per_block>>>(
+                weights_GPU, Nparticles, partial_sums, CDF_GPU, u_GPU, seed_GPU)
+        ));
 
-        find_index_kernel<<<num_blocks, threads_per_block>>>(
-            arrayX_GPU, arrayY_GPU, CDF_GPU, u_GPU, xj_GPU, yj_GPU, weights_GPU,
-            Nparticles);
+        MEASURE("find_index", (
+            find_index_kernel<<<num_blocks, threads_per_block>>>(
+                arrayX_GPU, arrayY_GPU, CDF_GPU, u_GPU, xj_GPU, yj_GPU, weights_GPU,
+                Nparticles)
+        ));
 
     } // end loop
 
@@ -850,7 +860,7 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
 
 int main(int argc, char *argv[]) {
 
-    char *usage = "double.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
+    char *usage = strdup("double.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>");
     // check number of arguments
     if (argc != 9) {
         printf("%s\n", usage);
@@ -927,6 +937,8 @@ int main(int argc, char *argv[]) {
     printf("PARTICLE FILTER TOOK %f\n",
            elapsed_time(endVideoSequence, endParticleFilter));
     printf("ENTIRE PROGRAM TOOK %f\n", elapsed_time(start, endParticleFilter));
+
+    measure_report();
 
     free(seed);
     free(I);

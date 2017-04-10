@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
 # Variables
 
@@ -479,7 +480,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_seed = CuArray(seed)
 
     for k=2:Nfr
-        @cuda (num_blocks, threads_per_block) kernel_likelihood(
+        @measure "likelihood" @cuda (num_blocks, threads_per_block) kernel_likelihood(
             g_arrayX, g_arrayY, 
             g_xj, g_yj, #CDF, 
             g_ind, 
@@ -490,13 +491,13 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
             Nparticles, count_ones, max_size, k, IszY, Nfr, 
             g_seed, g_partial_sums)
 
-        @cuda (num_blocks, threads_per_block) kernel_sum(g_partial_sums, Nparticles)
+        @measure "sum" @cuda (num_blocks, threads_per_block) kernel_sum(g_partial_sums, Nparticles)
 
-        @cuda (num_blocks, threads_per_block) kernel_normalize_weights(
+        @measure "normalize_weights" @cuda (num_blocks, threads_per_block) kernel_normalize_weights(
             g_weights, Nparticles,
             g_partial_sums, g_CDF, g_u, g_seed)
 
-        @cuda (num_blocks, threads_per_block) kernel_find_index(
+        @measure "find_index" @cuda (num_blocks, threads_per_block) kernel_find_index(
             length(g_arrayX), pointer(g_arrayX), length(g_arrayY),
             pointer(g_arrayY), length(g_CDF), pointer(g_CDF), length(g_u),
             pointer(g_u), length(g_xj), pointer(g_xj), length(g_yj),
@@ -600,5 +601,6 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+report()
 
 destroy(ctx)
