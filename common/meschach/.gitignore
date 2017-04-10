@@ -1,2 +1,10 @@
 autom4te.cache
 config.log
+*.o
+libmeschach.a
+libmeschach.so
+config.status
+macheps
+makefile
+maxint
+machine.h
