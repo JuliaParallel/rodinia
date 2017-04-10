@@ -53,7 +53,15 @@ end
 
 inrange(x, min, max) = x >= min && x <= max
 
-function dynproc_kernel(iteration, gpu_wall, gpu_src, gpu_result, cols, rows, start_step, border)
+function dynproc_kernel(iteration,
+                        gpu_wall_ptr, gpu_wall_len,
+                        gpu_src_ptr, gpu_src_len,
+                        gpu_result_ptr, gpu_result_len,
+                        cols, rows, start_step, border)
+    gpu_wall = CuDeviceArray(gpu_wall_len, gpu_wall_ptr)
+    gpu_src = CuDeviceArray(gpu_src_len, gpu_src_ptr)
+    gpu_result = CuDeviceArray(gpu_result_len, gpu_result_ptr)
+
     prev = @cuStaticSharedMem(Int32, BLOCK_SIZE)
     result = @cuStaticSharedMem(Int32, BLOCK_SIZE)
 
@@ -68,9 +76,9 @@ function dynproc_kernel(iteration, gpu_wall, gpu_src, gpu_result, cols, rows, st
     xidx = blk_x + tx
 
     valid_x_min = (blk_x < 0) ? -blk_x : 0
-    valid_x_max = (blk_x_max > cols -1)  ? BLOCK_SIZE -1 -(blk_x_max - cols +1) : BLOCK_SIZE -1
-    valid_x_min = valid_x_min +1
-    valid_x_max = valid_x_max +1
+    valid_x_max = (blk_x_max > cols-1) ? BLOCK_SIZE-1-(blk_x_max-cols+1) : BLOCK_SIZE-1
+    valid_x_min = valid_x_min+1
+    valid_x_max = valid_x_max+1
 
     W = tx - 1
     E = tx + 1
@@ -132,9 +140,9 @@ function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_
 
         @measure "dynproc" @cuda (dim_grid, dim_block) dynproc_kernel(
             iter,
-            wall,
-            result[src],
-            result[dst],
+            pointer(wall), length(wall),
+            pointer(result[src]), length(result[src]),
+            pointer(result[dst]), length(result[dst]),
             cols, rows, t, border_cols
         )
     end
