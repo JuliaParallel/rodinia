@@ -8,11 +8,11 @@ const OUTPUT = haskey(ENV, "OUTPUT")
 
 ceilDiv(a, b) = ceil(Int, a / b)
 
-DEFAULT_THREADS_PER_BLOCK = 256
-DEBUG = false
+const DEFAULT_THREADS_PER_BLOCK = 256
+const DEBUG = false
 
-LATITUDE_POS = 28 # character position of the latitude value in each record
-OPEN = 10000 # initial value of nearest neighbors
+const LATITUDE_POS = 28 # character position of the latitude value in each record
+const OPEN = 10000 # initial value of nearest neighbors
 
 immutable LatLong
     lat::Float32
