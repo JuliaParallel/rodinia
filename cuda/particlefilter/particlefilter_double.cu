@@ -255,9 +255,6 @@ __global__ void find_index_kernel(double *arrayX, double *arrayY, double *CDF,
 
         xj[i] = arrayX[index];
         yj[i] = arrayY[index];
-
-        // weights[i] = 1 / ((double) (Nparticles)); //moved this code to the
-        // beginning of likelihood kernel
     }
     __syncthreads();
 }
@@ -348,13 +345,7 @@ __global__ void likelihood_kernel(double *arrayX, double *arrayY, double *xj,
         arrayX[i] = xj[i];
         arrayY[i] = yj[i];
 
-        weights[i] = 1 / ((double)(Nparticles)); // Donnie - moved this line
-                                                 // from end of
-                                                 // find_index_kernel to prevent
-                                                 // all weights from being reset
-                                                 // before calculating position
-                                                 // on final iteration.
-
+        weights[i] = 1 / ((double)(Nparticles));
         arrayX[i] = arrayX[i] + 1.0 + 5.0 * d_randn(seed, i);
         arrayY[i] = arrayY[i] - 2.0 + 2.0 * d_randn(seed, i);
     }
@@ -375,9 +366,7 @@ __global__ void likelihood_kernel(double *arrayX, double *arrayY, double *xj,
 
         likelihood[i] = likelihood[i] / countOnes;
 
-        weights[i] = weights[i] * exp(likelihood[i]); // Donnie Newell - added
-                                                      // the missing exponential
-                                                      // function call
+        weights[i] = weights[i] * exp(likelihood[i]);
     }
 
     buffer[threadIdx.x] = 0.0;
@@ -479,7 +468,7 @@ void strelDisk(int *disk, int radius) {
                                    pow((double)(y - radius + 1), 2));
             if (distance < radius)
                 disk[x * diameter + y] = 1;
-            else 
+            else
                 disk[x * diameter + y] = 0;
         }
     }

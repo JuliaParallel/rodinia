@@ -21,7 +21,7 @@ function gettime()
     current = now()
     elapsed = Dates.hour(current) * 60 * 60 * 1000000
             + Dates.minute(current)    * 60 * 1000000
-            + Dates.second(current)       * 1000000
+            + Dates.second(current)         * 1000000
             + Dates.millisecond(current)
     return elapsed
 end
@@ -35,7 +35,8 @@ function rounddouble(value)
     if (value - new_value < 0.5)
         return new_value
     else
-        return new_value    # Copy bug from original
+        # NOTE: this is wrong, but we mimic the behavior
+        return new_value
     end
 end
 
@@ -111,7 +112,7 @@ function imdilate_disk(matrix::Array{UInt8}, dimX, dimY, dimZ, error, new_matrix
     for z=0:dimZ-1
         for x=0:dimX-1
             for y=0:dimY-1
-                if matrix[x * dimY * dimZ + y * dimZ + z + 1] == 1 
+                if matrix[x * dimY * dimZ + y * dimZ + z + 1] == 1
                     dilate_matrix(new_matrix, x, y, z, dimX, dimY, dimZ, error)
                 end
             end
@@ -125,7 +126,7 @@ function videosequence(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32})
     # get object centers
     x0 = convert(Int, rounddouble(IszX/2.0))
     y0 = convert(Int, rounddouble(IszY/2.0))
-    I[x0 * IszY * Nfr + y0 * Nfr + 1] = 1       # TODO: +1 instead of 0????
+    I[x0 * IszY * Nfr + y0 * Nfr + 1] = 1       # TODO: +1 instead of 0?
 
     # Move point
     xk = yk = 0
@@ -146,7 +147,7 @@ function videosequence(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32})
     for x=1:IszX
         for y=1:IszY
             for k=1:Nfr
-                I[(x-1) * IszY * Nfr + (y-1) * Nfr + k] = 
+                I[(x-1) * IszY * Nfr + (y-1) * Nfr + k] =
                     new_matrix[(x-1) * IszY * Nfr + (y-1) * Nfr + k]
             end
         end
@@ -223,7 +224,8 @@ end
     if value - new_value < 0.5
         return new_value
     else
-        return new_value # keep buggy semantics of original, should be new_value+1
+        # NOTE: keep buggy semantics of original, should be new_value+1
+        return new_value
     end
 end
 
@@ -246,7 +248,7 @@ function find_index_kernel(arrayX_ptr, arrayX_len,
     xj = CuDeviceArray(xj_len, xj_ptr)
     yj = CuDeviceArray(yj_len, yj_ptr)
     weights = CuDeviceArray(weights_len, weights_ptr)
-    
+
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -364,7 +366,7 @@ function likelihood_kernel(arrayX_ptr, arrayX_len,
     partial_sums = CuDeviceArray(partial_sums_len, partial_sums_ptr)
 
     block_id = blockIdx().x
-    i::Int = blockDim().x * (block_id-1) + threadIdx().x
+    i = blockDim().x * (block_id-1) + threadIdx().x
 
     buffer = @cuStaticSharedMem(Float64, 512)
     if i <= Nparticles
@@ -383,13 +385,7 @@ function likelihood_kernel(arrayX_ptr, arrayX_len,
             indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
             indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
 
-            val = indX*IszY*Nfr + indY*Nfr + k -1 #CUDAnative.abs(val)
-            if val < 0
-                val = -val
-            end
-            val += 1
-            index = (i-1)*count_ones + y + 1
-            ind[index] = val
+            ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1)
             if ind[(i-1)*count_ones + y + 1] > max_size
                 ind[(i-1)*count_ones + y + 1] = 1
             end
@@ -440,7 +436,6 @@ function getneighbors(se::Array{Int}, num_ones, neighbors::Array{Int}, radius)
 end
 
 function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Nparticles)
-
     max_size = IszX * IszY * Nfr
     start = gettime()
     # Original particle centroid
@@ -450,7 +445,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     # Expected object locations, compared to cneter
     radius = 5
     diameter = radius * 2 -1
-    disk = Array{Int, 1}(diameter * diameter)
+    disk = Vector{Int}(diameter * diameter)
     streldisk(disk, radius)
     count_ones = 0
     for x=1:diameter
@@ -461,13 +456,13 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
         end
     end
 
-    objxy = Array{Int, 1}(count_ones * 2)
+    objxy = Vector{Int}(count_ones * 2)
     getneighbors(disk, count_ones, objxy, radius)
     get_neighbors = gettime()
     println("TIME TO GET NEIGHBORS TOOK: $(elapsedtime(start, get_neighbors))")
 
     # Initial weights are all equal (1/Nparticles)
-    weights = Array{Float64, 1}(Nparticles)
+    weights = Vector{Float64}(Nparticles)
     for x=1:Nparticles
         weights[x] = 1 / Nparticles
     end
@@ -479,8 +474,8 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_likelihood = CuArray(zeros(Float64, Nparticles))
     g_arrayX = CuArray{Float64}(Nparticles)
     g_arrayY = CuArray{Float64}(Nparticles)
-    xj = Array{Float64, 1}(Nparticles)
-    yj = Array{Float64, 1}(Nparticles)
+    xj = Vector{Float64}(Nparticles)
+    yj = Vector{Float64}(Nparticles)
     g_CDF = CuArray{Float64}(Nparticles)
 
     g_ind = CuArray{Int}(count_ones * Nparticles)
@@ -609,7 +604,7 @@ function main(args)
     end
 
     # Initialize stuff
-    seed = Array{Int32, 1}(Nparticles)
+    seed = Vector{Int32}(Nparticles)
     for i = 1:Nparticles
         seed[i] = i-1
     end
