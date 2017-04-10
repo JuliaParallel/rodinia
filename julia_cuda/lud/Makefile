@@ -1,3 +1,2 @@
-.PHONY: clean
-clean:
-	$(RM) output.dat
+.PHONY: all
+all:
