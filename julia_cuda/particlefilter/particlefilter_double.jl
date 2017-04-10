@@ -215,13 +215,9 @@ end
     return likelihood_sum
 end
 
-@inline function dev_round_double(value)
-    if value < 0
-        new_value = trunc(Int,CUDAnative.ceil(value))
-    else
-        new_value = trunc(Int,CUDAnative.floor(value))
-    end
-    if value - new_value < 0.5
+@inline function dev_round_double(value)::Int32
+    new_value = unsafe_trunc(Int32, value)
+    if value - new_value < .5f0
         return new_value
     else
         # NOTE: keep buggy semantics of original, should be new_value+1
