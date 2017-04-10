@@ -15,9 +15,9 @@ all: $(EXE)
 # we call make recursively, so need to export variables
 export
 
-$(MESCHACH_DIR)/Makefile:
+$(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/Makefile
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR) all
 CPPFLAGS += -I$(MESCHACH_DIR)
 

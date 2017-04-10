@@ -12,9 +12,9 @@ all: $(EXE)
 export
 
 MESCHACH_DIR=../../common/meschach
-$(MESCHACH_DIR)/Makefile:
+$(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/meschach.a: $(MESCHACH_DIR)/Makefile
+$(MESCHACH_DIR)/meschach.a: $(MESCHACH_DIR)/makefile
 	$(MAKE) -C $(MESCHACH_DIR) all
 CPPFLAGS += -I$(MESCHACH_DIR)
 
