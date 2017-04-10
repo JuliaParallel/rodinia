@@ -4,6 +4,8 @@ using ArgParse
 using CUDAdrv
 using CUDAnative
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 ceilDiv(a, b) = ceil(Int, a / b)
 
 DEFAULT_THREADS_PER_BLOCK = 256
@@ -113,7 +115,7 @@ function main(args)
     findLowest(records, distances, numRecords, resultsCount);
 
     # Print out results.
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         out = open("output.txt", "w")
         @printf(out, "The %d nearest neighbors are:\n", resultsCount)
         for i = 1:resultsCount

@@ -12,6 +12,8 @@ const PI = 3.1415926535897932
 
 const threads_per_block = 512
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 # Utility functions
 
 function gettime()
@@ -511,7 +513,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
         ye += arrayY[x] * weights[x]
     end
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         outf = open("output.txt", "w")
     else
         outf = STDOUT
@@ -522,7 +524,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
                    +(ye - Int(rounddouble(IszY/2.0)))^2)
     println(outf,"distance: $distance")
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
       close(outf)
     end
 

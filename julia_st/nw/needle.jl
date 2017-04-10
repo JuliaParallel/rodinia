@@ -1,5 +1,7 @@
 include("../../common/julia/wrappers.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 function maximum(a, b, c)
     k = (a <= b) ? b : a
     (k <= c) ? c : k
@@ -108,7 +110,7 @@ function main(args)
         end
     end
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         fpo = open("output.txt", "w")
         @printf(fpo, "print traceback value GPU:\n")
 

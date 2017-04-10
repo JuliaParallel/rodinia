@@ -3,6 +3,8 @@
 include("needle_kernel.jl")
 include("../../common/julia/wrappers.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 const LIMIT = -999
 function maximum(a, b, c)
     k = (a <= b) ? b : a
@@ -112,7 +114,7 @@ function main(args)
 
     output_itemsets = Array(matrix_cuda)
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         fpo = open("output.txt", "w")
         @printf(fpo, "print traceback value GPU:\n")
 

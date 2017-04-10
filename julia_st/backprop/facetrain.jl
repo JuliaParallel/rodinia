@@ -1,5 +1,7 @@
 include("backprop.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 function backprop_face(layer_size)
     net = bpnn_create(layer_size, 16, 1) # (16, 1 cannot be changed)
     println("Input layer size : ", layer_size)
@@ -13,7 +15,7 @@ function backprop_face(layer_size)
     println("Starting training kernel")
     bpnn_train_kernel(net)
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         bpnn_save(net, "output.dat")
     end
 

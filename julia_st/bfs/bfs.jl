@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 immutable Node
     starting::Int32
     no_of_edges::Int32
@@ -95,7 +97,7 @@ function main(args)
     toc()
 
 
-    if haskey(ENV,"OUTPUT")
+    if OUTPUT
         f = open("output.txt","w")
         for i in eachindex(h_cost)
             println(f,i-1,") cost:",h_cost[i])

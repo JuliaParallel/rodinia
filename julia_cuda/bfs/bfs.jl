@@ -3,6 +3,8 @@
 using CUDAdrv, CUDAnative
 include("../../common/julia/kernelprofile.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 const MAX_THREADS_PER_BLOCK = UInt32(512)
 
 struct Node
@@ -182,8 +184,7 @@ function main(args)
     info("Kernel Executed $k times")
 
     # Store the result into a file
-    # TODO: static because it boxes no_of_nodes (#15276)
-    @static if haskey(ENV, "OUTPUT")
+    if OUTPUT
         open("output.txt", "w") do fpo
             for i = 1:no_of_nodes
                 write(fpo, "$(i-1)) cost:$(h_cost[i])\n")

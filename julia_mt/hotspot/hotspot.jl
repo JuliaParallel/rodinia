@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 # maximum power density possible (say 300W for a 10mm x 10mm chip)
 MAX_PD = 3.0e6
 # required precision in degrees
@@ -191,7 +193,7 @@ function main(args)
 
     # output results
     output = ""
-    if haskey(ENV,"OUTPUT")
+    if OUTPUT
         if ENV["OUTPUT"] != ""
             println("Writing results output.txt")
             f = open("output.txt","w")

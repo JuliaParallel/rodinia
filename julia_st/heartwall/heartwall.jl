@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 include("../../common/julia/libavi.jl")
 include("../../common/julia/wrappers.jl")
 
@@ -327,7 +329,7 @@ function main(args)
     flush(STDOUT)
 
     # Dump data to file
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         write_data("output.txt", public.frames, frames_processed,
                    public.endoPoints, public.d_tEndoRowLoc,
                    public.d_tEndoColLoc, public.epiPoints, public.d_tEpiRowLoc,

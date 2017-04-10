@@ -16,6 +16,8 @@ const FACTOR_CHIP = 0.5
 # add one iteration will extend the pyramid base by 2 per each borderline
 const EXPAND_RATE = 2
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 # chip parameters
 const t_chip = 0.0005f0
 const chip_height = 0.016f0
@@ -292,7 +294,7 @@ function main(args)
     println("Ending simulation")
     MatrixOut = Array(MatrixTemp[ret + 1])
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt")
     end
 end

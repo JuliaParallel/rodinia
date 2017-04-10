@@ -1,5 +1,7 @@
 include("../../common/julia/wrappers.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 function init(args)
     global rows
     global cols
@@ -29,7 +31,7 @@ function init(args)
         result[j] = data[1,j]
     end
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         file = open("output.txt", "w")
         @printf(file, "wall:\n")
         for i = 1:rows
@@ -69,7 +71,7 @@ function main(args)
 
     @printf("timer: %Lu\n", toq())
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         file = open("output.txt", "a")
         @printf(file, "data:\n")
         for i = 1:cols

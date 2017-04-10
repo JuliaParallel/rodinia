@@ -1,5 +1,7 @@
 #!/usr/bin/env julia
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 function usage()
     prog = basename(Base.source_path())
 #    println(STDERR,"Usage ",prog," <rows> <cols> <y1> <y2> <x1> <x2> <no. of threads><lamda> <no. of iter>")
@@ -132,7 +134,7 @@ function main(args)
 
     println("Computation done")
 
-    if haskey(ENV,"OUTPUT")
+    if OUTPUT
         f = open("output.txt","w")
         for i in 1:size(J,1)
             for j in 1:size(J,2)

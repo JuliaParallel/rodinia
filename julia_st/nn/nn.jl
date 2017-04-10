@@ -3,6 +3,8 @@ REC_WINDOW = 10   # number of records to read at a time
 LATITUDE_POS = 28 # location of latitude coordinates in input record
 OPEN = 10000      # initial value of nearest neighbors
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
 type Neighbor
     entry::String
     dist::Float64
@@ -124,7 +126,7 @@ function main(args)
         end
     end
 
-    if haskey(ENV, "OUTPUT")
+    if OUTPUT
         out = open("output.txt", "w")
         @printf(out, "The %d nearest neighbors are:\n", k);
         for j in length(neighbors):-1:1
