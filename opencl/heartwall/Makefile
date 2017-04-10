@@ -7,6 +7,9 @@ OBJS = kernel/kernel_gpu_opencl_wrapper.o util/file/file.o util/timer/timer.o ut
 .PHONY: all
 all: $(EXE)
 
+# we call make recursively, so need to export variables
+export
+
 AVI_DIR=../../common/avi
 $(AVI_DIR)/avilib.o $(AVI_DIR)/avimod.o:
 	$(MAKE) -C $(AVI_DIR)

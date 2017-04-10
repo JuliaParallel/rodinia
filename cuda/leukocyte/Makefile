@@ -8,10 +8,13 @@ OBJS = find_ellipse.o find_ellipse_kernel.o track_ellipse.o track_ellipse_kernel
 .PHONY: all
 all: $(EXE)
 
+# we call make recursively, so need to export variables
+export
+
 MESCHACH_DIR = ../../common/meschach
-$(MESCHACH_DIR)/makefile:
+$(MESCHACH_DIR)/Makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/Makefile
 	$(MAKE) -C $(MESCHACH_DIR)
 CPPFLAGS += -I$(MESCHACH_DIR)
 misc_math.o: $(MESCHACH_DIR)/libmeschach.a

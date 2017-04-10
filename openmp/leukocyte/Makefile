@@ -12,9 +12,12 @@ OBJS = $(MESCHACH_DIR)/libmeschach.a find_ellipse.o track_ellipse.o misc_math.o 
 .PHONY: all
 all: $(EXE)
 
-$(MESCHACH_DIR)/makefile:
+# we call make recursively, so need to export variables
+export
+
+$(MESCHACH_DIR)/Makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/Makefile
 	$(MAKE) -C $(MESCHACH_DIR) all
 CPPFLAGS += -I$(MESCHACH_DIR)
 

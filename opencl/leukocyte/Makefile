@@ -8,6 +8,9 @@ OBJS = find_ellipse.o find_ellipse_opencl.o track_ellipse.o track_ellipse_opencl
 .PHONY: all
 all: $(EXE)
 
+# we call make recursively, so need to export variables
+export
+
 MESCHACH_DIR=../../common/meschach
 $(MESCHACH_DIR)/Makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all

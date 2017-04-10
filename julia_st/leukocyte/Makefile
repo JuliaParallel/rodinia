@@ -11,8 +11,10 @@ EXE  =
 OBJS = $(AVI_DIR)/libavi.so $(INPUT_FILE)
 
 .PHONY: all
-
 all: $(OBJS)
+
+# we call make recursively, so need to export variables
+export
 
 $(INPUT_FILE):
 	$(MAKE) -C $(INPUT_FILE_DIR)
