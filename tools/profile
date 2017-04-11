@@ -87,17 +87,18 @@ for suite in non_baseline
     summary[Symbol(suite)] = Float64[]
 end
 
+# add totals for each benchmark and suite
+# NOTE: we do this before summarizing across iterations, to make totals more fair
+_data = copy(data)  # prevent aggregating previous totals
+append!(data, by(_data, [:suite, :benchmark],
+                 dt->DataFrame(kernel="total", time=sum(dt[:time]))))
+append!(data, by(_data, [:suite,],
+                 dt->DataFrame(benchmark="total", kernel="total", time=sum(dt[:time]))))
+
 # summarize across iterations
 grouped_data = by(data, [:suite, :benchmark, :kernel],
                   dt->DataFrame(time=minimum(dt[:time]))
                  )
-
-# add totals for each benchmark and suite
-_grouped_data = copy(grouped_data)  # prevent aggregating previous totals
-append!(grouped_data, by(_grouped_data, [:suite, :benchmark],
-                         dt->DataFrame(kernel="total", time=sum(dt[:time]))))
-append!(grouped_data, by(_grouped_data, [:suite,],
-                         dt->DataFrame(benchmark="total", kernel="total", time=sum(dt[:time]))))
 
 for benchmark in unique(grouped_data[:benchmark])
     # get the data for this benchmark
