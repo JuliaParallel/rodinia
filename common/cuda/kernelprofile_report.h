@@ -4,10 +4,10 @@
 
 #include "kernelprofile.h"
 
-std::map<std::string, std::vector<Invocation>> kernels;
+std::map<std::string, std::vector<Invocation> > kernels;
 
 void measure_report(std::string benchmark) {
-    for (std::map<std::string, std::vector<Invocation>>::const_iterator it =
+    for (std::map<std::string, std::vector<Invocation> >::const_iterator it =
              kernels.begin();
          it != kernels.end(); it++) {
         const std::string &id = it->first;
