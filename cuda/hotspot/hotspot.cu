@@ -3,6 +3,8 @@
 #include <time.h>
 #include <assert.h>
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 #ifdef RD_WG_SIZE_0_0
 #define BLOCK_SIZE RD_WG_SIZE_0_0
 #elif defined(RD_WG_SIZE_0)
@@ -39,17 +41,15 @@ void run(int argc, char **argv);
 #define pin_stats_dump(cycles) printf("timer: %Lu\n", cycles)
 
 
-void fatal(char *s) { fprintf(stderr, "error: %s\n", s); }
+void fatal(const std::string s) { fprintf(stderr, "error: %s\n", s.c_str()); }
 
-void writeoutput(float *vect, int grid_rows, int grid_cols, char *file) {
-
+void writeoutput(float *vect, int grid_rows, int grid_cols, const std::string file) {
     int i, j, index = 0;
     FILE *fp;
     char str[STR_SIZE];
 
-    if ((fp = fopen(file, "w")) == 0)
+    if ((fp = fopen(file.c_str(), "w")) == 0)
         printf("The file was not opened\n");
-
 
     for (i = 0; i < grid_rows; i++)
         for (j = 0; j < grid_cols; j++) {
@@ -64,7 +64,6 @@ void writeoutput(float *vect, int grid_rows, int grid_cols, char *file) {
 
 
 void readinput(float *vect, int grid_rows, int grid_cols, char *file) {
-
     int i, j;
     FILE *fp;
     char str[STR_SIZE];
@@ -248,10 +247,12 @@ int compute_tran_temp(float *MatrixPower, float *MatrixTemp[2], int col,
         int temp = src;
         src = dst;
         dst = temp;
-        calculate_temp<<<dimGrid, dimBlock>>>(
-            MIN(num_iterations, total_iterations - t), MatrixPower,
-            MatrixTemp[src], MatrixTemp[dst], col, row, borderCols, borderRows,
-            Cap, Rx, Ry, Rz, step, time_elapsed);
+        MEASURE("calculate_temp", (
+            calculate_temp<<<dimGrid, dimBlock>>>(
+                MIN(num_iterations, total_iterations - t), MatrixPower,
+                MatrixTemp[src], MatrixTemp[dst], col, row, borderCols, borderRows,
+                Cap, Rx, Ry, Rz, step, time_elapsed)
+        ));
     }
     return dst;
 }
@@ -275,12 +276,6 @@ void usage(int argc, char **argv) {
 int main(int argc, char **argv) {
     printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
 
-    run(argc, argv);
-
-    return EXIT_SUCCESS;
-}
-
-void run(int argc, char **argv) {
     int size;
     int grid_rows, grid_cols;
     float *FilesavingTemp, *FilesavingPower, *MatrixOut;
@@ -301,9 +296,8 @@ void run(int argc, char **argv) {
 
     size = grid_rows * grid_cols;
 
-/* --------------- pyramid parameters --------------- */
-#define EXPAND_RATE                                                            \
-    2 // add one iteration will extend the pyramid base by 2 per each borderline
+    /* --------------- pyramid parameters --------------- */
+    #define EXPAND_RATE 2 // add one iteration will extend the pyramid base by 2 per each borderline
     int borderCols = (pyramid_height)*EXPAND_RATE / 2;
     int borderRows = (pyramid_height)*EXPAND_RATE / 2;
     int smallBlockCol = BLOCK_SIZE - (pyramid_height)*EXPAND_RATE;
@@ -348,8 +342,13 @@ void run(int argc, char **argv) {
     if (getenv("OUTPUT"))
         writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt");
 
+    if (getenv("PROFILE"))
+        measure_report("hotspot");
+
     cudaFree(MatrixPower);
     cudaFree(MatrixTemp[0]);
     cudaFree(MatrixTemp[1]);
     free(MatrixOut);
+
+    return EXIT_SUCCESS;
 }

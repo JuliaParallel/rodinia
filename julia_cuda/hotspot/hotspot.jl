@@ -3,6 +3,7 @@
 using ArgParse
 using CUDAdrv
 using CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
 const BLOCK_SIZE = 16
 # maximum power density possible (say 300W for a 10mm x 10mm chip)
@@ -17,6 +18,7 @@ const FACTOR_CHIP = 0.5
 const EXPAND_RATE = 2
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 # chip parameters
 const t_chip = 0.0005f0
@@ -177,7 +179,7 @@ function calculate_temp(iteration,   # number of iteration
 end
 
 # compute N time steps
-function compute_tran_temp(dev, MatrixPower, MatrixTemp, col, row, total_iterations,
+function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
                            num_iterations, blockCols, blockRows, borderCols,
                            borderRows)
     grid_height = chip_height / row
@@ -198,7 +200,7 @@ function compute_tran_temp(dev, MatrixPower, MatrixTemp, col, row, total_iterati
         temp = src
         src = dst
         dst = temp
-        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
+        @measure "calculate_temp" @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t), MatrixPower, MatrixTemp[src + 1],
             MatrixTemp[dst + 1], col, row, borderCols, borderRows, Cap, Rx, Ry,
             Rz, step, time_elapsed)
@@ -257,9 +259,6 @@ function main(args)
     pfile = args["power_file"]
     size = grid_rows * grid_cols
 
-    dev = CuDevice(0)
-    ctx = CuContext(dev)
-
     # --------------- pyramid parameters ---------------
     borderCols = floor(Int32, pyramid_height * EXPAND_RATE / 2)
     borderRows = floor(Int32, pyramid_height * EXPAND_RATE / 2)
@@ -288,9 +287,9 @@ function main(args)
     MatrixPower = CuArray(FilesavingPower)
 
     println("Start computing the transient temperature")
-    ret = compute_tran_temp(dev, MatrixPower, MatrixTemp, grid_cols, grid_rows,
-                                total_iterations, pyramid_height, blockCols,
-                                blockRows, borderCols, borderRows)
+    ret = compute_tran_temp(MatrixPower, MatrixTemp, grid_cols, grid_rows,
+                            total_iterations, pyramid_height, blockCols,
+                            blockRows, borderCols, borderRows)
     println("Ending simulation")
     MatrixOut = Array(MatrixTemp[ret + 1])
 
@@ -299,4 +298,16 @@ function main(args)
     end
 end
 
+
+dev = CuDevice(0)
+ctx = CuContext(dev)
+
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
+
+destroy(ctx)
