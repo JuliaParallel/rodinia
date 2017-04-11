@@ -6,7 +6,6 @@ const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
 include("../../common/julia/libavi.jl")
-include("../../common/julia/wrappers.jl")
 
 include("misc_math.jl")
 include("find_ellipse.jl")

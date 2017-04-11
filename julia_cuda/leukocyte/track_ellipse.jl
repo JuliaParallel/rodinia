@@ -182,11 +182,8 @@ function MGVF(IE, vx, vy, Nc)
 
     # Constants
     const converge = 0.00001
-    # Smallest positive value expressable in double-precision
-    eps = cpow(2.0, -52.0)
     const epsilon = 0.0000000001
-    # Maximum number of iterations to compute the MGVF matrix
-    const iterations = Int32(500)
+    const iterations = Int32(500)   # Maximum number of iterations to compute the MGVF matrix
 
     for cell_num in eachindex(IE)
         m = size(IE[cell_num],1)
@@ -197,7 +194,7 @@ function MGVF(IE, vx, vy, Nc)
         Imin = minimum(IE[cell_num])
 
         # Normalize the image IE[cell_num]
-        scale = 1.0 / (Imax - Imin + eps)
+        scale = 1.0 / (Imax - Imin + eps(Float64))
         IE[cell_num] = (IE[cell_num] .- Imin) * scale
     end
 

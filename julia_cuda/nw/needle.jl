@@ -8,8 +8,6 @@ include("../../common/julia/kernelprofile.jl")
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
 
-include("../../common/julia/wrappers.jl")
-
 include("needle_kernel.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")

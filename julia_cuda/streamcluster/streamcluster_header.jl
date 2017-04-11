@@ -1,5 +1,3 @@
-include("../../common/julia/wrappers.jl")
-
 const INT_MAX = 0x7fffffff
 
 # this structure represents a point
