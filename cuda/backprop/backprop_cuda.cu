@@ -12,6 +12,8 @@
 #include "backprop_cuda_kernel.cu"
 #include "backprop.h"
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 ////////////////////////////////////////////////////////////////////////////////
 
 extern "C" void bpnn_layerforward(float *l1, float *l2, float **conn, int n1,
@@ -118,10 +120,11 @@ extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
     cudaMemcpy(input_hidden_cuda, input_weights_one_dim,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyHostToDevice);
 
-
-    bpnn_layerforward_CUDA<<<grid, threads>>>(input_cuda, output_hidden_cuda,
-                                              input_hidden_cuda,
-                                              hidden_partial_sum, in, hid);
+    MEASURE("layerforward", (
+        bpnn_layerforward_CUDA<<<grid, threads>>>(input_cuda, output_hidden_cuda,
+                                                  input_hidden_cuda,
+                                                  hidden_partial_sum, in, hid)
+    ));
 
     cudaThreadSynchronize();
 
@@ -174,15 +177,20 @@ extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
     cudaMemcpy(input_hidden_cuda, input_weights_one_dim,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyHostToDevice);
 
-
-    bpnn_adjust_weights_cuda<<<grid, threads>>>(
-        hidden_delta_cuda, hid, input_cuda, in, input_hidden_cuda,
-        input_prev_weights_cuda);
+    MEASURE("adjust_weights", (
+        bpnn_adjust_weights_cuda<<<grid, threads>>>(
+            hidden_delta_cuda, hid, input_cuda, in, input_hidden_cuda,
+            input_prev_weights_cuda)
+    ));
 
     cudaMemcpy(net->input_units, input_cuda, (in + 1) * sizeof(float),
                cudaMemcpyDeviceToHost);
     cudaMemcpy(input_weights_one_dim, input_hidden_cuda,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyDeviceToHost);
+
+    if (getenv("PROFILE")) {
+        measure_report("backprop");
+    }
 
     cudaFree(input_cuda);
     cudaFree(output_hidden_cuda);

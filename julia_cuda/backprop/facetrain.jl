@@ -4,6 +4,7 @@ include("backprop.jl")
 include("backprop_cuda_kernel.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 function backprop_face(layer_size)
     net = bpnn_create(layer_size, 16, 1) # (16, 1 cannot be changed)
@@ -25,9 +26,6 @@ function backprop_face(layer_size)
     println("Training done")
 end
 
-################################################################################
-# Program main
-################################################################################
 function main(args)
     if length(args) != 1
         println(STDERR, "usage: backprop <num of input elements>");
@@ -45,9 +43,16 @@ function main(args)
     backprop_face(layer_size)
 end
 
+
 dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)
