@@ -273,7 +273,7 @@ void usage(int argc, char **argv) {
     exit(1);
 }
 
-int main(int argc, char **argv) {
+void real_main(int argc, char **argv) {
     printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
 
     int size;
@@ -342,13 +342,20 @@ int main(int argc, char **argv) {
     if (getenv("OUTPUT"))
         writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt");
 
-    if (getenv("PROFILE"))
-        measure_report("hotspot");
-
     cudaFree(MatrixPower);
     cudaFree(MatrixTemp[0]);
     cudaFree(MatrixTemp[1]);
     free(MatrixOut);
+}
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    real_main(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("hotspot");
 
     return EXIT_SUCCESS;
 }

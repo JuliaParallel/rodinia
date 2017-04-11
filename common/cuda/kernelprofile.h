@@ -22,9 +22,11 @@ struct Invocation {
     }
 };
 
+extern bool enabled;
 extern bool profiling;
 static inline void measure_launch(const Invocation &inv) {
-    if (!profiling) {
+    if (enabled && !profiling) {
+        // lazy-start the profiler to get a narrow scope
         cudaProfilerStart();
         profiling = true;
     }

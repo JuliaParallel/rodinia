@@ -58,7 +58,16 @@ void Usage(int argc, char **argv) {
 int main(int argc, char **argv) {
     no_of_nodes = 0;
     edge_list_size = 0;
+
+    if (getenv("PROFILE"))
+        measure_enable();
+
     BFSGraph(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("bfs");
+
+    return EXIT_SUCCESS;
 }
 
 
@@ -229,10 +238,6 @@ void BFSGraph(int argc, char **argv) {
         for (int i = 0; i < no_of_nodes; i++)
             fprintf(fpo, "%d) cost:%d\n", i, h_cost[i]);
         fclose(fpo);
-    }
-
-    if (getenv("PROFILE")) {
-        measure_report("bfs");
     }
 
     // cleanup memory

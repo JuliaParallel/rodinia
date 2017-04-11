@@ -48,7 +48,17 @@ unsigned int num_blocks = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char **argv) { setup(argc, argv); }
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    setup(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("backprop");
+
+    return EXIT_SUCCESS;
+}
 
 
 extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
@@ -187,10 +197,6 @@ extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
                cudaMemcpyDeviceToHost);
     cudaMemcpy(input_weights_one_dim, input_hidden_cuda,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyDeviceToHost);
-
-    if (getenv("PROFILE")) {
-        measure_report("backprop");
-    }
 
     cudaFree(input_cuda);
     cudaFree(output_hidden_cuda);

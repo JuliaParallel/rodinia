@@ -49,7 +49,7 @@ static struct option long_options[] = {
 extern void lud_cuda(float *d_m, int matrix_dim);
 
 
-int main(int argc, char *argv[]) {
+int run(int argc, char *argv[]) {
     printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
 
     int matrix_dim = 32; /* default matrix_dim */
@@ -152,11 +152,20 @@ int main(int argc, char *argv[]) {
         free(mm);
     }
 
-    if (getenv("PROFILE")) {
-        measure_report("lud");
-    }
-
     free(m);
 
     return EXIT_SUCCESS;
-} /* ----------  end of function main  ---------- */
+}
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("lud");
+
+    return EXIT_SUCCESS;
+}
+

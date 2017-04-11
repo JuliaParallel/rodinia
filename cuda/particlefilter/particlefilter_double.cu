@@ -847,8 +847,7 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
     free(u);
 }
 
-int main(int argc, char *argv[]) {
-
+int run(int argc, char *argv[]) {
     char *usage = strdup("double.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>");
     // check number of arguments
     if (argc != 9) {
@@ -927,9 +926,19 @@ int main(int argc, char *argv[]) {
            elapsed_time(endVideoSequence, endParticleFilter));
     printf("ENTIRE PROGRAM TOOK %f\n", elapsed_time(start, endParticleFilter));
 
-    measure_report("particlefilter");
-
     free(seed);
     free(I);
     return 0;
+}
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("particlefilter");
+
+    return EXIT_SUCCESS;
 }

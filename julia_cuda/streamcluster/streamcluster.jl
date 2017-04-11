@@ -669,7 +669,7 @@ ctx = CuContext(dev)
 main(ARGS)
 
 if PROFILE
-    KernelProfile.clear()
+    KernelProfile.enable()
     main(ARGS)
     KernelProfile.report()
 end

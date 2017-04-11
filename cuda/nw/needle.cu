@@ -75,14 +75,21 @@ double gettime() {
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char **argv) {
 
+int main(int argc, char **argv) {
     printf("WG size of kernel = %d \n", BLOCK_SIZE);
+
+    if (getenv("PROFILE"))
+        measure_enable();
 
     runTest(argc, argv);
 
+    if (getenv("PROFILE"))
+        measure_report("nw");
+
     return EXIT_SUCCESS;
 }
+
 
 void usage(int argc, char **argv) {
     fprintf(stderr, "Usage: %s <max_rows/max_cols> <penalty> \n", argv[0]);
@@ -258,10 +265,6 @@ void runTest(int argc, char **argv) {
 
     cudaFree(referrence_cuda);
     cudaFree(matrix_cuda);
-
-    if (getenv("PROFILE")) {
-        measure_report("nw");
-    }
 
     free(referrence);
     free(input_itemsets);

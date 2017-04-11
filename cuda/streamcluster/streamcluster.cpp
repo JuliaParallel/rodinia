@@ -804,7 +804,7 @@ void streamCluster(PStream *stream, long kmin, long kmax, int dim,
     }
 }
 
-int main(int argc, char **argv) {
+int run(int argc, char **argv) {
     char *outfilename = new char[MAXNAMESIZE];
     char *infilename = new char[MAXNAMESIZE];
     long kmin, kmax, n, chunksize, clustersize;
@@ -853,9 +853,17 @@ int main(int argc, char **argv) {
 
     delete stream;
 
-    if (getenv("PROFILE")) {
-        measure_report("streamcluster");
-    }
-
     return 0;
+}
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("streamcluster");
+
+    return EXIT_SUCCESS;
 }

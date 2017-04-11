@@ -152,7 +152,7 @@ int calc_path(int *gpuWall, int *gpuResult[2], int rows, int cols,
     return dst;
 }
 
-int main(int argc, char **argv) {
+int run(int argc, char **argv) {
     init(argc, argv);
 
     /* --------------- pyramid parameters --------------- */
@@ -207,8 +207,6 @@ int main(int argc, char **argv) {
         fclose(file);
     }
 
-    measure_report("pathfinder");
-
     cudaFree(gpuWall);
     cudaFree(gpuResult[0]);
     cudaFree(gpuResult[1]);
@@ -219,3 +217,16 @@ int main(int argc, char **argv) {
 
     return EXIT_SUCCESS;
 }
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("pathfinder");
+
+    return EXIT_SUCCESS;
+}
+

@@ -68,7 +68,7 @@ __global__ void euclid(LatLong *d_locations, float *d_distances, int numRecords,
 * This program finds the k-nearest neighbors
 **/
 
-int main(int argc, char *argv[]) {
+int run(int argc, char *argv[]) {
     int i = 0;
     float lat, lng;
     int quiet = 0, timing = 0, platform = 0, device = 0;
@@ -179,14 +179,22 @@ int main(int argc, char *argv[]) {
         fclose(out);
     }
 
-    if (getenv("PROFILE")) {
-        measure_report("nn");
-    }
-
     free(distances);
     // Free memory
     cudaFree(d_locations);
     cudaFree(d_distances);
+}
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("nn");
+
+    return EXIT_SUCCESS;
 }
 
 int loadData(char *filename, std::vector<Record> &records,

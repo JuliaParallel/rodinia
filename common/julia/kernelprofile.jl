@@ -11,9 +11,12 @@ struct Invocation
     Invocation() = new(CuEvent(), CuEvent())
 end
 
+const enabled = Ref(false)
 const profiling = Ref(false)
+
 function measure_launch(inv::Invocation)
-    if !profiling[]
+    if enabled[] && !profiling[]
+        # lazy-start the profiler to get a narrow scope
         CUDAdrv.start_profiler()
         profiling[] = true
     end
@@ -37,12 +40,10 @@ macro measure(id, expr)
     end
 end
 
-function clear()
-    empty!(kernels)
-end
+enable() = enabled[] = true
 
 function report()
-    if profiling[]
+    if enabled[] && profiling[]
         CUDAdrv.stop_profiler()
         profiling[] = false
     end
@@ -57,6 +58,8 @@ function report()
             println("$benchmark,$id,$(1_000_000*elapsed(inv.start, inv.stop))")
         end
     end
+
+    empty!(kernels)
 end
 
 end

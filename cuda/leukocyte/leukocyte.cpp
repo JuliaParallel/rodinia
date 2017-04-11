@@ -2,8 +2,7 @@
 #include "track_ellipse.h"
 #include "../../common/cuda/kernelprofile_report.h"
 
-int main(int argc, char **argv) {
-
+int run(int argc, char **argv) {
     // Choose the best GPU in case there are multiple available
     choose_GPU();
 
@@ -275,7 +274,18 @@ int main(int argc, char **argv) {
     printf("\nTotal application run time: %.5f seconds\n",
            ((float)(get_time() - program_start_time)) / (1000 * 1000));
 
-    measure_report("leukocyte");
-
     return 0;
 }
+
+int main(int argc, char **argv) {
+    if (getenv("PROFILE"))
+        measure_enable();
+
+    run(argc, argv);
+
+    if (getenv("PROFILE"))
+        measure_report("leukocyte");
+
+    return EXIT_SUCCESS;
+}
+

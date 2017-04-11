@@ -2,12 +2,17 @@
 
 #include "kernelprofile.h"
 
+bool enabled = false;
 bool profiling = false;
 
 std::map<std::string, std::vector<Invocation> > kernels;
 
+void measure_enable() {
+    enabled = true;
+}
+
 void measure_report(std::string benchmark) {
-    if (profiling) {
+    if (enabled && profiling) {
         cudaProfilerStop();
         profiling = false;
     }
@@ -29,4 +34,6 @@ void measure_report(std::string benchmark) {
         }
     }
     std::cout << std::flush;
+
+    kernels.clear();
 }
