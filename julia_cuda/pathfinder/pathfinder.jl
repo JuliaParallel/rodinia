@@ -7,6 +7,7 @@ const BLOCK_SIZE = 256
 const HALO = 1  # halo width along one direction when advancing to the next iteration
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 # Override rng functions with libc implementations
 function srand(seed)
@@ -204,6 +205,11 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
-report()
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)

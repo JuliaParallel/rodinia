@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
         fclose(file);
     }
 
-    measure_report();
+    measure_report("pathfinder");
 
     cudaFree(gpuWall);
     cudaFree(gpuResult[0]);
