@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 using DataFrames
+using Compat
 
 const suites = ["cuda", "julia_cuda"]   # which benchmark suites to profile and compare
 const baseline = "cuda"
@@ -10,6 +11,11 @@ const root = dirname(@__DIR__)
 # configuration
 const ALWAYS_RUN = false    # always run the profile script, even if we have previous results
 const APPEND_DATA = false   # if ALWAYS_RUN==true but we already had data, combine both sets
+
+
+## input
+
+info("Gathering data")
 
 # find benchmarks common to all suites
 benchmarks = Dict()
@@ -21,7 +27,6 @@ end
 common_benchmarks = intersect(values(benchmarks)...)
 
 # gather profiling data
-info("Gathering data")
 data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
 for suite in suites, benchmark in common_benchmarks
     dir = joinpath(root, suite, benchmark)
@@ -71,19 +76,33 @@ for suite in suites, benchmark in common_benchmarks
     end
 end
 
-# process results
+
+## analysis
+
 info("Processing...")
+
+# create a summary with a column per suite (except the baseline)
 summary = DataFrame(benchmark=String[], kernel=String[])
 for suite in non_baseline
     summary[Symbol(suite)] = Float64[]
 end
+
+# summarize across iterations
 grouped_data = by(data, [:suite, :benchmark, :kernel],
-                  dt->DataFrame(min=minimum(dt[:time]))
+                  dt->DataFrame(time=minimum(dt[:time]))
                  )
-for benchmark in common_benchmarks
+
+# add totals for each benchmark and suite
+_grouped_data = copy(grouped_data)  # prevent aggregating previous totals
+append!(grouped_data, by(_grouped_data, [:suite, :benchmark],
+                         dt->DataFrame(kernel="total", time=sum(dt[:time]))))
+append!(grouped_data, by(_grouped_data, [:suite,],
+                         dt->DataFrame(benchmark="total", kernel="total", time=sum(dt[:time]))))
+
+for benchmark in unique(grouped_data[:benchmark])
     # get the data for this benchmark
     benchmark_data = grouped_data[grouped_data[:benchmark] .== benchmark, :]
-    for kernel in benchmark_data[:kernel]
+    for kernel in unique(benchmark_data[:kernel])
         # get the data for this kernel
         kernel_data = benchmark_data[benchmark_data[:kernel] .== kernel, :]
         if sort(kernel_data[:suite]) != sort(suites)
@@ -96,7 +115,7 @@ for benchmark in common_benchmarks
         others_data = kernel_data[kernel_data[:suite] .!= baseline, :]
         for suite in others_data[:suite]
             suite_data = kernel_data[kernel_data[:suite] .== suite, :]
-            difference = suite_data[:min][1] / baseline_data[:min][1]
+            difference = suite_data[:time][1] / baseline_data[:time][1]
             push!(summary, [benchmark kernel difference])
         end
     end
