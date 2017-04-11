@@ -1,0 +1,109 @@
+#!/usr/bin/env julia
+
+using DataFrames
+
+const suites = ["cuda", "julia_cuda"]   # which benchmark suites to profile and compare
+const baseline = "cuda"
+const non_baseline = filter(suite->suite!=baseline, suites)
+const root = dirname(@__DIR__)
+
+# configuration
+const ALWAYS_RUN = false    # always run the profile script, even if we have previous results
+const APPEND_DATA = false   # if ALWAYS_RUN==true but we already had data, combine both sets
+
+# find benchmarks common to all suites
+benchmarks = Dict()
+for suite in suites
+    entries = readdir(joinpath(root, suite))
+    benchmarks[suite] = filter(entry->(isdir(joinpath(root,suite,entry)) &&
+                                       isfile(joinpath(root,suite,entry,"profile"))), entries)
+end
+common_benchmarks = intersect(values(benchmarks)...)
+
+# gather profiling data
+info("Gathering data")
+data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
+for suite in suites, benchmark in common_benchmarks
+    dir = joinpath(root, suite, benchmark)
+    cd(dir) do
+        # get data
+        cache = joinpath(dir, "profile.csv")
+        csv = Nullable{String}()
+        if isfile(cache)
+            csv = Nullable(read(cache))
+        end
+
+        if ALWAYS_RUN || isnull(csv)
+            # run and collect CSV output
+            csv_lines = Vector{String}()
+            tag = "$benchmark,"
+            info("Running $suite/$benchmark")
+            cmd = pipeline(ignorestatus(`./profile`))
+            for line in eachline(cmd)
+                if startswith(line, tag)
+                    push!(csv_lines, line)
+                end
+            end
+            if success(cmd)
+                csv_data = join(csv_lines, "\n")
+                if APPEND_DATA && !isnull(csv)
+                    csv_data = join([csv_data, get(csv)], "\n")
+                end
+                write(cache, csv_data)
+                csv = Nullable(csv_data)
+            else
+                warn("Benchmark did not succeed")
+            end
+        end
+
+        if !isnull(csv)
+            io = IOBuffer(get(csv))
+            local_data = readtable(io, header=false)
+            names!(local_data, [:benchmark, :kernel, :time])
+            local_data[:suite] = suite
+            # create new table with a :suite column prepended
+            local_data = DataFrame(suite=local_data[:suite],
+                                   benchmark=local_data[:benchmark],
+                                   kernel=local_data[:kernel],
+                                   time=local_data[:time])
+            append!(data, local_data)
+        end
+    end
+end
+
+# process results
+info("Processing...")
+summary = DataFrame(benchmark=String[], kernel=String[])
+for suite in non_baseline
+    summary[Symbol(suite)] = Float64[]
+end
+grouped_data = by(data, [:suite, :benchmark, :kernel],
+                  dt->DataFrame(min=minimum(dt[:time]))
+                 )
+for benchmark in common_benchmarks
+    # get the data for this benchmark
+    benchmark_data = grouped_data[grouped_data[:benchmark] .== benchmark, :]
+    for kernel in benchmark_data[:kernel]
+        # get the data for this kernel
+        kernel_data = benchmark_data[benchmark_data[:kernel] .== kernel, :]
+        if sort(kernel_data[:suite]) != sort(suites)
+            warn("- kernel $kernel: don't have data for all suites")
+            continue
+        end
+
+        # compare other suites against the chosen baseline
+        baseline_data = kernel_data[kernel_data[:suite] .== baseline, :]
+        others_data = kernel_data[kernel_data[:suite] .!= baseline, :]
+        for suite in others_data[:suite]
+            suite_data = kernel_data[kernel_data[:suite] .== suite, :]
+            difference = suite_data[:min][1] / baseline_data[:min][1]
+            push!(summary, [benchmark kernel difference])
+        end
+    end
+end
+
+# print some stats
+for suite in non_baseline
+    suite_summary = by(summary, [:benchmark], dt->DataFrame(julia_cuda=mean(dt[Symbol(suite)])))
+    println(suite_summary)
+end
