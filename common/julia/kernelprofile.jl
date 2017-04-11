@@ -1,3 +1,7 @@
+module KernelProfile
+
+export @measure
+
 using CUDAdrv
 
 struct Invocation
@@ -18,30 +22,41 @@ function measure_launch(id::String)
     return inv
 end
 
-macro measure(id::String, expr)
+macro measure(id, expr)
     quote
-        inv = measure_launch($id)
+        inv = measure_launch($(esc(id)))
         $(esc(expr))
         measure_finish(inv)
     end
 end
 
+clear() = empty!(kernels)
+
 function report()
-    println()
-    info("Kernel profile report for $(length(kernels)) kernels:")
+    benchmark = basename(dirname(Base.source_path()))
     for (id, invs) in kernels
+        # gather data
         times = Float64[]
         for inv in invs
             synchronize(inv.stop)
             push!(times, elapsed(inv.start, inv.stop))
         end
-        if length(times) > 1
-            shift!(times)
-        end
-        info(" - $id (x $(length(invs))): " *
-             "min $(round(Int, 1_000_000*minimum(times))) µs, " *
-             "mean $(round(Int, 1_000_000*mean(times))) " *
-             (length(times)>1 ? "± $(round(Int, 1_000_000*std(times))) µs" : " µs"))
+        times .*= 1_000_000     # s to μs
+
+        # calculate metric and print csv
+        fields = [benchmark
+                  id
+                  length(times)
+                  minimum(times)
+                  median(times)
+                  mean(times)
+                  maximum(times)
+                  length(times)>1 ? round(Int, std(times)) : 0
+                 ]
+        writecsv(STDOUT, reshape(fields, (1, length(fields))))
     end
-    empty!(kernels)
 end
+
+end
+
+using KernelProfile
