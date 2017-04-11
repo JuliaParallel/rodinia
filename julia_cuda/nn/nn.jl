@@ -3,8 +3,10 @@
 using ArgParse
 using CUDAdrv
 using CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 ceilDiv(a, b) = ceil(Int, a / b)
 
@@ -54,8 +56,8 @@ function main(args)
         resultsCount = numRecords
     end
 
-    dev = CuDevice(dev)
-    ctx = CuContext(dev)
+    ctx = CuCurrentContext()
+    dev = device(ctx)
 
     # Scaling calculations - added by Sam Kauffman
     synchronize()
@@ -104,7 +106,7 @@ function main(args)
     d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda ((gridX, gridY), threadsPerBlock) euclid(
+    @measure "euclid" @cuda ((gridX, gridY), threadsPerBlock) euclid(
         pointer(d_locations), length(d_locations), pointer(d_distances),
         length(d_distances), UInt32(numRecords), lat, lng)
 
@@ -228,4 +230,16 @@ function parseCommandline(args)
             options["q"], options["t"], p, d)
 end
 
+
+dev = CuDevice(0)
+ctx = CuContext(dev)
+
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
+
+destroy(ctx)

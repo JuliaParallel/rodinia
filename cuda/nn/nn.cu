@@ -10,6 +10,8 @@
 #include <vector>
 #include "cuda.h"
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 #define min(a, b) a > b ? b : a
 #define ceilDiv(a, b) (a + b - 1) / b
 #define print(x) printf(#x ": %lu\n", (unsigned long)x)
@@ -155,8 +157,10 @@ int main(int argc, char *argv[]) {
     /**
     * Execute kernel
     */
-    euclid<<<gridDim, threadsPerBlock>>>(d_locations, d_distances, numRecords,
-                                         lat, lng);
+    MEASURE("euclid", (
+        euclid<<<gridDim, threadsPerBlock>>>(d_locations, d_distances, numRecords,
+                                             lat, lng)
+    ));
     cudaThreadSynchronize();
 
     // Copy data from device memory to host memory
@@ -173,6 +177,10 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < resultsCount; i++)
             fprintf(out, "%s --> %f\n", records[i].recString, records[i].distance);
         fclose(out);
+    }
+
+    if (getenv("PROFILE")) {
+        measure_report("nn");
     }
 
     free(distances);
