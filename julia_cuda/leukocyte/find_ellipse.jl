@@ -78,9 +78,9 @@ end
 
 # Given x- and y-gradients of a video frame, computes the GICOV
 #  score for each sample ellipse at every pixel in the frame
-function GICOV(dev, grad_x, grad_y, GICOV_constants)
+function GICOV(grad_x, grad_y, GICOV_constants)
     # Offload the GICOV score computation to the GPU
-    gicov = GICOV_CUDA(dev,grad_x,grad_y,GICOV_constants)
+    gicov = GICOV_CUDA(grad_x,grad_y,GICOV_constants)
 
     convert(Array{Float64,2},gicov)
 end
@@ -93,9 +93,9 @@ end
 
 
 # Performs an image dilation on the specified matrix
-function dilate(dev,img_in, GICOV_constants)
+function dilate(img_in, GICOV_constants)
     # Offload the dilation to the GPU
-    dilate_CUDA(dev,img_in,GICOV_constants)
+    dilate_CUDA(img_in,GICOV_constants)
 end
 
 

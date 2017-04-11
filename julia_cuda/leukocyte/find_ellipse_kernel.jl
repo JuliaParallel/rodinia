@@ -88,7 +88,7 @@ end
 
 
 # Sets up and invokes the GICOV kernel and returns its output
-function GICOV_CUDA(dev, host_grad_x, host_grad_y, GICOV_constants)
+function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
     const MaxR = MAX_RAD + 2
 
     # Allocate device memory
@@ -170,7 +170,7 @@ end
 
 
 # Sets up and invokes the dilation kernel and returns its output
-function dilate_CUDA(dev, img_in, GICOV_constants)
+function dilate_CUDA(img_in, GICOV_constants)
     # TODO: should be put in texture memory
     img_dev = CuArray(img_in)
     dilated_out = CuArray{Float32}((size(img_in,1),size(img_in,2)))

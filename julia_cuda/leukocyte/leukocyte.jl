@@ -58,13 +58,13 @@ function main(args)
 
     # Get GICOV matrix corresponding to image gradients
     tic()
-    gicov = GICOV(dev, grad_x, grad_y, GICOV_constants)
+    gicov = GICOV(grad_x, grad_y, GICOV_constants)
     GICOV_end_time = toq()
 
     # Dilate the GICOV matrix
     tic()
     strel = structuring_element(12)
-    img_dilated = dilate(dev, gicov, GICOV_constants)
+    img_dilated = dilate(gicov, GICOV_constants)
     dilate_end_time = toq()
 
     # Find possible matches for cell centers based on GICOV and record the
@@ -177,7 +177,7 @@ function main(args)
     end
     tic()
     num_snaxels = 20
-    ellipsetrack(dev, cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames)
+    ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames)
     toc()
 
     # Report total program execution time

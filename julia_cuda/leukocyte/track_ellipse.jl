@@ -3,7 +3,7 @@ include("track_ellipse_kernel.jl")
 const OUTPUT = haskey(ENV, "OUTPUT")
 const PROFILE = haskey(ENV, "PROFILE")
 
-function ellipsetrack(dev, video, xc0, yc0, Nc, R, Np, Nf)
+function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     #=
     % ELLIPSETRACK tracks cells in the movie specified by 'video', at
     %  locations 'xc0'/'yc0' with radii R using an ellipse with Np discrete
@@ -111,7 +111,7 @@ function ellipsetrack(dev, video, xc0, yc0, Nc, R, Np, Nf)
         # Compute the motion gradient vector flow (MGVF) edgemaps for all cells
         # concurrently
         MGVF_start_time = time()
-        IMGVF = MGVF(dev, IE, 1, 1, Nc)
+        IMGVF = MGVF(IE, 1, 1, Nc)
         MGVF_time += time() - MGVF_start_time
 
         # Sequentially determine the position of the cell in the subimage
@@ -155,7 +155,7 @@ function ellipsetrack(dev, video, xc0, yc0, Nc, R, Np, Nf)
     print(@sprintf(" Snake evolution: %.5f seconds\n",snake_time / Nf))
 end
 
-function MGVF(dev, IE, vx, vy, Nc)
+function MGVF(IE, vx, vy, Nc)
     #=
     % MGVF calculate the motion gradient vector flow (MGVF)
     %  for the image 'I'
@@ -202,7 +202,7 @@ function MGVF(dev, IE, vx, vy, Nc)
     end
 
     # Offload the MGVF computation to the GPU
-    IMGVF_cuda(dev, IE, vx, vy, epsilon, iterations, converge)
+    IMGVF_cuda(IE, vx, vy, epsilon, iterations, converge)
 end
 
 

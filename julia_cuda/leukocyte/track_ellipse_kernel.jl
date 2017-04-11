@@ -229,7 +229,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
 end
 
 
-function IMGVF_cuda(dev, I, vx, vy, e, max_iterations, cutoff)
+function IMGVF_cuda(I, vx, vy, e, max_iterations, cutoff)
 
     # Copy input matrices to device
     num_cells = size(I,1)
