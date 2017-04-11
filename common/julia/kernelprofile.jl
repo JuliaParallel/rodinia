@@ -36,24 +36,12 @@ function report()
     benchmark = basename(dirname(Base.source_path()))
     for (id, invs) in kernels
         # gather data
-        times = Float64[]
         for inv in invs
             synchronize(inv.stop)
-            push!(times, elapsed(inv.start, inv.stop))
-        end
-        times .*= 1_000_000     # s to μs
 
-        # calculate metric and print csv
-        fields = [benchmark
-                  id
-                  length(times)
-                  minimum(times)
-                  median(times)
-                  mean(times)
-                  maximum(times)
-                  length(times)>1 ? round(Int, std(times)) : 0
-                 ]
-        writecsv(STDOUT, reshape(fields, (1, length(fields))))
+            # print csv
+            println("$benchmark,$id,$(1_000_000*elapsed(inv.start, inv.stop))")
+        end
     end
 end
 
