@@ -16,6 +16,8 @@
  * =====================================================================================
  */
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 #include <cuda.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -142,13 +144,16 @@ int main(int argc, char *argv[]) {
 
     cudaFree(d_m);
 
-
     if (do_verify) {
         printf("After LUD\n");
         // print_matrix(m, matrix_dim);
         printf(">>>Verify<<<<\n");
         lud_verify(mm, m, matrix_dim);
         free(mm);
+    }
+
+    if (getenv("PROFILE")) {
+        measure_report("lud");
     }
 
     free(m);

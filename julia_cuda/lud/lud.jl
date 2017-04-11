@@ -1,7 +1,12 @@
 #!/usr/bin/env julia
 
+using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
+
 include("common.jl")
 include("lud_kernel.jl")
+
+const PROFILE = haskey(ENV, "PROFILE")
 
 using ArgParse
 
@@ -39,12 +44,9 @@ function main(args)
         matrix_copy = copy(matrix)
     end
 
-    dev = CuDevice(0)
-    ctx = CuContext(dev)
-
     sec = CUDAdrv.@elapsed begin
         d_matrix = CuArray(matrix)
-        lud_cuda(dev, d_matrix, matrix_dim)
+        lud_cuda(d_matrix, matrix_dim)
         matrix = Array(d_matrix)
     end
     info("Time consumed(ms): ", 1000sec)
@@ -56,4 +58,16 @@ function main(args)
     end
 end
 
+
+dev = CuDevice(0)
+ctx = CuContext(dev)
+
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
+
+destroy(ctx)

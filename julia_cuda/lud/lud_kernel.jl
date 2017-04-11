@@ -136,20 +136,22 @@ function lud_internal(matrix_ptr, matrix_dim, offset)
     return nothing
 end
 
-function lud_cuda(dev, matrix, matrix_dim)
+function lud_cuda(matrix, matrix_dim)
     i = 0
     while i < matrix_dim - BLOCK_SIZE
-        @cuda (1, BLOCK_SIZE) lud_diagonal(pointer(matrix), matrix_dim, i)
+        @measure "diagonal" @cuda (1, BLOCK_SIZE) lud_diagonal(
+            pointer(matrix), matrix_dim, i)
 
         grid_size = (matrix_dim-i)÷BLOCK_SIZE - 1
 
-        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(pointer(matrix), matrix_dim, i)
+        @measure "perimeter" @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(
+            pointer(matrix), matrix_dim, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(
+        @measure "internal" @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(
             pointer(matrix), matrix_dim, i)
 
         i += BLOCK_SIZE
     end
 
-    @cuda (1, BLOCK_SIZE) lud_diagonal(pointer(matrix), matrix_dim, i)
+    @measure "diagonal" @cuda (1, BLOCK_SIZE) lud_diagonal(pointer(matrix), matrix_dim, i)
 end
