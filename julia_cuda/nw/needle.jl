@@ -5,9 +5,12 @@ include("../../common/julia/kernelprofile.jl")
 
 include("needle_kernel.jl")
 include("../../common/julia/wrappers.jl")
+include("../../common/julia/crand.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
 const PROFILE = haskey(ENV, "PROFILE")
+
+const rng = LibcRNG()
 
 const LIMIT = -999
 function maximum(a, b, c)
@@ -72,14 +75,14 @@ function main(args)
     reference = Array{Int32}(max_rows, max_cols)
     input_itemsets = zeros(Int32, (max_rows, max_cols))
 
-    srand(7)
+    srand(rng, 7)
     println("Start Needleman-Wunsch")
 
     for i = 2:max_rows # Please define your own sequence.
-        input_itemsets[i,1] = rand() % 10 + 1
+        input_itemsets[i,1] = rand(rng) % 10 + 1
     end
     for j = 2:max_cols # Please define your own sequence.
-        input_itemsets[1,j] = rand() % 10 + 1
+        input_itemsets[1,j] = rand(rng) % 10 + 1
     end
 
     for i = 2:max_rows

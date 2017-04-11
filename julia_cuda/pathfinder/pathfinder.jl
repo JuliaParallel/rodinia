@@ -9,14 +9,8 @@ const HALO = 1  # halo width along one direction when advancing to the next iter
 const OUTPUT = haskey(ENV, "OUTPUT")
 const PROFILE = haskey(ENV, "PROFILE")
 
-# Override rng functions with libc implementations
-function srand(seed)
-    ccall( (:srand, "libc"), Void, (Int,), seed)
-end
-function rand()
-    r = ccall( (:rand, "libc"), Int, ())
-    return r
-end
+include("../../common/julia/crand.jl")
+const rng = LibcRNG()
 
 function init(args)
     if length(args) == 3
@@ -28,13 +22,13 @@ function init(args)
         exit(0)
     end
 
-    srand(7)
+    srand(rng, 7)
 
     # Initialize en fill wall
     # Switch semantics of row & col -> easy copy to gpu array in run function
     wall = Array{Int32}(cols, rows)
     for i = 1:length(wall)
-        wall[i] = Int32(rand() % 10)
+        wall[i] = Int32(rand(rng) % 10)
     end
 
     if OUTPUT

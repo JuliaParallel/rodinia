@@ -3,6 +3,9 @@
 using CUDAdrv, CUDAnative
 include("../../common/julia/kernelprofile.jl")
 
+include("../../common/julia/crand.jl")
+const rng = LibcRNG48()
+
 include("streamcluster_cuda.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
@@ -21,7 +24,7 @@ function shuffle(points)
     global g_time_shuffle
 
     for i = 0:points.num-2
-        j = (lrand48() % (points.num - i)) + i
+        j = (rand(rng, Culong) % (points.num - i)) + i
         temp = points.p[i + 1]
         points.p[i + 1] = points.p[j + 1]
         points.p[j + 1] = temp
@@ -36,7 +39,7 @@ function intshuffle(intarray, length)
     global g_time_shuffle
 
     for i = 0:length-1
-        j = (lrand48() % (length - i)) + i
+        j = (rand(rng, Culong) % (length - i)) + i
         temp = intarray[i + 1]
         intarray[i + 1] = intarray[j + 1]
         intarray[j + 1] = temp
@@ -97,7 +100,7 @@ function pspeedy(points, z, kcenter, pid)
 
         # I am the master thread. I decide whether to open a center and notify others if so.
         for __pspeedy_i[] = 1:points.num-1
-            if (Float32(lrand48()) / INT_MAX) < (points.p[__pspeedy_i[]+1].cost / z)
+            if (Float32(rand(rng, Culong)) / INT_MAX) < (points.p[__pspeedy_i[]+1].cost / z)
                 kcenter[] += 1
                 __pspeedy_open[] = true
 
@@ -237,7 +240,7 @@ function selectfeasible_fast(points, kmin, pid)
 
     for i = k1+1:k2
 
-        w = (lrand48() / Float32(INT_MAX)) * totalweight
+        w = (rand(rng, Culong) / Float32(INT_MAX)) * totalweight
 
         # binary search
         l = 0
@@ -646,7 +649,7 @@ function main(args)
     # reset global state
     global g_isCoordChanged
     g_isCoordChanged = false
-    srand48(SEED)
+    srand(rng, SEED)
 
     stream = n > 0 ? SimStream(n) : FileStream(infilename)
 

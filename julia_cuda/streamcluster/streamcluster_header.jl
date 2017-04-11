@@ -31,7 +31,7 @@ function read(pstream::SimStream, dest, dim, num)
 
     while i < num && pstream.n > 0
         for k = 1:dim
-            dest[i * dim + k] = lrand48() / Float32(INT_MAX)
+            dest[i * dim + k] = rand(rng, Culong) / Float32(INT_MAX)
         end
 
         i += 1

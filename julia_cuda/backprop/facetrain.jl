@@ -12,7 +12,7 @@ function backprop_face(layer_size)
 
     units = net.input_units
     for i = 2:layer_size+1
-        units[i] = float(rand()) / RAND_MAX
+        units[i] = float(rand(rng)) / RAND_MAX
     end
 
     # Entering the training kernel, only one iteration.

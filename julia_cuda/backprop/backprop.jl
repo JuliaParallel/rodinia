@@ -1,10 +1,12 @@
 include("../../common/julia/wrappers.jl")
+include("../../common/julia/crand.jl")
 
 const BIGRND   = 0x7fffffff
-const RAND_MAX = 2147483647
 
 const ETA      = 0.3 # eta value
 const MOMENTUM = 0.3 # momentum value
+
+const rng = LibcRNG()
 
 type BPNN
     input_n  # number of input units
@@ -43,7 +45,7 @@ end
 
 # Returns a random number between 0.0 and 1.0.
 function drnd()
-    Float32(rand()) / BIGRND
+    Float32(rand(rng)) / BIGRND
 end
 
 # Returns a random number between -1.0 and 1.0.
@@ -59,7 +61,7 @@ end
 function bpnn_randomize_weights(w, m, n)
     for i = 1:m+1
         for j = 1:n+1
-            w[i,j] = Float32(rand()) / RAND_MAX
+            w[i,j] = Float32(rand(rng)) / RAND_MAX
         end
     end
 end
@@ -81,7 +83,7 @@ end
 
 function bpnn_initialize(seed)
     println("Random number generator seed: ", seed)
-    srand(seed)
+    srand(rng, seed)
 end
 
 # Creates a new fully-connected network from scratch, with the given numbers of
