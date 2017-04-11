@@ -195,19 +195,19 @@ void BFSGraph(int argc, char **argv) {
         // if no thread changes this value then the loop stops
         stop = false;
         cudaMemcpy(d_over, &stop, sizeof(bool), cudaMemcpyHostToDevice);
-        MEASURE("kernel_1", (
+
+        // NOTE: each kernel loops a variable amount of times, so we can't aggregate them
+
+        MEASURE("kernel 1 iteration " + std::to_string(k), (
             Kernel<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
                                          d_updating_graph_mask, d_graph_visited,
                                          d_cost, no_of_nodes)
         ));
-        // check if kernel execution generated and error
 
-        MEASURE("kernel_2", (
+        MEASURE("kernel 2 iteration " + std::to_string(k), (
             Kernel2<<<grid, threads, 0>>>(d_graph_mask, d_updating_graph_mask,
                                           d_graph_visited, d_over, no_of_nodes)
         ));
-        // check if kernel execution generated and error
-
 
         cudaMemcpy(&stop, d_over, sizeof(bool), cudaMemcpyDeviceToHost);
         k++;
@@ -220,7 +220,6 @@ void BFSGraph(int argc, char **argv) {
     cudaMemcpy(h_cost, d_cost, sizeof(int) * no_of_nodes,
                cudaMemcpyDeviceToHost);
 
-    // Store the result into a file
     if (getenv("OUTPUT")) {
         FILE *fpo = fopen("output.txt", "w");
         for (int i = 0; i < no_of_nodes; i++)
@@ -228,7 +227,9 @@ void BFSGraph(int argc, char **argv) {
         fclose(fpo);
     }
 
-    measure_report();
+    if (getenv("PROFILE")) {
+        measure_report("bfs");
+    }
 
     // cleanup memory
     free(h_graph_nodes);

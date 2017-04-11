@@ -4,6 +4,7 @@ using CUDAdrv, CUDAnative
 include("../../common/julia/kernelprofile.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 const MAX_THREADS_PER_BLOCK = UInt32(512)
 
@@ -160,13 +161,15 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        @measure "kernel_1" @cuda (grid, threads) kernel_1(
+        # NOTE: each kernel loops a variable amount of times, so we can't aggregate them
+
+        @measure "kernel 1 iteration $k" @cuda (grid, threads) kernel_1(
             pointer(g_graph_nodes), pointer(g_graph_edges), pointer(g_graph_mask),
             pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_cost), no_of_nodes, edge_list_size
         )
 
-        @measure "kernel_2" @cuda (grid, threads) kernel_2(
+        @measure "kernel 2 iteration $k" @cuda (grid, threads) kernel_2(
             pointer(g_graph_mask), pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_stop), no_of_nodes
         )
@@ -198,6 +201,11 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
-report()
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)
