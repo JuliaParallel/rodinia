@@ -1,48 +1,30 @@
 #!/usr/bin/env julia
 
+using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
+
 include("streamcluster_cuda.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
+
+# GLOBAL
 const SP = 1 # number of repetitions of speedy must be >=1
 const SEED = 1
 const ITER  = 3 # iterate ITER* k log k times ITER >= 1
-const PROFILE = true # Enables timing info
 const PRINT_INFO = false
-
-g_time_speedy = 0
-g_time_shuffle = 0
-g_time_local_search = 0
-g_time_select_feasible = 0
-
 g_isCoordChanged = false
-
-# GPU Timing Info
-const g_alloc_t = Ref{Float32}(0f0)
-
-const g_kernel_t = Ref{Float32}(0f0)
-const g_serial_t = Ref{Float32}(0f0)
-
-const g_cpu_to_gpu_t = Ref{Float32}(0f0)
-const g_gpu_to_cpu_t = Ref{Float32}(0f0)
 
 # shuffle points into random order
 function shuffle(points)
 
     global g_time_shuffle
 
-    if PROFILE
-        t1 = time()
-    end
-
     for i = 0:points.num-2
         j = (lrand48() % (points.num - i)) + i
         temp = points.p[i + 1]
         points.p[i + 1] = points.p[j + 1]
         points.p[j + 1] = temp
-    end
-
-    if PROFILE
-        t2 = time()
-        g_time_shuffle += t2 - t1
     end
 
     return nothing
@@ -53,20 +35,11 @@ function intshuffle(intarray, length)
 
     global g_time_shuffle
 
-    if PROFILE
-        t1 = time()
-    end
-
     for i = 0:length-1
         j = (lrand48() % (length - i)) + i
         temp = intarray[i + 1]
         intarray[i + 1] = intarray[j + 1]
         intarray[j + 1] = temp
-    end
-
-    if PROFILE
-        t2 = time()
-        g_time_shuffle += t2 - t1
     end
 
     return nothing
@@ -97,10 +70,6 @@ function pspeedy(points, z, kcenter, pid)
     global __pspeedy_open
     global __pspeedy_costs
     global __pspeedy_totalcost
-
-    if PROFILE
-        t1 = time()
-    end
 
     # my block
     bsize = Int(points.num / nproc[])
@@ -183,11 +152,6 @@ function pspeedy(points, z, kcenter, pid)
         @printf(STDERR, "Distance Cost %lf\n", __pspeedy_totalcost[] - z * kcenter[])
     end
 
-    if PROFILE && pid == 0
-        t2 = time()
-        g_time_speedy += t2 - t1
-    end
-
     return __pspeedy_totalcost[]
 end
 
@@ -217,9 +181,7 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
         for i = 0:iter-1
             x = i % numfeasible
             change += pgain(ctx, feasible[x + 1], points, z, k, kmax, g_is_center,
-                            g_center_table, g_switch_membership, g_isCoordChanged,
-                            g_serial_t, g_cpu_to_gpu_t, g_gpu_to_cpu_t, g_alloc_t,
-                            g_kernel_t)
+                            g_center_table, g_switch_membership, g_isCoordChanged)
         end
 
         cost -= change
@@ -236,10 +198,6 @@ end
 function selectfeasible_fast(points, kmin, pid)
 
     global g_time_select_feasible
-
-    if PROFILE
-        t1 = time()
-    end
 
     numfeasible = points.num
 
@@ -302,11 +260,6 @@ function selectfeasible_fast(points, kmin, pid)
         feasible[i] = r
     end
 
-    if PROFILE
-        t2 = time()
-        g_time_select_feasible += t2 - t1
-    end
-
     return feasible
 end
 
@@ -316,7 +269,6 @@ const __pkmedian_feasible = Ref{Array{Int32,1}}()
 
 # compute approximate kmedian on the points
 function pkmedian(points, kmin, kmax, kfinal, pid)
-
     global g_is_center
     global __pkmedian_k
     global __pkmedian_hizs
@@ -536,25 +488,14 @@ function copycenters(points, centers, centerIDs, offset)
 end
 
 function localSearch(points, kmin, kmax, kfinal)
-
     global g_time_local_search
-
-    if PROFILE
-        t1 = time()
-    end
 
     for i = 0:nproc[]-1
         pkmedian(points, kmin, kmax, kfinal, i)
     end
-
-    if PROFILE
-        t2 = time()
-        g_time_local_search += t2 - t1
-    end
 end
 
 function outcenterIDs(centers, centerIDs, outfile)
-
     try
         fp = open(outfile, "w")
         is_a_median = [false for i = 1:centers.num]
@@ -584,7 +525,6 @@ function outcenterIDs(centers, centerIDs, outfile)
 end
 
 function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
-
     global g_is_center
     global g_center_table
     global g_isCoordChanged
@@ -606,7 +546,6 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
     kfinal = Ref{Int64}(0)
 
     while true
-
         numRead = 0
 
         for i = 1:chunksize
@@ -666,16 +605,15 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
 
     localSearch(centers, kmin, kmax, kfinal)
     contcenters(centers)
-    outcenterIDs(centers, centerIDs, outfile)
+    if OUTPUT
+        outcenterIDs(centers, centerIDs, outfile)
+    end
 end
 
 const nproc = Ref{Int32}(0)
 
 function main(args)
-
     global nproc
-
-    println("PARSEC Benchmark Suite")
 
     if length(args) < 9
         @printf(STDERR, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n",
@@ -705,41 +643,28 @@ function main(args)
     outfilename = args[8]
     nproc[] = parse(Int32, args[9])
 
+    # reset global state
+    global g_isCoordChanged
+    g_isCoordChanged = false
     srand48(SEED)
 
     stream = n > 0 ? SimStream(n) : FileStream(infilename)
 
-    t1 = time()
-
     streamCluster(stream, kmin, kmax, dim, chunksize, clustersize, outfilename)
 
-    t2 = time()
-
-    @printf("time = %lfs\n", t2 - t1)
-
     delete(stream)
-
-    if PROFILE
-        @printf("time pgain = %lfs\n", 0.0)
-        @printf("time pgain_dist = %lfs\n", 0.0)
-        @printf("time pgain_init = %lfs\n", 0.0)
-        @printf("time pselect = %lfs\n", g_time_select_feasible)
-        @printf("time pspeedy = %lfs\n", g_time_speedy)
-        @printf("time pshuffle = %lfs\n", g_time_shuffle)
-        @printf("time localSearch = %lfs\n", g_time_local_search)
-        @printf("\n\n")
-        @printf("====CUDA Timing info (pgain)====\n")
-        @printf("time serial = %lfs\n", g_serial_t[] / 1000)
-        @printf("time CPU to GPU memory copy = %lfs\n", g_cpu_to_gpu_t[] / 1000)
-        @printf("time GPU to CPU memory copy back = %lfs\n", g_gpu_to_cpu_t[] / 1000)
-        @printf("time GPU malloc = %lfs\n", g_alloc_t[] / 1000)
-        @printf("time kernel = %lfs\n", g_kernel_t[] / 1000)
-    end
 end
+
 
 dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)

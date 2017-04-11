@@ -3,11 +3,11 @@ include("streamcluster_header.jl")
 using CUDAdrv
 using CUDAnative
 
-const CUDA_TIME = true
 const THREADS_PER_BLOCK = 512
 const MAXBLOCKS = 65536
 
 g_iter = 0 # counter for total # of g_iterations
+
 
 #=======================================#
 # Euclidean Distance
@@ -22,6 +22,7 @@ function d_dist(p1, p2, num, dim, coord_d)
 
     return retval
 end
+
 
 #=======================================#
 # Kernel - Compute Cost
@@ -54,21 +55,15 @@ end
 
 const g_coord_h = Ref{Array{Float32}}()
 
+
 #=======================================#
 # pgain Entry - CUDA SETUP + CUDA CALL
 #=======================================#
 function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
-               switch_membership, isCoordChanged, serial_t, cpu_to_gpu_t,
-               gpu_to_cpu_t, alloc_t, kernel_t)
+               switch_membership, isCoordChanged)
 
     global g_iter
     global g_coord_h
-
-    if CUDA_TIME
-        start = CuEvent()
-        stop = CuEvent()
-        record(start)
-    end
 
     stride = numcenters[] + 1 # size of each work_mem segment
     K = numcenters[]          # number of centers
@@ -106,13 +101,6 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
         end
     end
 
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        serial_t[] += elapsed(start, stop)
-        record(start)
-    end
-
     #==============================================#
     # ALLOCATE GPU MEMORY + CPU-TO-GPU MEMORY COPY
     #==============================================#
@@ -134,24 +122,15 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
     work_mem_d = CuArray(zeros(Float32, stride * (nThread + 1)))
     switch_membership_d = CuArray([false for i = 1:num])
 
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        tmp = elapsed(start, stop)
-        alloc_t[] += tmp
-        cpu_to_gpu_t[] += tmp
-        record(start)
-    end
-
     #=======================================#
     # KERNEL: CALCULATE COST
     #=======================================#
     # Determine the number of thread blocks in the x- and y-dimension
-    num_blocks = floor(Int64, (num + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK)
-    num_blocks_y = floor(Int64, (num_blocks + MAXBLOCKS - 1) / MAXBLOCKS)
-    num_blocks_x = floor(Int64, (num_blocks + num_blocks_y - 1) / num_blocks_y)
+    num_blocks = (num + THREADS_PER_BLOCK - 1) ÷ THREADS_PER_BLOCK
+    num_blocks_y = (num_blocks + MAXBLOCKS - 1) ÷ MAXBLOCKS
+    num_blocks_x = (num_blocks + num_blocks_y - 1) ÷ num_blocks_y
 
-    @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
+    @measure "compute_cost" @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
         num,                # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at
@@ -164,33 +143,11 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
         switch_membership_d # out: changes in membership
     )
 
-    # TODO
-    # // error check
-    # error = cudaGetLastError();
-    # if (error != cudaSuccess) {
-    #     printf("kernel error: %s\n", cudaGetErrorString(error));
-    #     exit(EXIT_FAILURE);
-    # }
-
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        kernel_t[] += elapsed(start, stop)
-        record(start)
-    end
-
     #=======================================#
     # GPU-TO-CPU MEMORY COPY
     #=======================================#
     work_mem_h = Array(work_mem_d)
     switch_membership = Array(switch_membership_d)
-
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        gpu_to_cpu_t[] += elapsed(start, stop)
-        record(start)
-    end
 
     #=======================================#
     # CPU (SERIAL) WORK
@@ -243,13 +200,6 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
         numcenters[] += 1 - number_of_centers_to_close
     else
         gl_cost_of_opening_x = 0f0
-    end
-
-    if CUDA_TIME
-        record(stop)
-        synchronize(stop)
-        serial_t[] += elapsed(start, stop)
-        record(start)
     end
 
     g_iter += 1

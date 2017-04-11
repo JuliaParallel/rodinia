@@ -15,6 +15,8 @@
 
 #include "streamcluster_header.cu"
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 using namespace std;
 
 #define MAXNAMESIZE 1024 // max filename length
@@ -22,10 +24,8 @@ using namespace std;
 #define SP 1   // number of repetitions of speedy must be >=1
 #define ITER 3 // iterate ITER* k log k times; ITER >= 1
 //#define PRINTINFO 				// Enables printing output
-#define PROFILE // Enables timing info
 //#define ENABLE_THREADS			// Enables parallel execution
-//#define INSERT_WASTE				// Enables waste computation in
-//dist function
+//#define INSERT_WASTE				// Enables waste computation in dist function
 #define CACHE_LINE 512 // cache line in byte
 
 // GLOBAL
@@ -34,25 +34,6 @@ static bool *is_center; // whether a point is a center
 static int *center_table; // index table of centers
 static int nproc; //# of threads
 bool isCoordChanged;
-
-// GPU Timing Info
-double serial_t;
-double cpu_to_gpu_t;
-double gpu_to_cpu_t;
-double alloc_t;
-double kernel_t;
-double free_t;
-
-// instrumentation code
-#ifdef PROFILE
-double time_local_search;
-double time_speedy;
-double time_select_feasible;
-double time_gain;
-double time_shuffle;
-double time_gain_dist;
-double time_gain_init;
-#endif
 
 void inttofile(int data, char *filename) {
     FILE *fp = fopen(filename, "w");
@@ -98,9 +79,6 @@ static int floatcomp(const void *i, const void *j) {
 
 /* shuffle points into random order */
 void shuffle(Points *points) {
-#ifdef PROFILE
-    double t1 = gettime();
-#endif
     long i, j;
     Point temp;
     for (i = 0; i < points->num - 1; i++) {
@@ -109,17 +87,10 @@ void shuffle(Points *points) {
         points->p[i] = points->p[j];
         points->p[j] = temp;
     }
-#ifdef PROFILE
-    double t2 = gettime();
-    time_shuffle += t2 - t1;
-#endif
 }
 
 /* shuffle an array of integers */
 void intshuffle(int *intarray, int length) {
-#ifdef PROFILE
-    double t1 = gettime();
-#endif
     long i, j;
     int temp;
     for (i = 0; i < length; i++) {
@@ -128,10 +99,6 @@ void intshuffle(int *intarray, int length) {
         intarray[i] = intarray[j];
         intarray[j] = temp;
     }
-#ifdef PROFILE
-    double t2 = gettime();
-    time_shuffle += t2 - t1;
-#endif
 }
 
 #ifdef INSERT_WASTE
@@ -160,9 +127,6 @@ float dist(Point p1, Point p2, int dim) {
 /* run speedy on the points, return total cost of solution */
 float pspeedy(Points *points, float z, long *kcenter, int pid,
               pthread_barrier_t *barrier) {
-#ifdef PROFILE
-    double t1 = gettime();
-#endif
 
 #ifdef ENABLE_THREADS
     pthread_barrier_wait(barrier);
@@ -299,12 +263,6 @@ float pspeedy(Points *points, float z, long *kcenter, int pid,
     }
 #endif
 
-#ifdef PROFILE
-    double t2 = gettime();
-    if (pid == 0) {
-        time_speedy += t2 - t1;
-    }
-#endif
     return (totalcost);
 }
 
@@ -345,9 +303,7 @@ float pFL(Points *points, int *feasible, int numfeasible, float z, long *k,
         for (i = 0; i < iter; i++) {
             x = i % numfeasible;
             change += pgain(feasible[x], points, z, k, kmax, is_center,
-                            center_table, switch_membership, isCoordChanged,
-                            &serial_t, &cpu_to_gpu_t, &gpu_to_cpu_t, &alloc_t,
-                            &kernel_t, &free_t);
+                            center_table, switch_membership, isCoordChanged);
         }
 
         cost -= change;
@@ -366,10 +322,6 @@ float pFL(Points *points, int *feasible, int numfeasible, float z, long *k,
 
 int selectfeasible_fast(Points *points, int **feasible, int kmin, int pid,
                         pthread_barrier_t *barrier) {
-#ifdef PROFILE
-    double t1 = gettime();
-#endif
-
     int numfeasible = points->num;
     if (numfeasible > (ITER * kmin * log((float)kmin)))
         numfeasible = (int)(ITER * kmin * log((float)kmin));
@@ -434,10 +386,6 @@ int selectfeasible_fast(Points *points, int **feasible, int kmin, int pid,
 
     free(accumweight);
 
-#ifdef PROFILE
-    double t2 = gettime();
-    time_select_feasible += t2 - t1;
-#endif
     return numfeasible;
 }
 
@@ -697,10 +645,6 @@ void *localSearchSub(void *arg_) {
 }
 
 void localSearch(Points *points, long kmin, long kmax, long *kfinal) {
-#ifdef PROFILE
-    double t1 = gettime();
-#endif
-
     pthread_barrier_t barrier;
 #ifdef ENABLE_THREADS
     pthread_barrier_init(&barrier, NULL, nproc);
@@ -734,11 +678,6 @@ void localSearch(Points *points, long kmin, long kmax, long *kfinal) {
     delete[] arg;
 #ifdef ENABLE_THREADS
     pthread_barrier_destroy(&barrier);
-#endif
-
-#ifdef PROFILE
-    double t2 = gettime();
-    time_local_search += t2 - t1;
 #endif
 }
 
@@ -860,7 +799,9 @@ void streamCluster(PStream *stream, long kmin, long kmax, int dim,
 
     localSearch(&centers, kmin, kmax, &kfinal);
     contcenters(&centers);
-    outcenterIDs(&centers, centerIDs, outfile);
+    if (getenv("OUTPUT")) {
+        outcenterIDs(&centers, centerIDs, outfile);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -868,33 +809,15 @@ int main(int argc, char **argv) {
     char *infilename = new char[MAXNAMESIZE];
     long kmin, kmax, n, chunksize, clustersize;
     int dim;
-#ifdef PARSEC_VERSION
-#define __PARSEC_STRING(x) #x
-#define __PARSEC_XSTRING(x) __PARSEC_STRING(x)
-    printf(
-        "PARSEC Benchmark Suite Version "__PARSEC_XSTRING(PARSEC_VERSION) "\n");
-    fflush(NULL);
-#else
-    printf("PARSEC Benchmark Suite\n");
-    fflush(NULL);
-#endif // PARSEC_VERSION
-#ifdef ENABLE_PARSEC_HOOKS
-    __parsec_bench_begin(__parsec_streamcluster);
-#endif
 
     if (argc < 10) {
-        fprintf(
-            stderr,
-            "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n",
-            argv[0]);
+        fprintf(stderr, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n", argv[0]);
         fprintf(stderr, "  k1:          Min. number of centers allowed\n");
         fprintf(stderr, "  k2:          Max. number of centers allowed\n");
         fprintf(stderr, "  d:           Dimension of each data point\n");
         fprintf(stderr, "  n:           Number of data points\n");
-        fprintf(stderr,
-                "  chunksize:   Number of data points to handle per step\n");
-        fprintf(stderr,
-                "  clustersize: Maximum number of intermediate centers\n");
+        fprintf(stderr, "  chunksize:   Number of data points to handle per step\n");
+        fprintf(stderr, "  clustersize: Maximum number of intermediate centers\n");
         fprintf(stderr, "  infile:      Input file (if n<=0)\n");
         fprintf(stderr, "  outfile:     Output file\n");
         fprintf(stderr, "  nproc:       Number of threads to use\n");
@@ -921,19 +844,6 @@ int main(int argc, char **argv) {
         stream = new FileStream(infilename);
     }
 
-    double t1 = gettime();
-
-#ifdef ENABLE_PARSEC_HOOKS
-    __parsec_roi_begin();
-#endif
-
-    serial_t = 0.0;
-    cpu_to_gpu_t = 0.0;
-    gpu_to_cpu_t = 0.0;
-    alloc_t = 0.0;
-    free_t = 0.0;
-    kernel_t = 0.0;
-
     isCoordChanged = false;
 
     streamCluster(stream, kmin, kmax, dim, chunksize, clustersize, outfilename);
@@ -941,37 +851,11 @@ int main(int argc, char **argv) {
     freeDevMem();
     freeHostMem();
 
-#ifdef ENABLE_PARSEC_HOOKS
-    __parsec_roi_end();
-#endif
-
-    double t2 = gettime();
-
-    printf("time = %lfs\n", t2 - t1);
-
     delete stream;
 
-#ifdef PROFILE
-    printf("time pgain = %lfs\n", time_gain);
-    printf("time pgain_dist = %lfs\n", time_gain_dist);
-    printf("time pgain_init = %lfs\n", time_gain_init);
-    printf("time pselect = %lfs\n", time_select_feasible);
-    printf("time pspeedy = %lfs\n", time_speedy);
-    printf("time pshuffle = %lfs\n", time_shuffle);
-    printf("time localSearch = %lfs\n", time_local_search);
-    printf("\n\n");
-    printf("====CUDA Timing info (pgain)====\n");
-    printf("time serial = %lfs\n", serial_t / 1000);
-    printf("time CPU to GPU memory copy = %lfs\n", cpu_to_gpu_t / 1000);
-    printf("time GPU to CPU memory copy back = %lfs\n", gpu_to_cpu_t / 1000);
-    printf("time GPU malloc = %lfs\n", alloc_t / 1000);
-    printf("time GPU free = %lfs\n", free_t / 1000);
-    printf("time kernel = %lfs\n", kernel_t / 1000);
-#endif
-
-#ifdef ENABLE_PARSEC_HOOKS
-    __parsec_bench_end();
-#endif
+    if (getenv("PROFILE")) {
+        measure_report("streamcluster");
+    }
 
     return 0;
 }

@@ -13,6 +13,8 @@
 ***********************************************/
 #include "streamcluster_header.cu"
 
+#include "../../common/cuda/kernelprofile.h"
+
 using namespace std;
 
 // AUTO-ERROR CHECK FOR ALL CUDA FUNCTIONS
@@ -28,7 +30,6 @@ using namespace std;
 
 #define THREADS_PER_BLOCK 512
 #define MAXBLOCKS 65536
-#define CUDATIME
 
 // host memory
 float *work_mem_h;
@@ -55,6 +56,7 @@ __device__ float d_dist(int p1, int p2, int num, int dim, float *coord_d) {
     }
     return retval;
 }
+
 
 //=======================================
 // Kernel - Compute Cost
@@ -87,6 +89,7 @@ __global__ void kernel_compute_cost(int num, int dim, long x, Point *p, int K,
     }
 }
 
+
 //=======================================
 // Allocate Device Memory
 //=======================================
@@ -98,12 +101,14 @@ void allocDevMem(int num, int dim) {
     CUDA_SAFE_CALL(cudaMalloc((void **)&coord_d, num * dim * sizeof(float)));
 }
 
+
 //=======================================
 // Allocate Host Memory
 //=======================================
 void allocHostMem(int num, int dim) {
     coord_h = (float *)malloc(num * dim * sizeof(float));
 }
+
 
 //=======================================
 // Free Device Memory
@@ -115,28 +120,19 @@ void freeDevMem() {
     CUDA_SAFE_CALL(cudaFree(coord_d));
 }
 
+
 //=======================================
 // Free Host Memory
 //=======================================
 void freeHostMem() { free(coord_h); }
+
 
 //=======================================
 // pgain Entry - CUDA SETUP + CUDA CALL
 //=======================================
 float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
             bool *is_center, int *center_table, bool *switch_membership,
-            bool isCoordChanged, double *serial_t, double *cpu_to_gpu_t,
-            double *gpu_to_cpu_t, double *alloc_t, double *kernel_t,
-            double *free_t) {
-#ifdef CUDATIME
-    float tmp_t;
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start, 0);
-#endif
-
+            bool isCoordChanged) {
     cudaError_t error;
 
     int stride = *numcenters + 1; // size of each work_mem segment
@@ -172,15 +168,6 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
         }
     }
 
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *serial_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
-
     //=======================================
     // ALLOCATE GPU MEMORY
     //=======================================
@@ -190,15 +177,6 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
     if (iter == 0) {
         allocDevMem(num, dim);
     }
-
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *alloc_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
 
     //=======================================
     // CPU-TO-GPU MEMORY COPY
@@ -218,15 +196,6 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
     CUDA_SAFE_CALL(cudaMemset((void *)work_mem_d, 0,
                               stride * (nThread + 1) * sizeof(float)));
 
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *cpu_to_gpu_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
-
     //=======================================
     // KERNEL: CALCULATE COST
     //=======================================
@@ -239,18 +208,20 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
         (int)((float)(num_blocks + num_blocks_y - 1) / (float)num_blocks_y);
     dim3 grid_size(num_blocks_x, num_blocks_y, 1);
 
-    kernel_compute_cost<<<grid_size, THREADS_PER_BLOCK>>>(
-        num,                // in:	# of data
-        dim,                // in:	dimension of point coordinates
-        x,                  // in:	point to open a center at
-        p,                  // in:	data point array
-        K,                  // in:	number of centers
-        stride,             // in:  size of each work_mem segment
-        coord_d,            // in:	array of point coordinates
-        work_mem_d,         // out:	cost and lower field array
-        center_table_d,     // in:	center index table
-        switch_membership_d // out:  changes in membership
-        );
+    MEASURE("compute_cost", (
+        kernel_compute_cost<<<grid_size, THREADS_PER_BLOCK>>>(
+            num,                // in:	# of data
+            dim,                // in:	dimension of point coordinates
+            x,                  // in:	point to open a center at
+            p,                  // in:	data point array
+            K,                  // in:	number of centers
+            stride,             // in:  size of each work_mem segment
+            coord_d,            // in:	array of point coordinates
+            work_mem_d,         // out:	cost and lower field array
+            center_table_d,     // in:	center index table
+            switch_membership_d // out:  changes in membership
+            )
+    ));
     cudaThreadSynchronize();
 
     // error check
@@ -260,15 +231,6 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
         exit(EXIT_FAILURE);
     }
 
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *kernel_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
-
     //=======================================
     // GPU-TO-CPU MEMORY COPY
     //=======================================
@@ -277,15 +239,6 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
                               cudaMemcpyDeviceToHost));
     CUDA_SAFE_CALL(cudaMemcpy(switch_membership, switch_membership_d,
                               num * sizeof(bool), cudaMemcpyDeviceToHost));
-
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *gpu_to_cpu_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
 
     //=======================================
     // CPU (SERIAL) WORK
@@ -342,28 +295,11 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
     //=======================================
     free(work_mem_h);
 
-
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *serial_t += (double)tmp_t;
-
-    cudaEventRecord(start, 0);
-#endif
-
     //=======================================
     // DEALLOCATE GPU MEMORY
     //=======================================
     CUDA_SAFE_CALL(cudaFree(work_mem_d));
 
-
-#ifdef CUDATIME
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&tmp_t, start, stop);
-    *free_t += (double)tmp_t;
-#endif
     iter++;
     return -gl_cost_of_opening_x;
 }
