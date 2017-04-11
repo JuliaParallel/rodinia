@@ -11,7 +11,14 @@ struct Invocation
     Invocation() = new(CuEvent(), CuEvent())
 end
 
-measure_launch(inv::Invocation) = record(inv.start)
+const profiling = Ref(false)
+function measure_launch(inv::Invocation)
+    if !profiling[]
+        CUDAdrv.start_profiler()
+        profiling[] = true
+    end
+    record(inv.start)
+end
 measure_finish(inv::Invocation) = record(inv.stop)
 
 const kernels = Dict{String,Vector{Invocation}}()
@@ -30,9 +37,16 @@ macro measure(id, expr)
     end
 end
 
-clear() = empty!(kernels)
+function clear()
+    empty!(kernels)
+end
 
 function report()
+    if profiling[]
+        CUDAdrv.stop_profiler()
+        profiling[] = false
+    end
+
     benchmark = basename(dirname(Base.source_path()))
     for (id, invs) in kernels
         # gather data

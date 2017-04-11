@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
 #include "helper_cuda.h"
 
 struct Invocation {
@@ -21,7 +22,12 @@ struct Invocation {
     }
 };
 
+extern bool profiling;
 static inline void measure_launch(const Invocation &inv) {
+    if (!profiling) {
+        cudaProfilerStart();
+        profiling = true;
+    }
     checkCudaErrors(cudaEventRecord(inv.start, 0));
 }
 

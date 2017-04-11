@@ -2,9 +2,16 @@
 
 #include "kernelprofile.h"
 
+bool profiling = false;
+
 std::map<std::string, std::vector<Invocation> > kernels;
 
 void measure_report(std::string benchmark) {
+    if (profiling) {
+        cudaProfilerStop();
+        profiling = false;
+    }
+
     for (std::map<std::string, std::vector<Invocation> >::const_iterator it =
              kernels.begin();
          it != kernels.end(); it++) {
