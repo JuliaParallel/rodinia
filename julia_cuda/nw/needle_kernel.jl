@@ -78,7 +78,7 @@ function needle_cuda_shared_1(reference_ptr, reference_len, matrix_cuda_ptr,
     return nothing
 end
 
-# FIXME: remove @inbouds (is work-around for shared memory bug)
+# FIXME: remove @inbounds (is work-around for shared memory bug)
 function needle_cuda_shared_2(reference_ptr, reference_len, matrix_cuda_ptr,
                               matrix_cuda_len, cols, penalty, i, block_width)
     reference = CuDeviceArray(reference_len, reference_ptr)

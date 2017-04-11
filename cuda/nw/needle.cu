@@ -7,6 +7,8 @@
 #include <cuda.h>
 #include <sys/time.h>
 
+#include "../../common/cuda/kernelprofile_report.h"
+
 // includes, kernels
 #include "needle_kernel.cu"
 
@@ -172,18 +174,21 @@ void runTest(int argc, char **argv) {
     for (int i = 1; i <= block_width; i++) {
         dimGrid.x = i;
         dimGrid.y = 1;
-        needle_cuda_shared_1<<<dimGrid, dimBlock>>>(
-            referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width);
+        MEASURE("shared_1", (
+            needle_cuda_shared_1<<<dimGrid, dimBlock>>>(
+                referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width)
+        ));
     }
     printf("Processing bottom-right matrix\n");
     // process bottom-right matrix
     for (int i = block_width - 1; i >= 1; i--) {
         dimGrid.x = i;
         dimGrid.y = 1;
-        needle_cuda_shared_2<<<dimGrid, dimBlock>>>(
-            referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width);
+        MEASURE("shared_2", (
+            needle_cuda_shared_2<<<dimGrid, dimBlock>>>(
+                referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width)
+        ));
     }
-
 
     cudaMemcpy(output_itemsets, matrix_cuda, sizeof(int) * size,
                cudaMemcpyDeviceToHost);
@@ -253,6 +258,10 @@ void runTest(int argc, char **argv) {
 
     cudaFree(referrence_cuda);
     cudaFree(matrix_cuda);
+
+    if (getenv("PROFILE")) {
+        measure_report("nw");
+    }
 
     free(referrence);
     free(input_itemsets);

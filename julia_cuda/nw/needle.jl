@@ -1,9 +1,13 @@
 #!/usr/bin/env julia
 
+using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
+
 include("needle_kernel.jl")
 include("../../common/julia/wrappers.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 const LIMIT = -999
 function maximum(a, b, c)
@@ -99,7 +103,7 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
+        @measure "shared_1" @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
             pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
             length(matrix_cuda), max_cols, penalty, i, block_width)
     end
@@ -107,7 +111,7 @@ function main(args)
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
+        @measure "shared_2" @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
             pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
             length(matrix_cuda), max_cols, penalty, i, block_width)
     end
@@ -178,9 +182,16 @@ function main(args)
     end
 end
 
+
 dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)
