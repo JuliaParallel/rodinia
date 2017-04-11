@@ -1,9 +1,6 @@
-using CUDAdrv
-using CUDAnative
-include("../../common/julia/kernelprofile.jl")
-
-const WIDTH = 16 # shared memory width
-const HEIGHT = 16 # shared memory height
+# configuration
+const WIDTH = 16    # shared memory width
+const HEIGHT = 16   # shared memory height
 const THREADS = 256
 
 function bpnn_train_cuda(net, ctx)

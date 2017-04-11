@@ -1,6 +1,8 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
 include("../../common/julia/crand.jl")
@@ -9,14 +11,16 @@ const rng = LibcRNG48()
 include("streamcluster_cuda.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
-# GLOBAL
+# configuration
 const SP = 1 # number of repetitions of speedy must be >=1
 const SEED = 1
 const ITER  = 3 # iterate ITER* k log k times ITER >= 1
 const PRINT_INFO = false
+
+# global state
 g_isCoordChanged = false
+
 
 # shuffle points into random order
 function shuffle(points)

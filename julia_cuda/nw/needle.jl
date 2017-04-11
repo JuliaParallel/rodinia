@@ -1,23 +1,23 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
-include("needle_kernel.jl")
-include("../../common/julia/wrappers.jl")
 include("../../common/julia/crand.jl")
-
-const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
-
 const rng = LibcRNG()
 
-const LIMIT = -999
-function maximum(a, b, c)
-    k = (a <= b) ? b : a
-    (k <= c) ? c : k
-end
+include("../../common/julia/wrappers.jl")
 
+include("needle_kernel.jl")
+
+const OUTPUT = haskey(ENV, "OUTPUT")
+
+# configuration
+const LIMIT = -999
+
+# static data
 const blosum62 = [
      4 -1 -2 -2  0 -1 -1  0 -2 -1 -1 -1 -1 -2 -1  1  0 -3 -2  0 -2 -1  0 -4;
     -1  5  0 -2 -3  1  0 -2  0 -3 -2  2 -1 -3 -2 -1 -1 -3 -2 -3 -1  0 -1 -4;
@@ -52,9 +52,11 @@ function usage()
     exit(1)
 end
 
+
 ################################################################################
 # Program main
 ################################################################################
+
 function main(args)
     @printf("WG size of kernel = %d \n", BLOCK_SIZE)
 
@@ -155,7 +157,7 @@ function main(args)
             new_w = w - penalty
             new_n = n - penalty
 
-            traceback = maximum(new_nw, new_w, new_n)
+            traceback = max(new_nw, new_w, new_n)
             if traceback == new_nw
                 traceback = nw
             end

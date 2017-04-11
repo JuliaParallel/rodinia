@@ -1,14 +1,13 @@
 #!/usr/bin/env julia
 
+using ArgParse
 using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
 include("common.jl")
 include("lud_kernel.jl")
-
-const PROFILE = haskey(ENV, "PROFILE")
-
-using ArgParse
 
 function main(args)
     info("WG size of kernel = $BLOCK_SIZE X $BLOCK_SIZE")

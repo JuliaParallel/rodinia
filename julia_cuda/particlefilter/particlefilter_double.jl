@@ -1,35 +1,20 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
-# Variables
+const OUTPUT = haskey(ENV, "OUTPUT")
 
+# configuration
 const M = typemax(Int32)
 const A = Int32(1103515245)
 const C = Int32(12345)
-
-const PI = 3.1415926535897932
-
 const threads_per_block = 512
 
-const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
 # Utility functions
-
-function gettime()
-    current = now()
-    elapsed = Dates.hour(current) * 60 * 60 * 1000000
-            + Dates.minute(current)    * 60 * 1000000
-            + Dates.second(current)         * 1000000
-            + Dates.millisecond(current)
-    return elapsed
-end
-
-function elapsedtime(start_time, end_time)
-    return (end_time - start_time)/(1000 * 1000)
-end
 
 function rounddouble(value)
     new_value = convert(Int, floor(value))
@@ -51,7 +36,7 @@ end
 function randn(seed, index)
     u = randu(seed, index)
     v = randu(seed, index)
-    cosine = cos(2 * PI * v)
+    cosine = cos(2 * pi * v)
     rt = -2 * log(u)
     return sqrt(rt) * cosine
 end
@@ -197,7 +182,6 @@ end
 end
 
 @inline function d_randn(seed, index)
-    pi = 3.14159265358979323846
     u = d_randu(seed, index)
     v = d_randu(seed, index)
     cosine = CUDAnative.cos(2*pi*v)
@@ -434,7 +418,7 @@ end
 
 function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Nparticles)
     max_size = IszX * IszY * Nfr
-    start = gettime()
+
     # Original particle centroid
     xe = rounddouble(IszY/2.0)
     ye = rounddouble(IszX/2.0)
@@ -455,17 +439,12 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
     objxy = Vector{Int}(count_ones * 2)
     getneighbors(disk, count_ones, objxy, radius)
-    get_neighbors = gettime()
-    println("TIME TO GET NEIGHBORS TOOK: $(elapsedtime(start, get_neighbors))")
 
     # Initial weights are all equal (1/Nparticles)
     weights = Vector{Float64}(Nparticles)
     for x=1:Nparticles
         weights[x] = 1 / Nparticles
     end
-
-    get_weights = gettime()
-    println("TIME TO GET WEIGHTS TOOK: $(elapsedtime(get_neighbors, get_weights))")
 
     # Initial likelihood to 0.0
     g_likelihood = CuArray(zeros(Float64, Nparticles))
@@ -560,7 +539,6 @@ end
 # Main
 
 function main(args)
-
     # Check usage
 
     usage = "naive.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>"
@@ -600,26 +578,16 @@ function main(args)
         exit(0)
     end
 
-    # Initialize stuff
+    # initialize
     seed = Vector{Int32}(Nparticles)
     for i = 1:Nparticles
         seed[i] = i-1
     end
     I = zeros(UInt8, IszX * IszY * Nfr)
 
-    # Call videao sequence
-    start = gettime()
-
     videosequence(I, IszX, IszY, Nfr, seed)
-    end_video_sequence = gettime()
-    println("VIDEO SEQUENCE TOOK $(elapsedtime(start, end_video_sequence))")
 
-    # Call particle filter
     particlefilter(I, IszX, IszY, Nfr, seed, Nparticles)
-    end_particle_filter = gettime()
-    println("PARTICLE FILTER TOOK $(elapsedtime(end_video_sequence, end_particle_filter))")
-
-    println("ENTIRE PROGRAM TOOK $(elapsedtime(start, end_video_sequence))")
 end
 
 

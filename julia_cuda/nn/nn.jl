@@ -1,20 +1,19 @@
 #!/usr/bin/env julia
 
 using ArgParse
-using CUDAdrv
-using CUDAnative
+using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
-ceilDiv(a, b) = ceil(Int, a / b)
-
+# configuration
 const DEFAULT_THREADS_PER_BLOCK = 256
-const DEBUG = false
-
 const LATITUDE_POS = 28 # character position of the latitude value in each record
 const OPEN = 10000 # initial value of nearest neighbors
+
+ceilDiv(a, b) = ceil(Int, a / b)
 
 immutable LatLong
     lat::Float32
@@ -87,19 +86,6 @@ function main(args)
     blocks = ceilDiv(numRecords, threadsPerBlock) # extra threads do nothing
     gridY = ceilDiv(blocks, maxGridX)
     gridX = ceilDiv(blocks, gridY)
-
-    if DEBUG
-        println(totalDeviceMemory) # 804454400
-        println(freeDeviceMemory)
-        println(usableDeviceMemory)
-        println(maxGridX) # 65535
-        println(maxThreadsPerBlock) # 1024
-        println(threadsPerBlock)
-        println(maxThreads)
-        println(blocks) # 130933
-        println(gridY)
-        println(gridX)
-    end
 
     # Allocate memory on device and copy data from host to device.
     d_locations = CuArray(locations)

@@ -1,31 +1,27 @@
 #!/usr/bin/env julia
 
 using ArgParse
-using CUDAdrv
-using CUDAnative
+using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
+const OUTPUT = haskey(ENV, "OUTPUT")
+
+# configuration
 const BLOCK_SIZE = 16
-# maximum power density possible (say 300W for a 10mm x 10mm chip)
-const MAX_PD = 3.0e6
-# rquired precision in degrees
-const PRECISION = 0.001
+const MAX_PD = 3.0e6    # maximum power density possible (say 300W for a 10mm x 10mm chip)
+const PRECISION = 0.001 # rquired precision in degrees
 const SPEC_HEAT_SI = 1.75e6
 const K_SI = 100
-# capacitance fitting factor
-const FACTOR_CHIP = 0.5
-# add one iteration will extend the pyramid base by 2 per each borderline
-const EXPAND_RATE = 2
-
-const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
+const FACTOR_CHIP = 0.5 # capacitance fitting factor
+const EXPAND_RATE = 2   # add one iteration will extend the pyramid base by 2 per each borderline
 
 # chip parameters
 const t_chip = 0.0005f0
 const chip_height = 0.016f0
 const chip_width = 0.016f0
-# ambient temperature, assuming no package at all
-const amb_temp = 80f0
+const amb_temp = 80f0   # ambient temperature, assuming no package at all
 
 function in_range(x, min_x, max_x)
     return x >= min_x && x <= max_x

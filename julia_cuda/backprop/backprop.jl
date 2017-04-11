@@ -1,12 +1,9 @@
-include("../../common/julia/wrappers.jl")
-include("../../common/julia/crand.jl")
-
-const BIGRND   = 0x7fffffff
-
+# configuration
 const ETA      = 0.3 # eta value
 const MOMENTUM = 0.3 # momentum value
 
-const rng = LibcRNG()
+# static data
+const BIGRND   = 0x7fffffff
 
 type BPNN
     input_n  # number of input units

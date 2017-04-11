@@ -1,11 +1,13 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
 include("../../common/julia/kernelprofile.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
+# configuration
 const MAX_THREADS_PER_BLOCK = UInt32(512)
 
 struct Node

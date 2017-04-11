@@ -1,16 +1,19 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
-include("../../common/julia/kernelprofile.jl")
 
-const BLOCK_SIZE = 256
-const HALO = 1  # halo width along one direction when advancing to the next iteration
-
-const OUTPUT = haskey(ENV, "OUTPUT")
 const PROFILE = haskey(ENV, "PROFILE")
+include("../../common/julia/kernelprofile.jl")
 
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
+
+const OUTPUT = haskey(ENV, "OUTPUT")
+
+# configuration
+const BLOCK_SIZE = 256
+const HALO = 1  # halo width along one direction when advancing to the next iteration
+
 
 function init(args)
     if length(args) == 3

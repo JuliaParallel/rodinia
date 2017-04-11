@@ -1,10 +1,19 @@
 #!/usr/bin/env julia
 
+using CUDAdrv, CUDAnative
+
+const PROFILE = haskey(ENV, "PROFILE")
+include("../../common/julia/kernelprofile.jl")
+
+include("../../common/julia/crand.jl")
+const rng = LibcRNG()
+
+include("../../common/julia/wrappers.jl")
+
 include("backprop.jl")
 include("backprop_cuda_kernel.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
 function backprop_face(layer_size)
     net = bpnn_create(layer_size, 16, 1) # (16, 1 cannot be changed)
