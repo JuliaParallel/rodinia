@@ -191,14 +191,14 @@ void BFSGraph(int argc, char **argv) {
     int k = 0;
     printf("Start traversing the tree\n");
     bool stop;
-    std::stringstream identifier;
     // Call the Kernel untill all the elements of Frontier are not false
     do {
         // if no thread changes this value then the loop stops
         stop = false;
         cudaMemcpy(d_over, &stop, sizeof(bool), cudaMemcpyHostToDevice);
 
-        // NOTE: each kernel loops a variable amount of times, so we can't aggregate them
+        // NOTE: kernel 1 loops a variable amount of times, so we can't aggregate runs
+        std::stringstream identifier;
         identifier << "kernel 1 iteration ";
         identifier << k;
 
@@ -208,19 +208,10 @@ void BFSGraph(int argc, char **argv) {
                                          d_cost, no_of_nodes)
         ));
 
-        identifier.str("");
-        identifier.clear();
-
-        identifier << "kernel 2 iteration ";
-        identifier << k;
-
-        MEASURE(identifier.str(), (
+        MEASURE("kernel 2", (
             Kernel2<<<grid, threads, 0>>>(d_graph_mask, d_updating_graph_mask,
                                           d_graph_visited, d_over, no_of_nodes)
         ));
-
-        identifier.str("");
-        identifier.clear();
 
         cudaMemcpy(&stop, d_over, sizeof(bool), cudaMemcpyDeviceToHost);
         k++;

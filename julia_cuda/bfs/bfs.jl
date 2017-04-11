@@ -171,7 +171,7 @@ function main(args)
             pointer(g_cost), no_of_nodes, edge_list_size
         )
 
-        @measure "kernel 2 iteration $k" @cuda (grid, threads) kernel_2(
+        @measure "kernel 2" @cuda (grid, threads) kernel_2(
             pointer(g_graph_mask), pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_stop), no_of_nodes
         )
