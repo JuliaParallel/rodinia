@@ -45,7 +45,7 @@ params_unique *d_unique;
 //	WRITE DATA FUNCTION
 //===============================================================================================================================================================================================================200
 
-void write_data(char *filename, int frameNo, int frames_processed,
+void write_data(const char *filename, int frameNo, int frames_processed,
                 int endoPoints, int *input_a, int *input_b, int epiPoints,
                 int *input_2a, int *input_2b) {
 
@@ -55,7 +55,6 @@ void write_data(char *filename, int frameNo, int frames_processed,
 
     FILE *fid;
     int i, j;
-    char c;
 
     //================================================================================80
     //	OPEN FILE FOR READING
@@ -143,7 +142,7 @@ int main(int argc, char *argv[]) {
     video_file_name = argv[1];
     frames = (avi_t *)AVI_open_input_file(video_file_name, 1); // added casting
     if (frames == NULL) {
-        AVI_print_error((char *)"Error with AVI_open_input_file");
+        AVI_print_error("Error with AVI_open_input_file");
         return -1;
     }
 

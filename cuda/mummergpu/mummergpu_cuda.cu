@@ -1096,7 +1096,7 @@ void transferResultsFromDevice(MatchContext *ctx) {
 
 
 int flushOutput();
-int addToBuffer(char *string);
+int addToBuffer(const char *string);
 
 char numbuffer[32];
 
@@ -1614,9 +1614,9 @@ void resetStats(Statistics *stats) {
 #endif
 }
 
-void writeStatisticsFile(Statistics *stats, char *stats_filename,
-                         char *node_hist_filename = NULL,
-                         char *child_hist_filename = NULL) {
+void writeStatisticsFile(Statistics *stats, const char *stats_filename,
+                         const char *node_hist_filename = NULL,
+                         const char *child_hist_filename = NULL) {
     if (stats_filename) {
         FILE *f = fopen(stats_filename, "w");
 

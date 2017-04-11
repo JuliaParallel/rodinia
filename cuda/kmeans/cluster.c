@@ -86,6 +86,8 @@
 #include "kmeans.h"
 
 extern double wtime(void);
+extern void allocateMemory(int npoints, int nfeatures, int nclusters, float **features);
+extern void deallocateMemory();
 float min_rmse_ref = FLT_MAX; /* reference min_rmse value */
 
 /*---< cluster() >-----------------------------------------------------------*/

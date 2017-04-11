@@ -172,27 +172,24 @@ extern "C" int // delta -- had problems when return value was of float type
     t_features.normalized = false;
     t_features.channelDesc = chDesc0;
 
-    if (cudaBindTexture(NULL, &t_features, feature_d, &chDesc0,
-                        npoints * nfeatures * sizeof(float)) != CUDA_SUCCESS)
-        printf("Couldn't bind features array to texture!\n");
+    checkCudaErrors(cudaBindTexture(NULL, &t_features, feature_d, &chDesc0,
+                    npoints * nfeatures * sizeof(float)));
 
     cudaChannelFormatDesc chDesc1 = cudaCreateChannelDesc<float>();
     t_features_flipped.filterMode = cudaFilterModePoint;
     t_features_flipped.normalized = false;
     t_features_flipped.channelDesc = chDesc1;
 
-    if (cudaBindTexture(NULL, &t_features_flipped, feature_flipped_d, &chDesc1,
-                        npoints * nfeatures * sizeof(float)) != CUDA_SUCCESS)
-        printf("Couldn't bind features_flipped array to texture!\n");
+    checkCudaErrors(cudaBindTexture(NULL, &t_features_flipped, feature_flipped_d, &chDesc1,
+                    npoints * nfeatures * sizeof(float)));
 
     cudaChannelFormatDesc chDesc2 = cudaCreateChannelDesc<float>();
     t_clusters.filterMode = cudaFilterModePoint;
     t_clusters.normalized = false;
     t_clusters.channelDesc = chDesc2;
 
-    if (cudaBindTexture(NULL, &t_clusters, clusters_d, &chDesc2,
-                        nclusters * nfeatures * sizeof(float)) != CUDA_SUCCESS)
-        printf("Couldn't bind clusters array to texture!\n");
+    checkCudaErrors(cudaBindTexture(NULL, &t_clusters, clusters_d, &chDesc2,
+                    nclusters * nfeatures * sizeof(float)));
 
     /* copy clusters to constant memory */
     checkCudaErrors(cudaMemcpyToSymbol(c_clusters, clusters[0],

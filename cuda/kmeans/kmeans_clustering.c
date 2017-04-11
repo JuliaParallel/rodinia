@@ -81,6 +81,9 @@
 #define RANDOM_MAX 2147483647
 
 extern double wtime(void);
+extern int kmeansCuda(float **feature, int nfeatures, int npoints, int nclusters,
+                      int *membership, float **clusters, int *new_centers_len,
+                      float **new_centers);
 
 /*----< kmeans_clustering() >---------------------------------------------*/
 float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */

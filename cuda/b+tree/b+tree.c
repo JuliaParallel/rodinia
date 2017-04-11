@@ -64,6 +64,8 @@
 #include <math.h>     // (in directory known to compiler)			needed by log, pow
 #include <string.h>   // (in directory known to compiler)			needed by memset
 
+#include <cuda_runtime.h>
+
 //======================================================================================================================================================150
 //	COMMON
 //======================================================================================================================================================150
@@ -1740,7 +1742,7 @@ int main(int argc, char **argv) {
 
     pFile = fopen(output, "w+");
     if (pFile == NULL)
-        fputs("Fail to open %s !\n", output);
+        fputs("Fail to open %s !\n", stderr);
     fprintf(pFile, "******starting******\n");
     fclose(pFile);
 
@@ -1928,7 +1930,7 @@ int main(int argc, char **argv) {
             // get # of queries from user
             int count;
             sscanf(commandPointer, "%d", &count);
-            while (*commandPointer != 32 && commandPointer != '\n')
+            while (*commandPointer != 32 && *commandPointer != '\n')
                 commandPointer++;
 
             printf("\n ******command: k count=%d \n", count);
@@ -1991,7 +1993,7 @@ int main(int argc, char **argv) {
 
             pFile = fopen(output, "aw+");
             if (pFile == NULL) {
-                fputs("Fail to open %s !\n", output);
+                fputs("Fail to open %s !\n", stderr);
             }
 
             fprintf(pFile, "\n ******command: k count=%d \n", count);
@@ -2043,12 +2045,12 @@ int main(int argc, char **argv) {
             // get # of queries from user
             int count;
             sscanf(commandPointer, "%d", &count);
-            while (*commandPointer != 32 && commandPointer != '\n')
+            while (*commandPointer != 32 && *commandPointer != '\n')
                 commandPointer++;
 
             int rSize;
             sscanf(commandPointer, "%d", &rSize);
-            while (*commandPointer != 32 && commandPointer != '\n')
+            while (*commandPointer != 32 && *commandPointer != '\n')
                 commandPointer++;
 
             printf("\n******command: j count=%d, rSize=%d \n", count, rSize);
@@ -2127,7 +2129,7 @@ int main(int argc, char **argv) {
 
             pFile = fopen(output, "aw+");
             if (pFile == NULL) {
-                fputs("Fail to open %s !\n", output);
+                fputs("Fail to open %s !\n", stderr);
             }
 
             fprintf(pFile, "\n******command: j count=%d, rSize=%d \n", count,

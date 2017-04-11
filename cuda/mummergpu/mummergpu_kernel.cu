@@ -260,7 +260,7 @@ __device__ int addr2id(unsigned int addr) {
 #endif
 }
 
-__device__ TextureAddress id2addr(int id) {
+__device__ TextureAddress id2addr_dev(int id) {
     TextureAddress retval;
 
 #if MERGETEX & REORDER_TREE
@@ -572,7 +572,7 @@ __device__ void printNode(int nodeid
 #endif
 
                           ) {
-    TextureAddress addr = id2addr(nodeid);
+    TextureAddress addr = id2addr_dev(nodeid);
 
     _PixelOfNode nd;
     nd.data = GETNODE(addr.data, false);

@@ -108,7 +108,7 @@ fp *get_frame(avi_t *cell_file, int frame_num, int cropped, int scaled,
     char *image_buf = (char *)malloc(width * height * sizeof(char));
     status = AVI_read_frame(cell_file, image_buf, &dummy);
     if (status == -1) {
-        AVI_print_error((char *)"Error with AVI_read_frame");
+        AVI_print_error("Error with AVI_read_frame");
         exit(-1);
     }
 

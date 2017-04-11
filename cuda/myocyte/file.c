@@ -15,7 +15,7 @@
 //	WRITE FUNCTION
 //========================================================================================================================
 
-void write(char *filename, fp *input, int data_rows, int data_cols, int major,
+void write(const char *filename, fp *input, int data_rows, int data_cols, int major,
            int data_range) {
 
     //=====================================================================
@@ -69,7 +69,7 @@ void write(char *filename, fp *input, int data_rows, int data_cols, int major,
 //	READ FUNCTION
 //========================================================================================================================
 
-void read(char *filename, fp *input, int data_rows, int data_cols, int major) {
+void read(const char *filename, fp *input, int data_rows, int data_cols, int major) {
 
     //=====================================================================
     //	VARIABLES

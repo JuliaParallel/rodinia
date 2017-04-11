@@ -679,7 +679,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
 }
 int main(int argc, char *argv[]) {
 
-    char *usage = "naive.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
+    const char *usage = "naive.out -x <dimX> -y <dimY> -z <Nfr> -np <Nparticles>";
     // check number of arguments
     if (argc != 9) {
         printf("%s\n", usage);

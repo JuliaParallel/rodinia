@@ -1421,7 +1421,7 @@ void printTreeTexture(const char *texfilename, PixelOfNode *nodeTexture,
 }
 
 void renumberTree() {
-    queue<pair<SuffixNode *, int>> nodequeue;
+    queue<pair<SuffixNode *, int> > nodequeue;
 
     nodequeue.push(make_pair(gtree->m_root, 0));
     int nodecount = 0;
@@ -1998,7 +1998,7 @@ char output_buf[output_buf_limit];
 // printing.
 size_t bytes_written = 0;
 
-int addToBuffer(char *string) {
+int addToBuffer(const char* string) {
     size_t buf_length = strlen(string);
 
     if (buf_length + bytes_written >= output_buf_limit) {

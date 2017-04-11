@@ -5,8 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
-
-extern void bpnn_train_kernel(BPNN *net, float *eo, float *eh);
+extern void bpnn_train_cuda(BPNN *net, float *eo, float *eh);
 extern int load(BPNN *net);
 
 int layer_size = 0;

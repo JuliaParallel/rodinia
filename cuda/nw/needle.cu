@@ -197,7 +197,7 @@ void runTest(int argc, char **argv) {
         FILE *fpo = fopen("output.txt", "w");
         fprintf(fpo, "print traceback value GPU:\n");
 
-        for (int i = max_rows - 2, j = max_rows - 2; i >= 0, j >= 0;) {
+        for (int i = max_rows - 2, j = max_rows - 2; i >= 0 && j >= 0;) {
             int nw, n, w, traceback;
             if (i == max_rows - 2 && j == max_rows - 2)
                 fprintf(fpo, "%d ", // print the first element

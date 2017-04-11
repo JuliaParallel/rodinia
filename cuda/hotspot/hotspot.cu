@@ -41,7 +41,7 @@ void run(int argc, char **argv);
 #define pin_stats_dump(cycles) printf("timer: %Lu\n", cycles)
 
 
-void fatal(const std::string s) { fprintf(stderr, "error: %s\n", s.c_str()); }
+void fatal(const char* s) { fprintf(stderr, "error: %s\n", s); }
 
 void writeoutput(float *vect, int grid_rows, int grid_cols, const std::string file) {
     int i, j, index = 0;

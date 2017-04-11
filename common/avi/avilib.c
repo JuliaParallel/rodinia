@@ -1806,7 +1806,7 @@ static int num_avi_errors = sizeof(avi_errors) / sizeof(char *);
 
 static char error_string[4096];
 
-void AVI_print_error(char *str) {
+void AVI_print_error(const char *str) {
     int aerrno;
 
     aerrno = (AVI_errno >= 0 && AVI_errno < num_avi_errors)
