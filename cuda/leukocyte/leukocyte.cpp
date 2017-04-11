@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
     printf("\nTotal application run time: %.5f seconds\n",
            ((float)(get_time() - program_start_time)) / (1000 * 1000));
 
-    measure_report();
+    measure_report("leukocyte");
 
     return 0;
 }

@@ -179,8 +179,9 @@ function dilate_CUDA(dev, img_in, GICOV_constants)
     threads_per_block = 176
     num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
 
-    @measure "dilate" @cuda (num_blocks,threads_per_block) dilate_kernel(size(img_dev, 1),
-        size(img_dev, 2), pointer(img_dev), GICOV_constants.c_strel, dilated_out)
+    @measure "dilate" @cuda (num_blocks,threads_per_block) dilate_kernel(
+        size(img_dev, 1), size(img_dev, 2), pointer(img_dev),
+        GICOV_constants.c_strel, dilated_out)
 
     Array(dilated_out)
 end

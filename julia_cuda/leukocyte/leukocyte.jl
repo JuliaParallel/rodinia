@@ -1,15 +1,18 @@
 #!/usr/bin/env julia
 
-using CUDAnative
+using CUDAdrv, CUDAnative
+include("../../common/julia/kernelprofile.jl")
 
 include("../../common/julia/libavi.jl")
 include("../../common/julia/wrappers.jl")
-include("../../common/julia/kernelprofile.jl")
 include("misc_math.jl")
 include("find_ellipse.jl")
 include("track_ellipse.jl")
 
-function main(args, dev)
+const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
+
+function main(args)
     # Keep track of the start time of the program
     program_start_time = time()
 
@@ -179,13 +182,18 @@ function main(args, dev)
 
     # Report total program execution time
     print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
-
-    report()
 end
+
 
 dev = CuDevice(0)
 ctx = CuContext(dev)
 
-main(ARGS, dev)
+main(ARGS)
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)
