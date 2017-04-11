@@ -14,6 +14,7 @@ const PI = 3.1415926535897932
 const threads_per_block = 512
 
 const OUTPUT = haskey(ENV, "OUTPUT")
+const PROFILE = haskey(ENV, "PROFILE")
 
 # Utility functions
 
@@ -626,6 +627,11 @@ dev = CuDevice(0)
 ctx = CuContext(dev)
 
 main(ARGS)
-report()
+
+if PROFILE
+    KernelProfile.clear()
+    main(ARGS)
+    KernelProfile.report()
+end
 
 destroy(ctx)

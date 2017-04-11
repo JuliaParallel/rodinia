@@ -927,7 +927,7 @@ int main(int argc, char *argv[]) {
            elapsed_time(endVideoSequence, endParticleFilter));
     printf("ENTIRE PROGRAM TOOK %f\n", elapsed_time(start, endParticleFilter));
 
-    measure_report();
+    measure_report("particlefilter");
 
     free(seed);
     free(I);
