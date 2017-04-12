@@ -9,8 +9,8 @@ const non_baseline = filter(suite->suite!=baseline, suites)
 const root = dirname(@__DIR__)
 
 # configuration
-const ALWAYS_RUN = false    # always run the profile script, even if we have previous results
-const APPEND_DATA = false   # if ALWAYS_RUN==true but we already had data, combine both sets
+const ALWAYS_RUN =  parse(Bool, get(ENV, "ALWAYS_RUN",  "false"))   # always run the profile script, even if we have previous results
+const APPEND_DATA = parse(Bool, get(ENV, "APPEND_DATA", "false"))   # if ALWAYS_RUN==true but we already had data, combine both sets
 
 # NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
 #       per-suite benchmarks based on flat performance difference) it is possible to gather
