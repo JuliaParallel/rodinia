@@ -82,7 +82,7 @@ void run(int argc, char *argv[]) {
     if (parseCommandline(argc, argv, filename, &resultsCount, &lat, &lng,
                          &quiet, &timing, &platform, &device)) {
         printUsage();
-        return 0;
+        exit(0);
     }
 
     int numRecords = loadData(filename, records, locations);
@@ -215,7 +215,7 @@ int loadData(char *filename, std::vector<Record> &records,
         */
         if (fscanf(flist, "%s\n", dbname) != 1) {
             fprintf(stderr, "error reading filelist\n");
-            exit(0);
+            exit(1);
         }
         fp = fopen(dbname, "r");
         if (!fp) {
