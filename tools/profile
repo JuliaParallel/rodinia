@@ -87,19 +87,18 @@ for suite in non_baseline
     summary[Symbol(suite)] = Float64[]
 end
 
-# add totals for each benchmark and suite
+# add time totals for each benchmark
 # NOTE: we do this before summarizing across iterations, to make totals more fair
-_data = copy(data)  # prevent aggregating previous totals
-append!(data, by(_data, [:suite, :benchmark],
+#       (ie. the totals are affected by the amount of iterations for each kernel)
+append!(data, by(data, [:suite, :benchmark],
                  dt->DataFrame(kernel="total", time=sum(dt[:time]))))
-append!(data, by(_data, [:suite,],
-                 dt->DataFrame(benchmark="total", kernel="total", time=sum(dt[:time]))))
 
 # summarize across iterations
 grouped_data = by(data, [:suite, :benchmark, :kernel],
                   dt->DataFrame(time=minimum(dt[:time]))
                  )
 
+# calculate the slowdown/improvement compared against the baseline
 for benchmark in unique(grouped_data[:benchmark])
     # get the data for this benchmark
     benchmark_data = grouped_data[grouped_data[:benchmark] .== benchmark, :]
@@ -122,8 +121,17 @@ for benchmark in unique(grouped_data[:benchmark])
     end
 end
 
-# print some stats
-for suite in non_baseline
-    suite_summary = by(summary, [:benchmark], dt->DataFrame(julia_cuda=mean(dt[Symbol(suite)])))
-    println(suite_summary)
+# add difference totals for each suite (based on previous totals)
+# NOTE: this total only looks at each benchmark's performance increase/loss,
+#       not only ignores the iteration count, but the execution time altogether
+# FIXME: can't we do this with a `by`, summarizing over all remaining columns?
+totals = []
+for suite in names(summary)[3:end]
+    push!(totals, mean(summary[summary[:kernel] .== "total", suite]))
 end
+push!(summary, ["total", "total", totals...])
+
+# tools for accessing stats
+suite_stats(suite) = summary[summary[:kernel] .== "total", [:benchmark, Symbol(suite)]]
+benchmark_stats(benchmark) = summary[summary[:benchmark] .== benchmark, :]
+println(suite_stats("julia_cuda"))
