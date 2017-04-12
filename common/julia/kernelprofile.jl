@@ -15,14 +15,16 @@ const enabled = Ref(false)
 const profiling = Ref(false)
 
 function measure_launch(inv::Invocation)
-    if enabled[] && !profiling[]
+    if !profiling[]
         # lazy-start the profiler to get a narrow scope
         CUDAdrv.start_profiler()
         profiling[] = true
     end
     record(inv.start)
 end
-measure_finish(inv::Invocation) = record(inv.stop)
+function measure_finish(inv::Invocation)
+    record(inv.stop)
+end
 
 const kernels = Dict{String,Vector{Invocation}}()
 function measure_launch(id::String)
@@ -34,9 +36,13 @@ end
 
 macro measure(id, expr)
     quote
-        inv = measure_launch($(esc(id)))
+        if enabled[]
+            inv = measure_launch($(esc(id)))
+        end
         $(esc(expr))
-        measure_finish(inv)
+        if enabled[]
+            measure_finish(inv)
+        end
     end
 end
 
