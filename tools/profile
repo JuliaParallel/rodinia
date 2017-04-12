@@ -49,15 +49,17 @@ for suite in suites, benchmark in common_benchmarks
                     push!(csv_lines, line)
                 end
             end
-            if success(cmd)
+            if success(cmd) && length(csv_lines) > 0
                 csv_data = join(csv_lines, "\n")
                 if APPEND_DATA && !isnull(csv)
-                    csv_data = join([csv_data, get(csv)], "\n")
+                    csv_data = csv_data * "\n" * get(csv)
                 end
                 write(cache, csv_data)
                 csv = Nullable(csv_data)
-            else
+            elseif !success(cmd)
                 warn("Benchmark did not succeed")
+            else
+                warn("Benchmark did not output any data")
             end
         end
 
