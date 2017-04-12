@@ -57,7 +57,7 @@ for suite in suites, benchmark in common_benchmarks
             if success(cmd) && length(csv_lines) > 0
                 csv_data = join(csv_lines, "\n")
                 if APPEND_DATA && !isnull(csv)
-                    csv_data = csv_data * "\n" * get(csv)
+                    csv_data = get(csv) * "\n" * csv_data
                 end
                 write(cache, csv_data)
                 csv = Nullable(csv_data)
