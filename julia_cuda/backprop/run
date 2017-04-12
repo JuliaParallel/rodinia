@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-./facetrain.jl 65536
+julia "$@" facetrain.jl 65536

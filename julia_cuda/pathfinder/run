@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-./pathfinder.jl 100000 100 20
+julia "$@" pathfinder.jl 100000 100 20

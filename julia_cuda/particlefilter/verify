@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-OUTPUT=1 ./run
+OUTPUT=1 ./run "$@"
 numdiff -a 1.2e-1 output.txt ../../results/particlefinder/output.txt

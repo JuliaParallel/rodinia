@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-PROFILE=1 ./run
+PROFILE=1 ./run "$@"
