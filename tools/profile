@@ -12,6 +12,11 @@ const root = dirname(@__DIR__)
 const ALWAYS_RUN = false    # always run the profile script, even if we have previous results
 const APPEND_DATA = false   # if ALWAYS_RUN==true but we already had data, combine both sets
 
+# NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
+#       per-suite benchmarks based on flat performance difference) it is possible to gather
+#       more data for individual benchmarks, but not for individual kernels (as that would
+#       skew the per-benchmark totals)
+
 
 ## input
 
