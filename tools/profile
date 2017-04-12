@@ -40,7 +40,7 @@ for suite in suites, benchmark in common_benchmarks
         cache = joinpath(dir, "profile.csv")
         csv = Nullable{String}()
         if isfile(cache)
-            csv = Nullable(read(cache))
+            csv = Nullable(readstring(cache))
         end
 
         if ALWAYS_RUN || isnull(csv)
