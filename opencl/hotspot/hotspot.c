@@ -296,9 +296,8 @@ int main(int argc, char **argv) {
                        sizeof(float) * size, FilesavingTemp, &error);
     if (error != CL_SUCCESS)
         fatal_CL(error, __LINE__);
-    MatrixTemp[1] =
-        clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-                       sizeof(float) * size, NULL, &error);
+    MatrixTemp[1] = clCreateBuffer(context, CL_MEM_READ_WRITE,
+                                   sizeof(float) * size, NULL, &error);
     if (error != CL_SUCCESS)
         fatal_CL(error, __LINE__);
 

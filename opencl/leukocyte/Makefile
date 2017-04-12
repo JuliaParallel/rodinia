@@ -1,8 +1,9 @@
 include ../common.mk
 
 EXE  = leukocyte
-OBJS = find_ellipse.o find_ellipse_opencl.o track_ellipse.o track_ellipse_opencl.o misc_math.o OpenCL_helper_library.o \
-       $(MESCHACH_DIR)/meschach.a \
+OBJS = find_ellipse.o find_ellipse_opencl.o track_ellipse.o track_ellipse_opencl.o misc_math.o \
+       OpenCL_helper_library.o \
+       $(MESCHACH_DIR)/libmeschach.a \
        $(AVI_DIR)/avilib.o
 
 .PHONY: all
@@ -11,12 +12,17 @@ all: $(EXE)
 # we call make recursively, so need to export variables
 export
 
-MESCHACH_DIR=../../common/meschach
+MESCHACH_DIR = ../../common/meschach
 $(MESCHACH_DIR)/makefile:
 	cd $(MESCHACH_DIR); ./configure --with-all
-$(MESCHACH_DIR)/meschach.a: $(MESCHACH_DIR)/makefile
-	$(MAKE) -C $(MESCHACH_DIR) all
+$(MESCHACH_DIR)/libmeschach.a: $(MESCHACH_DIR)/makefile
+	$(MAKE) -C $(MESCHACH_DIR)
 CPPFLAGS += -I$(MESCHACH_DIR)
+misc_math.o: $(MESCHACH_DIR)/libmeschach.a
+find_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
+find_ellipse_opencl.o: $(MESCHACH_DIR)/libmeschach.a
+track_ellipse.o: $(MESCHACH_DIR)/libmeschach.a
+track_ellipse_opencl.o: $(MESCHACH_DIR)/libmeschach.a
 
 AVI_DIR=../../common/avi
 $(AVI_DIR)/avilib.o $(AVI_DIR)/avimod.o:

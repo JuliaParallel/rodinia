@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
         // float* normals;
         {
             std::ifstream file(data_file_name);
-            if (file == NULL) {
+            if (!file) {
                 throw(string("can not find/open file!"));
             }
             file >> nel;

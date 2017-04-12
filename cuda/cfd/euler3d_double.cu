@@ -114,7 +114,12 @@ __global__ void cuda_initialize_variables(int nelr, double *variables) {
 void initialize_variables(int nelr, double *variables) {
     dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
     cuda_initialize_variables<<<Dg, Db>>>(nelr, variables);
-    getLastCudaError("initialize_variables failed");
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s Initializing variables\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 __device__ __host__ inline void
@@ -193,7 +198,12 @@ void compute_step_factor(int nelr, double *variables, double *areas,
                          double *step_factors) {
     dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
     cuda_compute_step_factor<<<Dg, Db>>>(nelr, variables, areas, step_factors);
-    getLastCudaError("compute_step_factor failed");
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s compute_step_factor failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 /*
@@ -392,7 +402,12 @@ void compute_flux(int nelr, int *elements_surrounding_elements, double *normals,
     dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
     cuda_compute_flux<<<Dg, Db>>>(nelr, elements_surrounding_elements, normals,
                                   variables, fluxes);
-    getLastCudaError("compute_flux failed");
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s compute_flux failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 __global__ void cuda_time_step(int j, int nelr, double *old_variables,
@@ -422,7 +437,12 @@ void time_step(int j, int nelr, double *old_variables, double *variables,
     dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
     cuda_time_step<<<Dg, Db>>>(j, nelr, old_variables, variables, step_factors,
                                fluxes);
-    getLastCudaError("update failed");
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s update failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 /*
@@ -597,32 +617,38 @@ int main(int argc, char **argv) {
     // these need to be computed the first time in order to compute time step
     std::cout << "Starting..." << std::endl;
 
-    StopWatchInterface *timer = 0;
-    sdkCreateTimer(&timer);
-    sdkStartTimer(&timer);
-
     // Begin iterations
     for (int i = 0; i < iterations; i++) {
         copy<double>(old_variables, variables, nelr * NVAR);
 
         // for the first iteration we compute the time step
         compute_step_factor(nelr, variables, areas, step_factors);
-        getLastCudaError("compute_step_factor failed");
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess) {
+            fprintf(stderr, "GPUassert: %s compute_step_factor failed\n",
+                    cudaGetErrorString(error));
+            exit(-1);
+        }
 
         for (int j = 0; j < RK; j++) {
             compute_flux(nelr, elements_surrounding_elements, normals,
                          variables, fluxes);
-            getLastCudaError("compute_flux failed");
+            error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                fprintf(stderr, "GPUassert: %s compute_flux failed\n",
+                        cudaGetErrorString(error));
+                exit(-1);
+            }
+
             time_step(j, nelr, old_variables, variables, step_factors, fluxes);
-            getLastCudaError("time_step failed");
+            error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                fprintf(stderr, "GPUassert: %s time_step failed\n",
+                        cudaGetErrorString(error));
+                exit(-1);
+            }
         }
     }
-
-    cudaThreadSynchronize();
-    sdkStopTimer(&timer);
-
-    std::cout << (sdkGetAverageTimerValue(&timer) / 1000.0) / iterations
-              << " seconds per iteration" << std::endl;
 
     if (getenv("OUTPUT")) {
         std::cout << "Saving solution..." << std::endl;

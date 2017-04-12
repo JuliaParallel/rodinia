@@ -97,6 +97,8 @@ __kernel void reduce_kernel(long d_Ne,           // number of elements in array
         d_psum2[tx] = d_sums2[ei * d_mul];
     }
 
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
     // reduction of sums if all blocks are full (rare case)
     if (nf == NUMBER_THREADS) {
         // sum of every 2, 4, ..., NUMBER_THREADS elements

@@ -430,8 +430,6 @@ int main(int argc, char **argv) {
             return -1;
         }
     }
-    clFinish(cmd_queue);
-    fflush(stdout);
     err = clEnqueueReadBuffer(cmd_queue, input_itemsets_d, 1, 0,
                               max_cols * max_rows * sizeof(int),
                               output_itemsets, 0, 0, 0);

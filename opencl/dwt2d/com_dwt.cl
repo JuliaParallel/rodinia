@@ -590,7 +590,7 @@ __kernel void cl_fdwt53Kernel(__global const int *const in, __global int *out,
     fdwt53.WIN_SIZE_Y = WIN_SIZE_Y;
 
     // initialize
-    for (int i = 0; i < sizeof(fdwt53.buffer) / sizeof(int); i++) {
+    for(int i = 0; i < sizeof(fdwt53.buffer.data)/sizeof(int); i++ {
         fdwt53.buffer.data[i] = 0;
     }
 

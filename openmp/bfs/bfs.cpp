@@ -3,8 +3,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-int no_of_nodes;
-int edge_list_size;
 FILE *fp;
 
 // Structure to hold a node information
@@ -25,8 +23,6 @@ void Usage(int argc, char **argv) {
 // Main Program
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-    no_of_nodes = 0;
-    edge_list_size = 0;
     BFSGraph(argc, argv);
 }
 
@@ -35,6 +31,8 @@ int main(int argc, char **argv) {
 // Apply BFS on a Graph
 ////////////////////////////////////////////////////////////////////////////////
 void BFSGraph(int argc, char **argv) {
+    int no_of_nodes = 0;
+    int edge_list_size = 0;
     char *input_f;
 
     if (argc != 2) {
@@ -104,39 +102,68 @@ void BFSGraph(int argc, char **argv) {
     printf("Start traversing the tree\n");
 
     int k = 0;
+#ifdef OPEN
+#ifdef OMP_OFFLOAD
+#pragma omp target data map(                                                   \
+    to : no_of_nodes,                                                          \
+    h_graph_mask[0 : no_of_nodes],                                             \
+                 h_graph_nodes[0 : no_of_nodes], h_graph_edges                 \
+                               [0 : edge_list_size], h_graph_visited           \
+                                [0 : no_of_nodes],                             \
+                                 h_updating_graph_mask[0 : no_of_nodes])       \
+                                    map(h_cost[0 : no_of_nodes])
+    {
+#endif
+#endif
+        bool stop;
+        do {
+            // if no thread changes this value then the loop stops
+            stop = false;
 
-    bool stop;
-    do {
-        // if no thread changes this value then the loop stops
-        stop = false;
-
+#ifdef OPEN
+// omp_set_num_threads(num_omp_threads);
+#ifdef OMP_OFFLOAD
+#pragma omp target
+#endif
 #pragma omp parallel for
-        for (int tid = 0; tid < no_of_nodes; tid++) {
-            if (h_graph_mask[tid] == true) {
-                h_graph_mask[tid] = false;
-                for (int i = h_graph_nodes[tid].starting;
-                     i < (h_graph_nodes[tid].no_of_edges +
-                          h_graph_nodes[tid].starting);
-                     i++) {
-                    int id = h_graph_edges[i];
-                    if (!h_graph_visited[id]) {
-                        h_cost[id] = h_cost[tid] + 1;
-                        h_updating_graph_mask[id] = true;
+#endif
+            for (int tid = 0; tid < no_of_nodes; tid++) {
+                if (h_graph_mask[tid] == true) {
+                    h_graph_mask[tid] = false;
+                    for (int i = h_graph_nodes[tid].starting;
+                         i < (h_graph_nodes[tid].no_of_edges +
+                              h_graph_nodes[tid].starting);
+                         i++) {
+                        int id = h_graph_edges[i];
+                        if (!h_graph_visited[id]) {
+                            h_cost[id] = h_cost[tid] + 1;
+                            h_updating_graph_mask[id] = true;
+                        }
                     }
                 }
             }
-        }
 
-        for (int tid = 0; tid < no_of_nodes; tid++) {
-            if (h_updating_graph_mask[tid] == true) {
-                h_graph_mask[tid] = true;
-                h_graph_visited[tid] = true;
-                stop = true;
-                h_updating_graph_mask[tid] = false;
+#ifdef OPEN
+#ifdef OMP_OFFLOAD
+#pragma omp target map(stop)
+#endif
+#pragma omp parallel for
+#endif
+            for (int tid = 0; tid < no_of_nodes; tid++) {
+                if (h_updating_graph_mask[tid] == true) {
+                    h_graph_mask[tid] = true;
+                    h_graph_visited[tid] = true;
+                    stop = true;
+                    h_updating_graph_mask[tid] = false;
+                }
             }
-        }
-        k++;
-    } while (stop);
+            k++;
+        } while (stop);
+#ifdef OPEN
+#ifdef OMP_OFFLOAD
+    }
+#endif
+#endif
 
     // Store the result into a file
     if (getenv("OUTPUT")) {

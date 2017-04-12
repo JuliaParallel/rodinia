@@ -110,9 +110,15 @@ __global__ void cuda_initialize_variables(int nelr, float *variables) {
         variables[i + j * nelr] = ff_variable[j];
 }
 void initialize_variables(int nelr, float *variables) {
-    dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
+    dim3 Dg(nelr / block_length), Db(block_length);
+    cudaError_t error;
     cuda_initialize_variables<<<Dg, Db>>>(nelr, variables);
-    getLastCudaError("initialize_variables failed");
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s initialize variables \n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 __device__ __host__ inline void compute_flux_contribution(
@@ -187,9 +193,15 @@ __global__ void cuda_compute_step_factor(int nelr, float *variables,
 }
 void compute_step_factor(int nelr, float *variables, float *areas,
                          float *step_factors) {
-    dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
+    cudaError_t error;
+    dim3 Dg(nelr / block_length), Db(block_length);
     cuda_compute_step_factor<<<Dg, Db>>>(nelr, variables, areas, step_factors);
-    getLastCudaError("compute_step_factor failed");
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s compute_step_factor failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 __global__ void cuda_compute_flux_contributions(int nelr, float *variables,
@@ -240,11 +252,17 @@ void compute_flux_contributions(int nelr, float *variables,
                                 float *fc_momentum_x, float *fc_momentum_y,
                                 float *fc_momentum_z,
                                 float *fc_density_energy) {
-    dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
+    dim3 Dg(nelr / block_length), Db(block_length);
+    cudaError_t error;
     cuda_compute_flux_contributions<<<Dg, Db>>>(nelr, variables, fc_momentum_x,
                                                 fc_momentum_y, fc_momentum_z,
                                                 fc_density_energy);
-    getLastCudaError("compute_flux_contributions failed");
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s compute_flux_contribution failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 
@@ -447,11 +465,17 @@ void compute_flux(int nelr, int *elements_surrounding_elements, float *normals,
                   float *variables, float *fc_momentum_x, float *fc_momentum_y,
                   float *fc_momentum_z, float *fc_density_energy,
                   float *fluxes) {
-    dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
+    cudaError_t error;
+    dim3 Dg(nelr / block_length), Db(block_length);
     cuda_compute_flux<<<Dg, Db>>>(nelr, elements_surrounding_elements, normals,
                                   variables, fc_momentum_x, fc_momentum_y,
                                   fc_momentum_z, fc_density_energy, fluxes);
-    getLastCudaError("compute_flux failed");
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s compute_flux failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 __global__ void cuda_time_step(int j, int nelr, float *old_variables,
@@ -478,10 +502,16 @@ __global__ void cuda_time_step(int j, int nelr, float *old_variables,
 }
 void time_step(int j, int nelr, float *old_variables, float *variables,
                float *step_factors, float *fluxes) {
-    dim3 Dg(nelr / BLOCK_SIZE), Db(BLOCK_SIZE);
+    cudaError_t error;
+    dim3 Dg(nelr / block_length), Db(block_length);
     cuda_time_step<<<Dg, Db>>>(j, nelr, old_variables, variables, step_factors,
                                fluxes);
-    getLastCudaError("update failed");
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        fprintf(stderr, "GPUassert: %s update failed\n",
+                cudaGetErrorString(error));
+        exit(-1);
+    }
 }
 
 /*
@@ -655,33 +685,51 @@ int main(int argc, char **argv) {
     // these need to be computed the first time in order to compute time step
     std::cout << "Starting..." << std::endl;
 
-    StopWatchInterface *timer = 0;
-    sdkCreateTimer(&timer);
-    sdkStartTimer(&timer);
-
     // Begin iterations
     for (int i = 0; i < iterations; i++) {
         copy<float>(old_variables, variables, nelr * NVAR);
 
         // for the first iteration we compute the time step
         compute_step_factor(nelr, variables, areas, step_factors);
+        cudaError_t error = cudaGetLastError();
+        if (error != cudaSuccess) {
+            fprintf(stderr, "GPUassert: %s compute_step_factor failed\n",
+                    cudaGetErrorString(error));
+            exit(-1);
+        }
+
 
         for (int j = 0; j < RK; j++) {
             compute_flux_contributions(nelr, variables, fc_momentum_x,
                                        fc_momentum_y, fc_momentum_z,
                                        fc_density_energy);
+            error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                fprintf(stderr,
+                        "GPUassert: %s compute_flux_contributions failed\n",
+                        cudaGetErrorString(error));
+                exit(-1);
+            }
+
             compute_flux(nelr, elements_surrounding_elements, normals,
                          variables, fc_momentum_x, fc_momentum_y, fc_momentum_z,
                          fc_density_energy, fluxes);
+            error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                fprintf(stderr, "GPUassert: %s compute_flux failed\n",
+                        cudaGetErrorString(error));
+                exit(-1);
+            }
+
             time_step(j, nelr, old_variables, variables, step_factors, fluxes);
+            error = cudaGetLastError();
+            if (error != cudaSuccess) {
+                fprintf(stderr, "GPUassert: %s time_step\n",
+                        cudaGetErrorString(error));
+                exit(-1);
+            }
         }
     }
-
-    cudaThreadSynchronize();
-    sdkStopTimer(&timer);
-
-    std::cout << (sdkGetAverageTimerValue(&timer) / 1000.0) / iterations
-              << " seconds per iteration" << std::endl;
 
     if (getenv("OUTPUT")) {
         std::cout << "Saving solution..." << std::endl;
