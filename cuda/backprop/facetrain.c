@@ -27,7 +27,7 @@ void backprop_face() {
     printf("Training done\n");
 }
 
-int setup(int argc, char **argv) {
+void run(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "usage: backprop <num of input elements>\n");
         exit(1);
@@ -42,6 +42,4 @@ int setup(int argc, char **argv) {
     int seed = 7;
     bpnn_initialize(seed);
     backprop_face();
-
-    exit(0);
 }

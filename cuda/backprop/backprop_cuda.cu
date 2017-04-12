@@ -30,7 +30,7 @@ extern "C" void bpnn_adjust_weights(float *delta, int ndelta, float *ly,
                                     int nly, float **w, float **oldw);
 
 
-extern "C" int setup(int argc, char **argv);
+extern "C" int run(int argc, char **argv);
 
 extern "C" float **alloc_2d_dbl(int m, int n);
 
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     if (getenv("PROFILE"))
         measure_enable();
 
-    setup(argc, argv);
+    run(argc, argv);
 
     if (getenv("PROFILE"))
         measure_report("backprop");
