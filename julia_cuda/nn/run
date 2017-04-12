@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-julia "$@" nn.jl filelist_4 -r 5 --lat 30 --lng 90
+julia "$@" nn.jl filelist.txt -r 5 --lat 30 --lng 90

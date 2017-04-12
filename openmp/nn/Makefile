@@ -1,6 +1,6 @@
 include ../common.mk
 
-EXES = nn hurricane_gen
+EXES = nn
 
 .PHONY: all
 all: $(EXES)

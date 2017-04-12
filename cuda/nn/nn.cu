@@ -68,7 +68,7 @@ __global__ void euclid(LatLong *d_locations, float *d_distances, int numRecords,
 * This program finds the k-nearest neighbors
 **/
 
-int run(int argc, char *argv[]) {
+void run(int argc, char *argv[]) {
     int i = 0;
     float lat, lng;
     int quiet = 0, timing = 0, platform = 0, device = 0;

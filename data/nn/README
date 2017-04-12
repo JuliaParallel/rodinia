@@ -1,9 +1,6 @@
 The Nearest Neighbor application computes the nearest location to a specific 
 latitude and longitude for a number of hurricanes (data from: http://weather.unisys.com/hurricane/).
 
-The Makefile may need to be adjusted for different machines, but it was written for Mac OS X and
-Linux with either NVIDIA or AMD OpenCL SDKs.
-
 The hurricane data is located in a number of data files that are copied into the working
 directory by the Makefile.  A separate text file lists the names of the data files that
 will be used, and it is this text file that should be passed to the application (see usage, below).
