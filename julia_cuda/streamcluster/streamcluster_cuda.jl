@@ -15,7 +15,7 @@ g_iter = 0 # counter for total # of g_iterations
 function d_dist(p1, p2, num, dim, coord_d)
     retval = 0f0
 
-    for i = 0:dim-1
+    for i = Int32(0):dim-Int32(1)
         tmp = coord_d[(i * num) + p1 + 1] - coord_d[(i * num) + p2 + 1]
         retval += tmp * tmp
     end
@@ -29,9 +29,15 @@ end
 #=======================================#
 function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
 	                                     work_mem_d, center_table_d, switch_membership_d)
+    gdx = Base.unsafe_trunc(Int32, gridDim().x)
+    bdx = Base.unsafe_trunc(Int32, blockDim().x)
+    bix = Base.unsafe_trunc(Int32, blockIdx().x)
+    biy = Base.unsafe_trunc(Int32, blockIdx().y)
+    tix = Base.unsafe_trunc(Int32, threadIdx().x)
+
     # block ID and global thread ID
-    const bid = blockIdx().x - 1 + gridDim().x * (blockIdx().y - 1)
-    const tid = blockDim().x * bid + threadIdx().x - 1
+    const bid = bix - Int32(1) + gdx * (biy - Int32(1))
+    const tid = bdx * bid + tix - Int32(1)
 
     if tid < num
         lower_idx = tid * stride
@@ -131,7 +137,7 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
     num_blocks_x = (num_blocks + num_blocks_y - 1) ÷ num_blocks_y
 
     @measure "compute_cost" @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
-        num,                # in:  # of data
+        Int32(num),         # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at
         p_wd, p_ad, p_cd,   # in:  data point array
