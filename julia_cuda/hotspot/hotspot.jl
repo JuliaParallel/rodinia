@@ -277,7 +277,7 @@ function main(args)
     readinput(FilesavingTemp, grid_rows, grid_cols, tfile)
     readinput(FilesavingPower, grid_rows, grid_cols, pfile)
 
-    MatrixTemp = Array{CuArray{Float32}}(2)
+    MatrixTemp = Array{CuArray{Float32,1}}(2)
     MatrixTemp[1] = CuArray(FilesavingTemp)
     MatrixTemp[2] = CuArray{Float32}(size)
     MatrixPower = CuArray(FilesavingPower)
