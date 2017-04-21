@@ -1,7 +1,7 @@
 #include <cuda.h>
 #include <stdio.h>
 
-#include "../../common/cuda/kernelprofile.h"
+#include "../../common/cuda/profile.h"
 
 #ifdef RD_WG_SIZE_0_0
 #define BLOCK_SIZE RD_WG_SIZE_0_0
@@ -196,23 +196,23 @@ void lud_cuda(float *m, int matrix_dim) {
     float *m_debug = (float *)malloc(matrix_dim * matrix_dim * sizeof(float));
 
     for (i = 0; i < matrix_dim - BLOCK_SIZE; i += BLOCK_SIZE) {
-        MEASURE("diagonal", (
+        PROFILE((
             lud_diagonal<<<1, BLOCK_SIZE>>>(m, matrix_dim, i)
         ));
 
         int grid_size = (matrix_dim - i) / BLOCK_SIZE - 1;
 
-        MEASURE("perimeter", (
+        PROFILE((
             lud_perimeter<<<grid_size, BLOCK_SIZE * 2>>>(
                 m, matrix_dim, i)
         ));
 
         dim3 dimGrid(grid_size, grid_size);
-        MEASURE("internal", (
+        PROFILE((
             lud_internal<<<dimGrid, dimBlock>>>(m, matrix_dim, i)
         ));
     }
-    MEASURE("diagonal", (
+    PROFILE((
         lud_diagonal<<<1, BLOCK_SIZE>>>(m, matrix_dim, i)
     ));
 }

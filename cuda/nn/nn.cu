@@ -10,7 +10,7 @@
 #include <vector>
 #include "cuda.h"
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 #define min(a, b) a > b ? b : a
 #define ceilDiv(a, b) (a + b - 1) / b
@@ -157,7 +157,7 @@ void run(int argc, char *argv[]) {
     /**
     * Execute kernel
     */
-    MEASURE("euclid", (
+    PROFILE((
         euclid<<<gridDim, threadsPerBlock>>>(d_locations, d_distances, numRecords,
                                              lat, lng)
     ));
@@ -187,12 +187,12 @@ void run(int argc, char *argv[]) {
 
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     run(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("nn");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }

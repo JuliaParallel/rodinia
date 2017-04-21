@@ -7,7 +7,7 @@
 #include <cuda.h>
 #include <sys/time.h>
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 // includes, kernels
 #include "needle_kernel.cu"
@@ -80,12 +80,12 @@ int main(int argc, char **argv) {
     printf("WG size of kernel = %d \n", BLOCK_SIZE);
 
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     runTest(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("nw");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }
@@ -181,7 +181,7 @@ void runTest(int argc, char **argv) {
     for (int i = 1; i <= block_width; i++) {
         dimGrid.x = i;
         dimGrid.y = 1;
-        MEASURE("shared_1", (
+        PROFILE((
             needle_cuda_shared_1<<<dimGrid, dimBlock>>>(
                 referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width)
         ));
@@ -191,7 +191,7 @@ void runTest(int argc, char **argv) {
     for (int i = block_width - 1; i >= 1; i--) {
         dimGrid.x = i;
         dimGrid.y = 1;
-        MEASURE("shared_2", (
+        PROFILE((
             needle_cuda_shared_2<<<dimGrid, dimBlock>>>(
                 referrence_cuda, matrix_cuda, max_cols, penalty, i, block_width)
         ));

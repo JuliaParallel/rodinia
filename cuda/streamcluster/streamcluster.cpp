@@ -15,7 +15,7 @@
 
 #include "streamcluster_header.cu"
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 using namespace std;
 
@@ -858,12 +858,12 @@ int run(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     run(argc, argv);
 
-    if (getenv("PROFILE"))
-        measure_report("streamcluster");
+    if (getenv("PROFILE")) 
+        profile_stop();
 
     return EXIT_SUCCESS;
 }

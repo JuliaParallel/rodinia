@@ -12,7 +12,7 @@
 #include "backprop_cuda_kernel.cu"
 #include "backprop.h"
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -50,12 +50,12 @@ unsigned int num_blocks = 0;
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     run(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("backprop");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }
@@ -130,7 +130,7 @@ extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
     cudaMemcpy(input_hidden_cuda, input_weights_one_dim,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyHostToDevice);
 
-    MEASURE("layerforward", (
+    PROFILE((
         bpnn_layerforward_CUDA<<<grid, threads>>>(input_cuda, output_hidden_cuda,
                                                   input_hidden_cuda,
                                                   hidden_partial_sum, in, hid)
@@ -187,7 +187,7 @@ extern "C" void bpnn_train_cuda(BPNN *net, float *eo, float *eh) {
     cudaMemcpy(input_hidden_cuda, input_weights_one_dim,
                (in + 1) * (hid + 1) * sizeof(float), cudaMemcpyHostToDevice);
 
-    MEASURE("adjust_weights", (
+    PROFILE((
         bpnn_adjust_weights_cuda<<<grid, threads>>>(
             hidden_delta_cuda, hid, input_cuda, in, input_hidden_cuda,
             input_prev_weights_cuda)

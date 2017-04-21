@@ -2,9 +2,6 @@
 
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 const OUTPUT = haskey(ENV, "OUTPUT")
 
 # configuration
@@ -163,15 +160,13 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        # NOTE: each kernel loops a variable amount of times, so we can't aggregate them
-
-        @measure "kernel 1 iteration $k" @cuda (grid, threads) kernel_1(
+        @cuda (grid, threads) kernel_1(
             pointer(g_graph_nodes), pointer(g_graph_edges), pointer(g_graph_mask),
             pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_cost), no_of_nodes, edge_list_size
         )
 
-        @measure "kernel 2" @cuda (grid, threads) kernel_2(
+        @cuda (grid, threads) kernel_2(
             pointer(g_graph_mask), pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_stop), no_of_nodes
         )
@@ -204,10 +199,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

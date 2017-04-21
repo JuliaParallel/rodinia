@@ -13,7 +13,7 @@
 ***********************************************/
 #include "streamcluster_header.cu"
 
-#include "../../common/cuda/kernelprofile.h"
+#include "../../common/cuda/profile.h"
 
 using namespace std;
 
@@ -208,7 +208,7 @@ float pgain(long x, Points *points, float z, long int *numcenters, int kmax,
         (int)((float)(num_blocks + num_blocks_y - 1) / (float)num_blocks_y);
     dim3 grid_size(num_blocks_x, num_blocks_y, 1);
 
-    MEASURE("compute_cost", (
+    PROFILE((
         kernel_compute_cost<<<grid_size, THREADS_PER_BLOCK>>>(
             num,                // in:	# of data
             dim,                // in:	dimension of point coordinates

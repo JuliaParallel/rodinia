@@ -2,9 +2,6 @@
 
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
 
@@ -106,7 +103,7 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @measure "shared_1" @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
+        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
             pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
             length(matrix_cuda), max_cols, penalty, i, block_width)
     end
@@ -114,7 +111,7 @@ function main(args)
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @measure "shared_2" @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
+        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
             pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
             length(matrix_cuda), max_cols, penalty, i, block_width)
     end
@@ -201,10 +198,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

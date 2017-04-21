@@ -104,7 +104,7 @@ function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
     num_blocks = size(host_grad_y,2) - (2 * MaxR)
     threads_per_block = size(host_grad_x,1) - (2 * MaxR)
 
-    @measure "GICOV" @cuda (num_blocks, threads_per_block) GICOV_kernel(
+    @cuda (num_blocks, threads_per_block) GICOV_kernel(
         size(device_grad_x, 1), size(device_grad_x, 2), pointer(device_grad_x),
         size(device_grad_y, 1), size(device_grad_y, 2), pointer(device_grad_y),
         GICOV_constants.c_sin_angle, GICOV_constants.c_cos_angle,
@@ -179,7 +179,7 @@ function dilate_CUDA(img_in, GICOV_constants)
     threads_per_block = 176
     num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
 
-    @measure "dilate" @cuda (num_blocks,threads_per_block) dilate_kernel(
+    @cuda (num_blocks,threads_per_block) dilate_kernel(
         size(img_dev, 1), size(img_dev, 2), pointer(img_dev),
         GICOV_constants.c_strel, dilated_out)
 

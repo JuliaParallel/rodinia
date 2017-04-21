@@ -270,7 +270,7 @@ function IMGVF_cuda(I, vx, vy, e, max_iterations, cutoff)
     dev_n_array = CuArray(n_array)
     dev_offsets = CuArray(offsets)
 
-    @measure "IMGVF" @cuda (num_cells, threads_per_block) IMGVF_kernel(dev_I_flat,
+    @cuda (num_cells, threads_per_block) IMGVF_kernel(dev_I_flat,
         dev_IMGVF_flat, dev_m_array, dev_n_array, dev_offsets, Float32(vx),
         Float32(vy), Float32(e), max_iterations, Float32(cutoff))
 

@@ -1,7 +1,6 @@
 include("track_ellipse_kernel.jl")
 
 const OUTPUT = haskey(ENV, "OUTPUT")
-const PROFILE = haskey(ENV, "PROFILE")
 
 function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     #=

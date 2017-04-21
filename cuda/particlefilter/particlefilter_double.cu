@@ -8,7 +8,7 @@
 #include <float.h>
 #include <sys/time.h>
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 #define BLOCK_X 16
 #define BLOCK_Y 16
@@ -755,23 +755,23 @@ void particleFilter(unsigned char *I, int IszX, int IszY, int Nfr, int *seed,
 
     for (k = 1; k < Nfr; k++) {
 
-        MEASURE("likelihood", (
+        PROFILE((
             likelihood_kernel<<<num_blocks, threads_per_block>>>(
                 arrayX_GPU, arrayY_GPU, xj_GPU, yj_GPU, CDF_GPU, ind_GPU, objxy_GPU,
                 likelihood_GPU, I_GPU, u_GPU, weights_GPU, Nparticles, countOnes,
                 max_size, k, IszY, Nfr, seed_GPU, partial_sums)
         ));
 
-        MEASURE("sum", (
+        PROFILE((
             sum_kernel<<<num_blocks, threads_per_block>>>(partial_sums, Nparticles)
         ));
 
-        MEASURE("normalize_weights", (
+        PROFILE((
             normalize_weights_kernel<<<num_blocks, threads_per_block>>>(
                 weights_GPU, Nparticles, partial_sums, CDF_GPU, u_GPU, seed_GPU)
         ));
 
-        MEASURE("find_index", (
+        PROFILE((
             find_index_kernel<<<num_blocks, threads_per_block>>>(
                 arrayX_GPU, arrayY_GPU, CDF_GPU, u_GPU, xj_GPU, yj_GPU, weights_GPU,
                 Nparticles)
@@ -933,12 +933,12 @@ int run(int argc, char *argv[]) {
 
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     run(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("particlefilter");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }

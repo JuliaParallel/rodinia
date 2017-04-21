@@ -136,7 +136,7 @@ function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
     num_blocks_y = (num_blocks + MAXBLOCKS - 1) ÷ MAXBLOCKS
     num_blocks_x = (num_blocks + num_blocks_y - 1) ÷ num_blocks_y
 
-    @measure "compute_cost" @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
+    @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
         Int32(num),         # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at

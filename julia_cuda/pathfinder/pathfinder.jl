@@ -2,9 +2,6 @@
 
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
 
@@ -136,7 +133,7 @@ function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_
         src,dst = dst,src
         iter = min(pyramid_height, rows-t-1)
 
-        @measure "dynproc" @cuda (dim_grid, dim_block) dynproc_kernel(
+        @cuda (dim_grid, dim_block) dynproc_kernel(
             iter,
             pointer(wall), length(wall),
             pointer(result[src]), length(result[src]),
@@ -203,10 +200,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

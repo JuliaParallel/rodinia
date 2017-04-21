@@ -30,7 +30,7 @@ function bpnn_train_cuda(net, ctx)
 
     println("Performing GPU computation")
 
-    @measure "layerforward" @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(
+    @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(
         pointer(input_cuda), length(input_cuda),
         pointer(output_hidden_cuda), length(output_hidden_cuda),
         pointer(input_hidden_cuda), length(input_hidden_cuda),
@@ -61,7 +61,7 @@ function bpnn_train_cuda(net, ctx)
 
     input_hidden_cuda = CuArray(input_weights_one_dim)
 
-	@measure "adjust_weights" @cuda ((1, num_blocks), (16, 16)) bpnn_adjust_weights_cuda(
+	@cuda ((1, num_blocks), (16, 16)) bpnn_adjust_weights_cuda(
         hidden_delta_cuda, hid, input_cuda, inp, input_hidden_cuda, input_prev_weights_cuda)
 
 	net.input_units = Array(input_cuda)

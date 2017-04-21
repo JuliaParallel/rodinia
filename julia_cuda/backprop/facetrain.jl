@@ -2,9 +2,6 @@
 
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
 
@@ -56,10 +53,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

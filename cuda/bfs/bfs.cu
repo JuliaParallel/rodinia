@@ -25,9 +25,8 @@
 #include <string.h>
 #include <math.h>
 #include <cuda.h>
-#include <sstream>
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 #define MAX_THREADS_PER_BLOCK 512
 
@@ -60,12 +59,12 @@ int main(int argc, char **argv) {
     edge_list_size = 0;
 
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     BFSGraph(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("bfs");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }
@@ -206,18 +205,13 @@ void BFSGraph(int argc, char **argv) {
         stop = false;
         cudaMemcpy(d_over, &stop, sizeof(bool), cudaMemcpyHostToDevice);
 
-        // NOTE: kernel 1 loops a variable amount of times, so we can't aggregate runs
-        std::stringstream identifier;
-        identifier << "kernel 1 iteration ";
-        identifier << k;
-
-        MEASURE(identifier.str(), (
+        PROFILE((
             Kernel<<<grid, threads, 0>>>(d_graph_nodes, d_graph_edges, d_graph_mask,
                                          d_updating_graph_mask, d_graph_visited,
                                          d_cost, no_of_nodes)
         ));
 
-        MEASURE("kernel 2", (
+        PROFILE((
             Kernel2<<<grid, threads, 0>>>(d_graph_mask, d_updating_graph_mask,
                                           d_graph_visited, d_over, no_of_nodes)
         ));

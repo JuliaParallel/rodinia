@@ -3,7 +3,7 @@
 #include <time.h>
 #include <assert.h>
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 #define BLOCK_SIZE 256
 #define HALO 1  // halo width along one direction when advancing to the next iteration
@@ -143,7 +143,7 @@ int calc_path(int *gpuWall, int *gpuResult[2], int rows, int cols,
         int temp = src;
         src = dst;
         dst = temp;
-        MEASURE("dynproc", (
+        PROFILE((
             dynproc_kernel<<<dimGrid, dimBlock>>>(
                 MIN(pyramid_height, rows - t - 1), gpuWall, gpuResult[src],
                 gpuResult[dst], cols, rows, t, borderCols)
@@ -220,12 +220,12 @@ int run(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     run(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("pathfinder");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }

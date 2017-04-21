@@ -1,6 +1,6 @@
 #include "misc_math.h"
 #include "track_ellipse_kernel.h"
-#include "../../common/cuda/kernelprofile.h"
+#include "../../common/cuda/profile.h"
 
 // Constants used in the MGVF computation
 #define ONE_OVER_PI (1.0 / PI)
@@ -252,7 +252,7 @@ void IMGVF_cuda(MAT **I, MAT **IMGVF, double vx, double vy, double e,
     IMGVF_cuda_init(I, num_cells);
 
     // Compute the MGVF on the GPU
-    MEASURE("IMGVF", (
+    PROFILE((
         IMGVF_kernel<<<num_cells, threads_per_block>>>(
             device_IMGVF_array, device_I_array, device_m_array, device_n_array,
             (float)vx, (float)vy, (float)e, max_iterations, (float)cutoff)

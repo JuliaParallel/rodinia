@@ -3,9 +3,6 @@
 using ArgParse
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 const OUTPUT = haskey(ENV, "OUTPUT")
 
 # configuration
@@ -92,7 +89,7 @@ function main(args)
     d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @measure "euclid" @cuda ((gridX, gridY), threadsPerBlock) euclid(
+    @cuda ((gridX, gridY), threadsPerBlock) euclid(
         pointer(d_locations), length(d_locations), pointer(d_distances),
         length(d_distances), UInt32(numRecords), lat, lng)
 
@@ -222,10 +219,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

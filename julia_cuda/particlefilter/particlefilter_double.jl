@@ -2,9 +2,6 @@
 
 using CUDAdrv, CUDAnative
 
-const PROFILE = haskey(ENV, "PROFILE")
-include("../../common/julia/kernelprofile.jl")
-
 const OUTPUT = haskey(ENV, "OUTPUT")
 
 # configuration
@@ -473,7 +470,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_seed = CuArray(seed)
 
     for k=2:Nfr
-        @measure "likelihood" @cuda (num_blocks, threads_per_block) likelihood_kernel(
+        @cuda (num_blocks, threads_per_block) likelihood_kernel(
             pointer(g_arrayX), length(g_arrayX),
             pointer(g_arrayY), length(g_arrayY),
             pointer(g_xj), length(g_xj),
@@ -487,10 +484,10 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
             pointer(g_seed), length(g_seed),
             pointer(g_partial_sums), length(g_partial_sums))
 
-        @measure "sum" @cuda (num_blocks, threads_per_block) sum_kernel(
+        @cuda (num_blocks, threads_per_block) sum_kernel(
             pointer(g_partial_sums), length(g_partial_sums), Nparticles)
 
-        @measure "normalize_weights" @cuda (num_blocks, threads_per_block) normalize_weights_kernel(
+        @cuda (num_blocks, threads_per_block) normalize_weights_kernel(
             pointer(g_weights), length(g_weights),
             Nparticles,
             pointer(g_partial_sums), length(g_partial_sums),
@@ -498,7 +495,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
             pointer(g_u), length(g_u),
             pointer(g_seed), length(g_seed))
 
-        @measure "find_index" @cuda (num_blocks, threads_per_block) find_index_kernel(
+        @cuda (num_blocks, threads_per_block) find_index_kernel(
             pointer(g_arrayX), length(g_arrayX),
             pointer(g_arrayY), length(g_arrayY),
             pointer(g_CDF), length(g_CDF),
@@ -596,10 +593,8 @@ ctx = CuContext(dev)
 
 main(ARGS)
 
-if PROFILE
-    KernelProfile.enable()
-    main(ARGS)
-    KernelProfile.report()
+if haskey(ENV, "PROFILE")
+    CUDAnative.@profile main(ARGS)
 end
 
 destroy(ctx)

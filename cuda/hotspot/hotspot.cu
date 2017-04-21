@@ -3,7 +3,7 @@
 #include <time.h>
 #include <assert.h>
 
-#include "../../common/cuda/kernelprofile_report.h"
+#include "../../common/cuda/profile_main.h"
 
 #ifdef RD_WG_SIZE_0_0
 #define BLOCK_SIZE RD_WG_SIZE_0_0
@@ -247,7 +247,7 @@ int compute_tran_temp(float *MatrixPower, float *MatrixTemp[2], int col,
         int temp = src;
         src = dst;
         dst = temp;
-        MEASURE("calculate_temp", (
+        PROFILE((
             calculate_temp<<<dimGrid, dimBlock>>>(
                 MIN(num_iterations, total_iterations - t), MatrixPower,
                 MatrixTemp[src], MatrixTemp[dst], col, row, borderCols, borderRows,
@@ -350,12 +350,12 @@ void real_main(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     if (getenv("PROFILE"))
-        measure_enable();
+        profile_start();
 
     real_main(argc, argv);
 
     if (getenv("PROFILE"))
-        measure_report("hotspot");
+        profile_stop();
 
     return EXIT_SUCCESS;
 }
