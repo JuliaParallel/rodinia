@@ -12,7 +12,7 @@ struct Node
     no_of_edges::Int32
 end
 
-function kernel_1(g_graph_nodes_ptr, g_graph_edges_ptr, g_graph_mask_ptr,
+function Kernel(g_graph_nodes_ptr, g_graph_edges_ptr, g_graph_mask_ptr,
                   g_updating_graph_mask_ptr, g_graph_visited_ptr, g_cost_ptr,
                   no_of_nodes, edge_list_size)
     g_graph_nodes = CuDeviceArray(no_of_nodes, g_graph_nodes_ptr)
@@ -38,7 +38,7 @@ function kernel_1(g_graph_nodes_ptr, g_graph_edges_ptr, g_graph_mask_ptr,
     return nothing
 end
 
-function kernel_2(g_graph_mask_ptr, g_updating_graph_mask_ptr, g_graph_visited_ptr,
+function Kernel2(g_graph_mask_ptr, g_updating_graph_mask_ptr, g_graph_visited_ptr,
                   g_over_ptr, no_of_nodes)
     g_graph_mask = CuDeviceArray(no_of_nodes, g_graph_mask_ptr)
     g_updating_graph_mask = CuDeviceArray(no_of_nodes, g_updating_graph_mask_ptr)
@@ -160,13 +160,13 @@ function main(args)
         stop[1] = false
         copy!(g_stop, stop)
 
-        @cuda (grid, threads) kernel_1(
+        @cuda (grid, threads) Kernel(
             pointer(g_graph_nodes), pointer(g_graph_edges), pointer(g_graph_mask),
             pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_cost), no_of_nodes, edge_list_size
         )
 
-        @cuda (grid, threads) kernel_2(
+        @cuda (grid, threads) Kernel2(
             pointer(g_graph_mask), pointer(g_updating_graph_mask), pointer(g_graph_visited),
             pointer(g_stop), no_of_nodes
         )
