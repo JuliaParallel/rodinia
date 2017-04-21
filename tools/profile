@@ -2,6 +2,7 @@
 
 using DataFrames
 using Compat
+using Glob
 
 const suites = ["cuda", "julia_cuda"]   # which benchmark suites to profile and compare
 const baseline = "cuda"
@@ -36,49 +37,73 @@ data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float
 for suite in suites, benchmark in common_benchmarks
     dir = joinpath(root, suite, benchmark)
     cd(dir) do
-        # get data
         cache = joinpath(dir, "profile.csv")
-        csv = Nullable{String}()
-        if isfile(cache)
-            csv = Nullable(readstring(cache))
-        end
 
-        if ALWAYS_RUN || isnull(csv)
-            # run and collect CSV output
-            csv_lines = Vector{String}()
-            tag = "$benchmark,"
+        if ALWAYS_RUN || !isfile(cache)
+            glob_pattern = "profile.csv*"
+
+            # Delete old output files.
+            for output_file in glob(glob_pattern, dir)
+                rm(output_file)
+            end
+
+            # Run and collect CSV output.
             info("Running $suite/$benchmark")
-            cmd = pipeline(ignorestatus(`./profile`))
-            for line in eachline(cmd)
-                if startswith(line, tag)
-                    push!(csv_lines, line)
-                end
-            end
-            if success(cmd) && length(csv_lines) > 0
-                csv_data = join(csv_lines, "\n")
-                if APPEND_DATA && !isnull(csv)
-                    csv_data = get(csv) * "\n" * csv_data
-                end
-                write(cache, csv_data)
-                csv = Nullable(csv_data)
-            elseif !success(cmd)
-                warn("Benchmark did not succeed")
+
+            cmd_success = success(ignorestatus(`nvprof --profile-from-start off --profile-child-processes --print-gpu-trace --normalized-time-unit us --csv --log-file $cache.%p ./profile --depwarn=no`))
+            output_files = glob(glob_pattern, dir)
+
+            if !cmd_success
+                warn("$suite/$benchmark did not succeed")
+            elseif length(output_files) == 0
+                warn("no output files for $suite/$benchmark")
+            elseif length(output_files) > 1
+                warn("too many output files for $suite/$benchmark")
             else
-                warn("Benchmark did not output any data")
+                mv(output_files[1], cache, remove_destination = true)
             end
         end
 
-        if !isnull(csv)
-            io = IOBuffer(get(csv))
-            local_data = readtable(io, header=false)
-            names!(local_data, [:benchmark, :kernel, :time])
-            local_data[:suite] = suite
-            # create new table with a :suite column prepended
-            local_data = DataFrame(suite=local_data[:suite],
-                                   benchmark=local_data[:benchmark],
-                                   kernel=local_data[:kernel],
-                                   time=local_data[:time])
-            append!(data, local_data)
+        if isfile(cache)
+            local_data = readtable(cache, header = false, skipstart = 5)
+
+            if size(local_data, 1) != 0
+                # Delete all CUDA rows. FIXME: find a better way
+                deleterows!(local_data, find(isna(local_data[:x3])))
+                # Append suite and benchmark columns.
+                local_data[:suite] = suite
+                local_data[:benchmark] = benchmark
+
+                # Extract the kernel names.
+                kernels = local_data[:x17]
+
+                for i = 1:length(kernels)
+
+                    jl_match = match(r"julia_(.*)_[0-9]+ .*", kernels[i])
+
+                    if jl_match != nothing
+
+                        kernels[i] = jl_match.captures[1]
+                        continue
+                    end
+
+                    cu_match = match(r"(.*)\(.*", kernels[i])
+
+                    if cu_match != nothing
+
+                        kernels[i] = cu_match.captures[1]
+                        continue
+                    end
+                end
+
+                local_data = DataFrame(suite = local_data[:suite],
+                                       benchmark = local_data[:benchmark],
+                                       kernel = kernels,
+                                       time = local_data[:x2])
+                append!(data, local_data)
+            else
+                warn("no data for $suite/$benchmark")
+            end
         end
     end
 end
@@ -113,7 +138,7 @@ for benchmark in unique(grouped_data[:benchmark])
         # get the data for this kernel
         kernel_data = benchmark_data[benchmark_data[:kernel] .== kernel, :]
         if sort(kernel_data[:suite]) != sort(suites)
-            warn("- kernel $kernel: don't have data for all suites")
+            warn("$benchmark - $kernel: don't have data for all suites")
             continue
         end
 
