@@ -262,9 +262,9 @@ function main(args)
     blockRows = floor(Int32, grid_rows / smallBlockRow) +
         ((grid_rows % smallBlockRow == 0) ? 0 : 1)
 
-    FilesavingTemp = Array{Float32}(size)
-    FilesavingPower = Array{Float32}(size)
-    MatrixOut = Array{Float32}(size)
+    FilesavingTemp = Vector{Float32}(size)
+    FilesavingPower = Vector{Float32}(size)
+    MatrixOut = Vector{Float32}(size)
 
     @printf("pyramidHeight: %d\ngridSize: [%d, %d]\nborder:[%d, %d]\n",
         pyramid_height, grid_cols, grid_rows, borderCols, borderRows)
