@@ -142,10 +142,10 @@ function calculate_temp(iteration,   # number of iteration
             computed = true
             t1 = temp_on_cuda[tx, S ] +
                  temp_on_cuda[tx, N ] -
-                 temp_on_cuda[tx, ty] * 2f0
+                 temp_on_cuda[tx, ty] * 2.0
             t2 = temp_on_cuda[E , ty] +
                  temp_on_cuda[W , ty] -
-                 temp_on_cuda[tx, ty] * 2f0
+                 temp_on_cuda[tx, ty] * 2.0
             temp_t[tx, ty] = Float32(temp_on_cuda[tx, ty] +
                 step_div_Cap * (power_on_cuda[tx, ty] + t1 * Ry_1 +
                 t2 * Rx_1 + (amb_temp - temp_on_cuda[tx, ty]) * Rz_1))
