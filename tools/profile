@@ -10,8 +10,10 @@ const non_baseline = filter(suite->suite!=baseline, suites)
 const root = dirname(@__DIR__)
 
 # configuration
-const ALWAYS_RUN =  parse(Bool, get(ENV, "ALWAYS_RUN",  "false"))   # always run the profile script, even if we have previous results
-const APPEND_DATA = parse(Bool, get(ENV, "APPEND_DATA", "false"))   # if ALWAYS_RUN==true but we already had data, combine both sets
+const MIN_KERNEL_ITERATIONS = 2
+const MAX_KERNEL_UNCERTAINTY = 0.02
+const MAX_BENCHMARK_RUNS = 25
+const MAX_BENCHMARK_SECONDS = 60
 
 # NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
 #       per-suite benchmarks based on flat performance difference) it is possible to gather
@@ -32,80 +34,149 @@ for suite in suites
 end
 common_benchmarks = intersect(values(benchmarks)...)
 
-# gather profiling data
-data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
-for suite in suites, benchmark in common_benchmarks
-    dir = joinpath(root, suite, benchmark)
-    cd(dir) do
-        cache = joinpath(dir, "profile.csv")
+# run a benchmark once, returning the file containing measurements
+function run_benchmark(dir)
+    output = "nvprof.csv"
+    output_pattern = "nvprof.csv.*"
 
-        if ALWAYS_RUN || !isfile(cache)
-            glob_pattern = "profile.csv*"
+    # delete old profile output
+    rm.(glob(output_pattern, dir))
 
-            # Delete old output files.
-            for output_file in glob(glob_pattern, dir)
-                rm(output_file)
-            end
+    # run and measure
+    out = Pipe()
+    cmd_success = cd(dir) do
+        success(
+            pipeline(
+                ignorestatus(`nvprof --profile-from-start off --profile-child-processes --print-gpu-trace --normalized-time-unit us --csv --log-file $output.%p ./profile --depwarn=no`),
+                stdout=output, stderr=output)
+            )
+    end
+    outputs = glob(output_pattern, dir)
 
-            # Run and collect CSV output.
-            info("Running $suite/$benchmark")
+    # process data
+    if !cmd_success
+        close(out.in)
+        println(readstring(out))
+        error("benchmark did not succeed")
+    elseif length(outputs) == 0
+        error("no output files")
+    elseif length(outputs) > 1
+        error("too many output files")
+    else
+        return outputs[1]
+    end
+end
 
-            cmd_success = success(ignorestatus(`nvprof --profile-from-start off --profile-child-processes --print-gpu-trace --normalized-time-unit us --csv --log-file $cache.%p ./profile --depwarn=no`))
-            output_files = glob(glob_pattern, dir)
+function read_data(output_path, suite, benchmark)
+    # nuke the headers and read the data
+    output = readlines(output_path; chomp=false)
+    raw_data = mktemp() do path,io
+        write(io, output[4])
+        write(io, output[6:end])
+        flush(io)
+        return readtable(path)
+    end
+    size(raw_data, 1) == 0 && error("no data")
 
-            if !cmd_success
-                warn("$suite/$benchmark did not succeed")
-            elseif length(output_files) == 0
-                warn("no output files for $suite/$benchmark")
-            elseif length(output_files) > 1
-                warn("too many output files for $suite/$benchmark")
-            else
-                mv(output_files[1], cache, remove_destination = true)
-            end
+    # remove API calls
+    raw_data = raw_data[!startswith.(raw_data[:Name], "[CUDA"), :]
+
+    # demangle kernel names
+    kernels = raw_data[:Name]
+    for i = 1:length(kernels)
+        jl_match = match(r"julia_(.*)_[0-9]+ .*", kernels[i])
+        if jl_match != nothing
+            kernels[i] = jl_match.captures[1]
+            continue
         end
 
-        if isfile(cache)
-            local_data = readtable(cache, header = false, skipstart = 5)
+        cu_match = match(r"(.*)\(.*", kernels[i])
+        if cu_match != nothing
+            kernels[i] = cu_match.captures[1]
+            continue
+        end
+    end
 
-            if size(local_data, 1) != 0
-                # Delete all CUDA rows. FIXME: find a better way
-                deleterows!(local_data, find(isna(local_data[:x3])))
-                # Append suite and benchmark columns.
-                local_data[:suite] = suite
-                local_data[:benchmark] = benchmark
+    # generate a nicer table
+    rows = size(raw_data, 1)
+    data = DataFrame(suite = repeat([suite]; inner=rows),   # DataFramesMeta.jl/#46
+                     benchmark = benchmark,
+                     kernel = kernels,
+                     time = raw_data[:Duration])
 
-                # Extract the kernel names.
-                kernels = local_data[:x17]
-
-                for i = 1:length(kernels)
-
-                    jl_match = match(r"julia_(.*)_[0-9]+ .*", kernels[i])
-
-                    if jl_match != nothing
-
-                        kernels[i] = jl_match.captures[1]
-                        continue
-                    end
-
-                    cu_match = match(r"(.*)\(.*", kernels[i])
-
-                    if cu_match != nothing
-
-                        kernels[i] = cu_match.captures[1]
-                        continue
-                    end
+    # these benchmarks spend a variable amount of time per kernel, so we can't aggregate.
+    # work around this by giving them unique names
+    blacklist = Dict(
+        "bfs"             => ["Kernel", "Kernel2"],
+        "leukocyte"       => ["IMGVF_kernel"],
+        "lud"             => ["lud_perimeter", "lud_internal"],
+        "particlefilter"  => ["find_index_kernel"],
+    )
+    if haskey(blacklist, benchmark)
+        kernels = blacklist[benchmark]
+        for kernel in kernels
+            for i in 1:size(data, 1)
+                if data[:kernel][i] in kernels
+                    data[:kernel][i] *= "_$i"
                 end
-
-                local_data = DataFrame(suite = local_data[:suite],
-                                       benchmark = local_data[:benchmark],
-                                       kernel = kernels,
-                                       time = local_data[:x2])
-                append!(data, local_data)
-            else
-                warn("no data for $suite/$benchmark")
             end
         end
     end
+
+    return data
+end
+
+# check if measurements are accurate enough
+function is_accurate(data)
+    # group across iterations
+    grouped = by(data, [:suite, :benchmark, :kernel],
+                 dt->DataFrame(iterations=length(dt[:time]),
+                               abs_uncert=std(dt[:time]),     # TODO: lognormal
+                               best=median(dt[:time]))
+                )
+
+    # calculate relative uncertainty
+    grouped[:rel_uncert] = grouped[:abs_uncert] ./ abs(grouped[:best])
+
+    return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:iterations]) &&
+           all(val->val<MAX_KERNEL_UNCERTAINTY, grouped[:rel_uncert])
+end
+
+# gather profiling data
+data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
+for suite in suites, benchmark in common_benchmarks
+    info("Processing $suite/$benchmark")
+    dir = joinpath(root, suite, benchmark)
+    cache_path = joinpath(dir, "profile.csv")
+
+    if isfile(cache_path)
+        local_data = readtable(cache_path)
+    else
+        t0 = time()
+        try
+            # iteration 0
+            iter = 1
+            path = run_benchmark(dir)
+            local_data = read_data(path, suite, benchmark)
+
+            # additional iterations
+            while (time()-t0) < MAX_BENCHMARK_SECONDS &&
+                iter < MAX_BENCHMARK_RUNS &&
+                !is_accurate(local_data)
+                iter += 1
+                path = run_benchmark(dir)
+                append!(local_data, read_data(path, suite, benchmark))
+            end
+        catch err
+            isa(err, InterruptException) && return
+            warn(err)
+            continue
+        end
+
+        writetable(cache_path, local_data)
+    end
+
+    append!(data, local_data)
 end
 
 
