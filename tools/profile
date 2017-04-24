@@ -122,8 +122,11 @@ end
 # add time totals for each benchmark
 # NOTE: we do this before summarizing across iterations, to make totals more fair
 #       (ie. the totals are affected by the amount of iterations for each kernel)
+# NOTE: we must normalize these timings by the number of iterations,
+#       as not every suite might have executed the same number of times
 append!(data, by(data, [:suite, :benchmark],
-                 dt->DataFrame(kernel="total", time=sum(dt[:time]))))
+                 dt->DataFrame(kernel="total",
+                               time=sum(dt[:time])/size(dt, 1))))
 
 # summarize across iterations
 grouped_data = by(data, [:suite, :benchmark, :kernel],
