@@ -47,15 +47,15 @@ function run_benchmark(dir)
     cmd_success = cd(dir) do
         success(
             pipeline(
-                ignorestatus(`nvprof --profile-from-start off --profile-child-processes --print-gpu-trace --normalized-time-unit us --csv --log-file $output.%p ./profile --depwarn=no`),
-                stdout=output, stderr=output)
+                ignorestatus(`nvprof --profile-from-start off --profile-child-processes --unified-memory-profiling off --print-gpu-trace --normalized-time-unit us --csv --log-file $output.%p ./profile --depwarn=no`),
+                stdout=out, stderr=out)
             )
     end
+    close(out.in)
     outputs = glob(output_pattern, dir)
 
     # process data
     if !cmd_success
-        close(out.in)
         println(readstring(out))
         error("benchmark did not succeed")
     elseif length(outputs) == 0
@@ -153,24 +153,19 @@ for suite in suites, benchmark in common_benchmarks
         local_data = readtable(cache_path)
     else
         t0 = time()
-        try
-            # iteration 0
-            iter = 1
-            path = run_benchmark(dir)
-            local_data = read_data(path, suite, benchmark)
 
-            # additional iterations
-            while (time()-t0) < MAX_BENCHMARK_SECONDS &&
-                iter < MAX_BENCHMARK_RUNS &&
-                !is_accurate(local_data)
-                iter += 1
-                path = run_benchmark(dir)
-                append!(local_data, read_data(path, suite, benchmark))
-            end
-        catch err
-            isa(err, InterruptException) && return
-            warn(err)
-            continue
+        # iteration 0
+        iter = 1
+        path = run_benchmark(dir)
+        local_data = read_data(path, suite, benchmark)
+
+        # additional iterations
+        while (time()-t0) < MAX_BENCHMARK_SECONDS &&
+            iter < MAX_BENCHMARK_RUNS &&
+            !is_accurate(local_data)
+            iter += 1
+            path = run_benchmark(dir)
+            append!(local_data, read_data(path, suite, benchmark))
         end
 
         writetable(cache_path, local_data)
