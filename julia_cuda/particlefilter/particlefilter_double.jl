@@ -363,7 +363,7 @@ function likelihood_kernel(arrayX_ptr, arrayX_len,
             indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
             indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
 
-            ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1)
+            ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1) + 1
             if ind[(i-1)*count_ones + y + 1] > max_size
                 ind[(i-1)*count_ones + y + 1] = 1
             end
