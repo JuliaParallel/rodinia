@@ -44,12 +44,19 @@ function run_benchmark(dir)
 
     # run and measure
     out = Pipe()
+    cmd = ```
+        nvprof
+        --profile-from-start off
+        --profile-child-processes
+        --unified-memory-profiling off
+        --print-gpu-trace
+        --normalized-time-unit us
+        --csv
+        --log-file $output.%p
+        ./profile --depwarn=no
+    ```
     cmd_success = cd(dir) do
-        success(
-            pipeline(
-                ignorestatus(`nvprof --profile-from-start off --profile-child-processes --unified-memory-profiling off --print-gpu-trace --normalized-time-unit us --csv --log-file $output.%p ./profile --depwarn=no`),
-                stdout=out, stderr=out)
-            )
+        success(pipeline(ignorestatus(cmd), stdout=out, stderr=out))
     end
     close(out.in)
     outputs = glob(output_pattern, dir)
