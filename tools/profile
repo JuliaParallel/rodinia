@@ -236,3 +236,16 @@ push!(summary, ["total", "total", totals...])
 suite_stats(suite) = summary[summary[:kernel] .== "total", [:benchmark, Symbol(suite)]]
 benchmark_stats(benchmark) = summary[summary[:benchmark] .== benchmark, :]
 println(suite_stats("julia_cuda"))
+
+
+## plotting
+
+using Plots
+pyplot()
+
+bar(suite_stats("julia_cuda")[:benchmark],
+    100.*suite_stats("julia_cuda")[:julia_cuda].-100;
+    legend=false,
+    rotation=45,
+    xlabel="benchmark",
+    ylabel = "slowdown (%)")
