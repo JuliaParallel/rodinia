@@ -132,7 +132,7 @@ function is_accurate(data)
     grouped = by(data, [:suite, :benchmark, :kernel],
                  dt->DataFrame(iterations=length(dt[:time]),
                                abs_uncert=std(dt[:time]),     # TODO: lognormal
-                               best=median(dt[:time]))
+                               best=minimum(dt[:time]))
                 )
 
     # calculate relative uncertainty
