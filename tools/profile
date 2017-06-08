@@ -10,10 +10,10 @@ const non_baseline = filter(suite->suite!=baseline, suites)
 const root = dirname(@__DIR__)
 
 # configuration
-const MIN_KERNEL_ITERATIONS = 2
+const MIN_KERNEL_ITERATIONS = 10
 const MAX_KERNEL_UNCERTAINTY = 0.02
-const MAX_BENCHMARK_RUNS = 25
-const MAX_BENCHMARK_SECONDS = 60
+const MAX_BENCHMARK_RUNS = 100
+const MAX_BENCHMARK_SECONDS = 300
 
 # NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
 #       per-suite benchmarks based on flat performance difference) it is possible to gather
