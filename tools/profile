@@ -91,7 +91,7 @@ function read_data(output_path, suite, benchmark)
     # demangle kernel names
     kernels = raw_data[:Name]
     for i = 1:length(kernels)
-        jl_match = match(r"julia_(.*)_[0-9]+ .*", kernels[i])
+        jl_match = match(r"ptxcall_(.*)_[0-9]+ .*", kernels[i])
         if jl_match != nothing
             kernels[i] = jl_match.captures[1]
             continue
@@ -118,6 +118,7 @@ function read_data(output_path, suite, benchmark)
         "leukocyte"       => ["IMGVF_kernel"],
         "lud"             => ["lud_perimeter", "lud_internal"],
         "particlefilter"  => ["find_index_kernel"],
+        "nw"              => ["needle_cuda_shared_1", "needle_cuda_shared_2"],
     )
     if haskey(blacklist, benchmark)
         kernels = blacklist[benchmark]
