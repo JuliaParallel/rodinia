@@ -300,13 +300,8 @@ function main(args)
 end
 
 
-dev = CuDevice(0)
-ctx = CuContext(dev)
-
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
     CUDAnative.@profile main(ARGS)
 end
-
-destroy(ctx)

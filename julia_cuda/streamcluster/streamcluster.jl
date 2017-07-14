@@ -184,7 +184,7 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
 
         for i = 0:iter-1
             x = i % numfeasible
-            change += pgain(ctx, feasible[x + 1], points, z, k, kmax, g_is_center,
+            change += pgain(feasible[x + 1], points, z, k, kmax, g_is_center,
                             g_center_table, g_switch_membership, g_isCoordChanged)
         end
 
@@ -660,13 +660,8 @@ function main(args)
 end
 
 
-dev = CuDevice(0)
-ctx = CuContext(dev)
-
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
     CUDAnative.@profile main(ARGS)
 end
-
-destroy(ctx)

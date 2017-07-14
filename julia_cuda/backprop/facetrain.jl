@@ -21,7 +21,7 @@ function backprop_face(layer_size)
 
     # Entering the training kernel, only one iteration.
     println("Starting training kernel")
-    bpnn_train_cuda(net, ctx)
+    bpnn_train_cuda(net)
 
     if OUTPUT
         bpnn_save(net, "output.dat")
@@ -48,13 +48,8 @@ function main(args)
 end
 
 
-dev = CuDevice(0)
-ctx = CuContext(dev)
-
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
     CUDAnative.@profile main(ARGS)
 end
-
-destroy(ctx)

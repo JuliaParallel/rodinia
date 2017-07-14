@@ -62,12 +62,7 @@ function main(args)
     maxThreadsPerBlock = attribute(dev, CUDAdrv.MAX_THREADS_PER_BLOCK)
     threadsPerBlock = min(maxThreadsPerBlock, DEFAULT_THREADS_PER_BLOCK)
 
-    freeDeviceMemory = Ref{Csize_t}()
-    totalDeviceMemory = Ref{Csize_t}()
-    CUDAdrv.@apicall(:cuMemGetInfo, (Ptr{Csize_t}, Ptr{Csize_t},
-        CUDAdrv.CuDevice_t), freeDeviceMemory, totalDeviceMemory, dev.handle)
-    freeDeviceMemory = freeDeviceMemory[]
-    totalDeviceMemory = totalDeviceMemory[]
+    freeDeviceMemory = Mem.free()
 
     synchronize()
 
@@ -214,13 +209,8 @@ function parseCommandline(args)
 end
 
 
-dev = CuDevice(0)
-ctx = CuContext(dev)
-
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
     CUDAnative.@profile main(ARGS)
 end
-
-destroy(ctx)

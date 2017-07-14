@@ -65,7 +65,7 @@ const g_coord_h = Ref{Array{Float32}}()
 #=======================================#
 # pgain Entry - CUDA SETUP + CUDA CALL
 #=======================================#
-function pgain(ctx, x, points, z, numcenters, kmax, is_center, center_table,
+function pgain(x, points, z, numcenters, kmax, is_center, center_table,
                switch_membership, isCoordChanged)
 
     global g_iter

@@ -65,13 +65,8 @@ end
 # the loops or the kernel(s) with the @unroll macro once it is available.
 clopts("--unroll-threshold=1200")
 
-dev = CuDevice(0)
-ctx = CuContext(dev)
-
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
     CUDAnative.@profile main(ARGS)
 end
-
-destroy(ctx)
