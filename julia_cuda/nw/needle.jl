@@ -104,16 +104,14 @@ function main(args)
     # process top-left matrix
     for i = 1:block_width
         @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
-            pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
-            length(matrix_cuda), max_cols, penalty, i, block_width)
+            reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
         @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
-            pointer(reference_cuda), length(reference_cuda), pointer(matrix_cuda),
-            length(matrix_cuda), max_cols, penalty, i, block_width)
+            reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     output_itemsets = Array(matrix_cuda)

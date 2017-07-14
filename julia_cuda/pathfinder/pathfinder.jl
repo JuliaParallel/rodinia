@@ -49,14 +49,8 @@ end
 inrange(x, min, max) = x >= min && x <= max
 
 function dynproc_kernel(iteration,
-                        gpu_wall_ptr, gpu_wall_len,
-                        gpu_src_ptr, gpu_src_len,
-                        gpu_result_ptr, gpu_result_len,
+                        gpu_wall, gpu_src, gpu_result,
                         cols, rows, start_step, border)
-    gpu_wall = CuDeviceArray(gpu_wall_len, gpu_wall_ptr)
-    gpu_src = CuDeviceArray(gpu_src_len, gpu_src_ptr)
-    gpu_result = CuDeviceArray(gpu_result_len, gpu_result_ptr)
-
     prev = @cuStaticSharedMem(Int32, BLOCK_SIZE)
     result = @cuStaticSharedMem(Int32, BLOCK_SIZE)
 
@@ -133,11 +127,8 @@ function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_
         src,dst = dst,src
         iter = min(pyramid_height, rows-t-1)
 
-        @cuda (dim_grid, dim_block) dynproc_kernel(
-            iter,
-            pointer(wall), length(wall),
-            pointer(result[src]), length(result[src]),
-            pointer(result[dst]), length(result[dst]),
+        @cuda (dim_grid, dim_block) dynproc_kernel(iter,
+            wall, result[src], result[dst],
             cols, rows, t, border_cols
         )
     end

@@ -210,23 +210,7 @@ end
 
 # Kernels
 
-function find_index_kernel(arrayX_ptr, arrayX_len,
-                           arrayY_ptr, arrayY_len,
-                           CDF_ptr, CDF_len,
-                           u_ptr, u_len,
-                           xj_ptr, xj_len,
-                           yj_ptr, yj_len,
-                           weights_ptr, weights_len,
-                           Nparticles)
-    # reconstruct array arguments
-    arrayX = CuDeviceArray(arrayX_len, arrayX_ptr)
-    arrayY = CuDeviceArray(arrayY_len, arrayY_ptr)
-    CDF = CuDeviceArray(CDF_len, CDF_ptr)
-    u = CuDeviceArray(u_len, u_ptr)
-    xj = CuDeviceArray(xj_len, xj_ptr)
-    yj = CuDeviceArray(yj_len, yj_ptr)
-    weights = CuDeviceArray(weights_len, weights_ptr)
-
+function find_index_kernel(arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -248,19 +232,7 @@ function find_index_kernel(arrayX_ptr, arrayX_len,
     sync_threads()
 end
 
-function normalize_weights_kernel(weights_ptr, weights_len,
-                                  Nparticles,
-                                  partial_sums_ptr, partial_sums_len,
-                                  CDF_ptr, CDF_len,
-                                  u_ptr, u_len,
-                                  seed_ptr, seed_len)
-    # reconstruct array arguments
-    weights = CuDeviceArray(weights_len, weights_ptr)
-    partial_sums = CuDeviceArray(partial_sums_len, partial_sums_ptr)
-    CDF = CuDeviceArray(CDF_len, CDF_ptr)
-    u = CuDeviceArray(u_len, u_ptr)
-    seed = CuDeviceArray(seed_len, seed_ptr)
-
+function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, seed)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -298,10 +270,7 @@ function normalize_weights_kernel(weights_ptr, weights_len,
     return nothing
 end
 
-function sum_kernel(partial_sums_ptr, partial_sums_len, Nparticles)
-    # reconstruct array arguments
-    partial_sums = CuDeviceArray(partial_sums_len, partial_sums_ptr)
-
+function sum_kernel(partial_sums, Nparticles)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -317,32 +286,8 @@ function sum_kernel(partial_sums_ptr, partial_sums_len, Nparticles)
     return nothing
 end
 
-function likelihood_kernel(arrayX_ptr, arrayX_len,
-                           arrayY_ptr, arrayY_len,
-                           xj_ptr, xj_len,
-                           yj_ptr, yj_len,
-                           ind_ptr, ind_len,
-                           objxy_ptr, objxy_len,
-                           likelihood_ptr, likelihood_len,
-                           I_ptr, I_len,
-                           weights_ptr, weights_len,
-                           Nparticles, count_ones, max_size, k, IszY,
-                           Nfr,
-                           seed_ptr, seed_len,
-                           partial_sums_ptr, partial_sums_len)
-    # reconstruct array arguments
-    arrayX = CuDeviceArray(arrayX_len, arrayX_ptr)
-    arrayY = CuDeviceArray(arrayY_len, arrayY_ptr)
-    xj = CuDeviceArray(xj_len, xj_ptr)
-    yj = CuDeviceArray(yj_len, yj_ptr)
-    ind = CuDeviceArray(ind_len, ind_ptr)
-    objxy = CuDeviceArray(objxy_len, objxy_ptr)
-    likelihood = CuDeviceArray(likelihood_len, likelihood_ptr)
-    I = CuDeviceArray(I_len, I_ptr)
-    weights = CuDeviceArray(weights_len, weights_ptr)
-    seed = CuDeviceArray(seed_len, seed_ptr)
-    partial_sums = CuDeviceArray(partial_sums_len, partial_sums_ptr)
-
+function likelihood_kernel(arrayX, arrayY, xj, yj, ind, objxy, likelihood, I, weights,
+                           Nparticles, count_ones, max_size, k, IszY, Nfr, seed, partial_sums)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
@@ -471,39 +416,19 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
     for k=2:Nfr
         @cuda (num_blocks, threads_per_block) likelihood_kernel(
-            pointer(g_arrayX), length(g_arrayX),
-            pointer(g_arrayY), length(g_arrayY),
-            pointer(g_xj), length(g_xj),
-            pointer(g_yj), length(g_yj),
-            pointer(g_ind), length(g_ind),
-            pointer(g_objxy), length(g_objxy),
-            pointer(g_likelihood), length(g_likelihood),
-            pointer(g_I), length(g_I),
-            pointer(g_weights), length(g_weights),
+            g_arrayX, g_arrayY, g_xj, g_yj, g_ind,
+            g_objxy, g_likelihood, g_I, g_weights,
             Nparticles, count_ones, max_size, k, IszY, Nfr,
-            pointer(g_seed), length(g_seed),
-            pointer(g_partial_sums), length(g_partial_sums))
+            g_seed, g_partial_sums)
 
         @cuda (num_blocks, threads_per_block) sum_kernel(
-            pointer(g_partial_sums), length(g_partial_sums), Nparticles)
+            g_partial_sums, Nparticles)
 
         @cuda (num_blocks, threads_per_block) normalize_weights_kernel(
-            pointer(g_weights), length(g_weights),
-            Nparticles,
-            pointer(g_partial_sums), length(g_partial_sums),
-            pointer(g_CDF), length(g_CDF),
-            pointer(g_u), length(g_u),
-            pointer(g_seed), length(g_seed))
+            g_weights, Nparticles, g_partial_sums, g_CDF, g_u, g_seed)
 
         @cuda (num_blocks, threads_per_block) find_index_kernel(
-            pointer(g_arrayX), length(g_arrayX),
-            pointer(g_arrayY), length(g_arrayY),
-            pointer(g_CDF), length(g_CDF),
-            pointer(g_u), length(g_u),
-            pointer(g_xj), length(g_xj),
-            pointer(g_yj), length(g_yj),
-            pointer(g_weights), length(g_weights),
-            Nparticles)
+            g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
     end
 
     arrayX = Array(g_arrayX)

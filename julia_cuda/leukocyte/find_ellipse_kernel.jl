@@ -18,15 +18,8 @@ end
 
 # Kernel to find the maximal GICOV value at each pixel of a
 #  video frame, based on the input x- and y-gradient matrices
-function GICOV_kernel(device_grad_x_size1, device_grad_x_size2, device_grad_x_ptr,
-                      device_grad_y_size1, device_grad_y_size2, device_grad_y_ptr,
-                      c_sin_angle, c_cos_angle, c_tX, c_tY, device_gicov_out)
-
-    device_grad_x = CuDeviceArray((device_grad_x_size1, device_grad_x_size2),
-                                  device_grad_x_ptr)
-    device_grad_y = CuDeviceArray((device_grad_y_size1, device_grad_y_size2),
-                                  device_grad_y_ptr)
-
+function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_tX, c_tY,
+                      device_gicov_out)
     # Determine this thread's pixel
     i = blockIdx().x + MAX_RAD + 2
     j = threadIdx().x + MAX_RAD + 2
@@ -104,9 +97,7 @@ function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
     num_blocks = size(host_grad_y,2) - (2 * MaxR)
     threads_per_block = size(host_grad_x,1) - (2 * MaxR)
 
-    @cuda (num_blocks, threads_per_block) GICOV_kernel(
-        size(device_grad_x, 1), size(device_grad_x, 2), pointer(device_grad_x),
-        size(device_grad_y, 1), size(device_grad_y, 2), pointer(device_grad_y),
+    @cuda (num_blocks, threads_per_block) GICOV_kernel(device_grad_x, device_grad_y,
         GICOV_constants.c_sin_angle, GICOV_constants.c_cos_angle,
         GICOV_constants.c_tX, GICOV_constants.c_tY, device_gicov_out)
 
@@ -132,9 +123,7 @@ end
 # Each element (i, j) of the output matrix is set equal to the maximal value in
 #  the neighborhood surrounding element (i, j) in the input matrix
 # Here the neighborhood is defined by the structuring element (c_strel)
-function dilate_kernel(img_dev_size1, img_dev_size2, img_dev_ptr, c_strel, dilated_out)
-    img_dev = CuDeviceArray((img_dev_size1, img_dev_size2), img_dev_ptr)
-
+function dilate_kernel(img_dev, c_strel, dilated_out)
     # Find the center of the structuring element
     el_center_i = div(size(c_strel,1),2)
     el_center_j = div(size(c_strel,2),2)
@@ -179,9 +168,7 @@ function dilate_CUDA(img_in, GICOV_constants)
     threads_per_block = 176
     num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
 
-    @cuda (num_blocks,threads_per_block) dilate_kernel(
-        size(img_dev, 1), size(img_dev, 2), pointer(img_dev),
-        GICOV_constants.c_strel, dilated_out)
+    @cuda (num_blocks,threads_per_block) dilate_kernel(img_dev, GICOV_constants.c_strel, dilated_out)
 
     Array(dilated_out)
 end

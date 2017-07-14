@@ -53,22 +53,15 @@ end
 const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
 function calculate_temp(iteration,    # number of iteration
-                        power_ptr,    # power input
-                        power_len,
-                        temp_src_ptr, # temperature input/output
-                        temp_src_len,
-                        temp_dst_ptr, # temperature input/output
-                        temp_dst_len,
+                        power,        # power input
+                        temp_src,     # temperature input/output
+                        temp_dst,     # temperature input/output
                         grid_cols,    # col of grid
                         grid_rows,    # row of grid
                         border_cols,  # border offset
                         border_rows,  # border offset
                         Cap,          # Capacitance
                         Rx, Ry, Rz, step, time_elapsed)
-
-    power = CuDeviceArray(power_len, power_ptr)
-    temp_src = CuDeviceArray(temp_src_len, temp_src_ptr)
-    temp_dst = CuDeviceArray(temp_dst_len, temp_dst_ptr)
     temp_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     power_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     # for saving temporary temperature result
@@ -201,9 +194,7 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         dst = temp
         @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t),
-            pointer(MatrixPower), length(MatrixPower),
-            pointer(MatrixTemp[src + 1]), length(MatrixTemp[src + 1]),
-            pointer(MatrixTemp[dst + 1]), length(MatrixTemp[dst + 1]),
+            MatrixPower, MatrixTemp[src + 1], MatrixTemp[dst + 1],
             col, row, borderCols, borderRows, Cap, Rx, Ry, Rz, step, time_elapsed)
     end
 

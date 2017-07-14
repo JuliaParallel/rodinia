@@ -1,20 +1,10 @@
 include("backprop_cuda.jl")
 
-function bpnn_layerforward_CUDA(input_cuda_ptr,
-                                input_cuda_len,
-                                output_hidden_cuda_ptr,
-                                output_hidden_cuda_len,
-                                input_hidden_cuda_ptr,
-                                input_hidden_cuda_len,
-                                hidden_partial_sum_ptr,
-                                hidden_partial_sum_len,
+function bpnn_layerforward_CUDA(input_cuda,
+                                output_hidden_cuda,
+                                input_hidden_cuda,
+                                hidden_partial_sum,
                                 inp, hid)
-
-    input_cuda = CuDeviceArray(input_cuda_len, input_cuda_ptr)
-    output_hidden_cuda = CuDeviceArray(output_hidden_cuda_len, output_hidden_cuda_ptr)
-    input_hidden_cuda = CuDeviceArray(input_hidden_cuda_len, input_hidden_cuda_ptr)
-    hidden_partial_sum = CuDeviceArray(hidden_partial_sum_len, hidden_partial_sum_ptr)
-
     by = blockIdx().y - 1
     tx = threadIdx().x
     ty = threadIdx().y

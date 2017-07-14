@@ -5,11 +5,7 @@ const BLOCK_SIZE = 16
 const BLOCK_SIZE_P1 = BLOCK_SIZE + 1
 
 # FIXME: remove @inbouds (is work-around for shared memory bug)
-function needle_cuda_shared_1(reference_ptr, reference_len, matrix_cuda_ptr,
-                              matrix_cuda_len, cols, penalty, i, block_width)
-    reference = CuDeviceArray(reference_len, reference_ptr)
-    matrix_cuda = CuDeviceArray(matrix_cuda_len, matrix_cuda_ptr)
-
+function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty, i, block_width)
     bx = blockIdx().x - 1
     tx = threadIdx().x - 1
 
@@ -79,11 +75,7 @@ function needle_cuda_shared_1(reference_ptr, reference_len, matrix_cuda_ptr,
 end
 
 # FIXME: remove @inbounds (is work-around for shared memory bug)
-function needle_cuda_shared_2(reference_ptr, reference_len, matrix_cuda_ptr,
-                              matrix_cuda_len, cols, penalty, i, block_width)
-    reference = CuDeviceArray(reference_len, reference_ptr)
-    matrix_cuda = CuDeviceArray(matrix_cuda_len, matrix_cuda_ptr)
-
+function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty, i, block_width)
     bx = blockIdx().x - 1
     tx = threadIdx().x - 1
 
