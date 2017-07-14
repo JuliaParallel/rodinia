@@ -50,7 +50,7 @@ NVCC_LDLIBS += -Xcompiler $(call join-list,$(NONCUDA_LDLIBS),$(COMMA))
 endif
 NVCC_LDLIBS += -lcuda
 
-NVCCFLAGS += -arch=sm_35 -O3 --generate-line-info
+NVCCFLAGS += -O3 --generate-line-info
 ifdef DEBUG
 NVCCFLAGS += -g --device-debug
 endif
