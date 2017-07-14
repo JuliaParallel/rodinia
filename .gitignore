@@ -1,2 +1,4 @@
 Make.user
 profile.csv
+*.nvvp
+nvprof.csv.*
