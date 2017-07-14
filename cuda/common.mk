@@ -60,3 +60,6 @@ endif
 
 %.o: %.cu
 	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $<
+
+%.ptx: %.cu
+	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) -ptx -o $@ $<
