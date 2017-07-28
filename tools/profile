@@ -34,9 +34,9 @@ for suite in suites
 end
 common_benchmarks = intersect(values(benchmarks)...)
 
-# run a benchmark once, returning the file containing measurements
-function run_benchmark(dir)
-    output = "nvprof.csv"
+# run a benchmark once, returning the measurement data
+function run_benchmark(dir, suite, benchmark)
+    output_file = "nvprof.csv"
     output_pattern = "nvprof.csv.*"
 
     # delete old profile output
@@ -52,25 +52,35 @@ function run_benchmark(dir)
         --print-gpu-trace
         --normalized-time-unit us
         --csv
-        --log-file $output.%p
+        --log-file $output_file.%p
         ./profile --depwarn=no
     ```
     cmd_success = cd(dir) do
         success(pipeline(ignorestatus(cmd), stdout=out, stderr=out))
     end
     close(out.in)
-    outputs = glob(output_pattern, dir)
+    output_files = glob(output_pattern, dir)
 
     # process data
     if !cmd_success
         println(readstring(out))
         error("benchmark did not succeed")
-    elseif length(outputs) == 0
-        error("no output files")
-    elseif length(outputs) > 1
-        error("too many output files")
     else
-        return outputs[1]
+        output_data = []
+        for output_file in output_files
+            try
+                push!(output_data, read_data(output_file, suite, benchmark))
+            catch
+                nothing
+            end
+        end
+        if length(output_data) == 0
+            error("no output files")
+        elseif length(output_data) > 1
+            error("too many output files")
+        else
+            return output_data[1]
+        end
     end
 end
 
@@ -164,16 +174,14 @@ for suite in suites, benchmark in common_benchmarks
 
         # iteration 0
         iter = 1
-        path = run_benchmark(dir)
-        local_data = read_data(path, suite, benchmark)
+        local_data = run_benchmark(dir, suite, benchmark)
 
         # additional iterations
         while (time()-t0) < MAX_BENCHMARK_SECONDS &&
             iter < MAX_BENCHMARK_RUNS &&
             !is_accurate(local_data)
             iter += 1
-            path = run_benchmark(dir)
-            append!(local_data, read_data(path, suite, benchmark))
+            append!(local_data, run_benchmark(dir, suite, benchmark))
         end
 
         writetable(cache_path, local_data)
