@@ -257,3 +257,5 @@ bar(suite_stats("julia_cuda")[:benchmark],
     rotation=45,
     xlabel="benchmark",
     ylabel = "slowdown (%)")
+
+png("results")
