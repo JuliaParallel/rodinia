@@ -259,11 +259,25 @@ println(suite_stats("julia_cuda"))
 using Plots
 pyplot()
 
-bar(suite_stats("julia_cuda")[:benchmark],
-    100.*suite_stats("julia_cuda")[:julia_cuda].-100;
+df = suite_stats("julia_cuda")
+df = df[df[:benchmark] .!= "total", :]
+sort!(df, cols=:julia_cuda; rev=true)
+labels = df[:benchmark]
+
+# speed-ups
+performance = map(i->max(1,i), df[:julia_cuda])
+bar(labels,
+    -100.*performance.+100;
     legend=false,
     rotation=45,
-    xlabel="benchmark",
-    ylabel = "slowdown (%)")
+    color=:red,
+    xlabel = "benchmark",
+    ylabel = "performance difference (%)")
+
+# slow-downs
+performance = map(i->min(1,i), df[:julia_cuda])
+bar!(labels,
+    -100.*performance.+100;
+    color=:green)
 
 png("results")
