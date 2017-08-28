@@ -39,10 +39,11 @@ function run_benchmark(dir, suite, benchmark)
     else
         output_data = []
         for output_file in output_files
-            try
-                push!(output_data, read_data(output_file, suite, benchmark))
-            catch
-                nothing
+            data = read_data(output_file, suite, benchmark)
+            if data != nothing
+                # when precompiling, an additional process will be spawned,
+                # but the resulting CSV will not contain any data.
+                push!(output_data, data)
             end
         end
         if length(output_data) == 0
@@ -64,7 +65,7 @@ function read_data(output_path, suite, benchmark)
         flush(io)
         return readtable(path)
     end
-    size(raw_data, 1) == 0 && error("no data")
+    size(raw_data, 1) == 0 && return nothing
 
     # remove API calls
     raw_data = raw_data[!startswith.(raw_data[:Name], "[CUDA"), :]
