@@ -32,20 +32,21 @@ function run_benchmark(dir, suite, benchmark)
     close(out.in)
     output_files = glob(output_pattern, dir)
 
-    # process data
+    # read all data
     if !cmd_success
         println(readstring(out))
         error("benchmark did not succeed")
     else
+        # when precompiling, an additional process will be spawned,
+        # but the resulting CSV should not contain any data.
         output_data = []
         for output_file in output_files
             data = read_data(output_file, suite, benchmark)
             if data != nothing
-                # when precompiling, an additional process will be spawned,
-                # but the resulting CSV will not contain any data.
                 push!(output_data, data)
             end
         end
+
         if length(output_data) == 0
             error("no output files")
         elseif length(output_data) > 1
@@ -86,6 +87,10 @@ function read_data(output_path, suite, benchmark)
         end
     end
 
+    return raw_data
+end
+
+function process_data(raw_data)
     # generate a nicer table
     rows = size(raw_data, 1)
     data = DataFrame(suite = repeat([suite]; inner=rows),   # DataFramesMeta.jl/#46
@@ -99,7 +104,7 @@ function read_data(output_path, suite, benchmark)
         for kernel in kernels
             for i in 1:size(data, 1)
                 if data[:kernel][i] in kernels
-                    data[:kernel][i] *= "_$i"
+                    data[:kernel][i] *= "#$i"
                 end
             end
         end
@@ -134,10 +139,10 @@ for suite in suites
 end
 common_benchmarks = intersect(values(benchmarks)...)
 
-# gather profiling data
+# collect measurements
 measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
 for suite in suites, benchmark in common_benchmarks
-    info("Processing $suite/$benchmark")
+    info("Collecting measurements for $suite/$benchmark")
     dir = joinpath(root, suite, benchmark)
     cache_path = joinpath(dir, "profile.csv")
 
@@ -145,17 +150,18 @@ for suite in suites, benchmark in common_benchmarks
         local_data = readtable(cache_path)
     else
         t0 = time()
+        collect_data() = process_data(run_benchmark(dir, suite, benchmark))
 
         # iteration 0
         iter = 1
-        local_data = run_benchmark(dir, suite, benchmark)
+        local_data = collect_data()
 
         # additional iterations
         while (time()-t0) < MAX_BENCHMARK_SECONDS &&
-            iter < MAX_BENCHMARK_RUNS &&
-            !is_accurate(local_data)
+               iter < MAX_BENCHMARK_RUNS &&
+               !is_accurate(local_data)
             iter += 1
-            append!(local_data, run_benchmark(dir, suite, benchmark))
+            append!(local_data, collect_data())
         end
 
         writetable(cache_path, local_data)
