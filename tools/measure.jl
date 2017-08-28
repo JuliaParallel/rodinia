@@ -1,38 +1,9 @@
 #!/usr/bin/env julia
 
-using DataFrames
-using Compat
 using Glob
 
-const suites = ["cuda", "julia_cuda"]   # which benchmark suites to profile and compare
-const baseline = "cuda"
-const non_baseline = filter(suite->suite!=baseline, suites)
-const root = dirname(@__DIR__)
+include("common.jl")
 
-# configuration
-const MIN_KERNEL_ITERATIONS = 10
-const MAX_KERNEL_UNCERTAINTY = 0.02
-const MAX_BENCHMARK_RUNS = 100
-const MAX_BENCHMARK_SECONDS = 300
-
-# NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
-#       per-suite benchmarks based on flat performance difference) it is possible to gather
-#       more data for individual benchmarks, but not for individual kernels (as that would
-#       skew the per-benchmark totals)
-
-
-## input
-
-info("Gathering data")
-
-# find benchmarks common to all suites
-benchmarks = Dict()
-for suite in suites
-    entries = readdir(joinpath(root, suite))
-    benchmarks[suite] = filter(entry->(isdir(joinpath(root,suite,entry)) &&
-                                       isfile(joinpath(root,suite,entry,"profile"))), entries)
-end
-common_benchmarks = intersect(values(benchmarks)...)
 
 # run a benchmark once, returning the measurement data
 function run_benchmark(dir, suite, benchmark)
@@ -160,8 +131,18 @@ function is_accurate(data)
            all(val->val<MAX_KERNEL_UNCERTAINTY, grouped[:rel_uncert])
 end
 
+
+# find benchmarks common to all suites
+benchmarks = Dict()
+for suite in suites
+    entries = readdir(joinpath(root, suite))
+    benchmarks[suite] = filter(entry->(isdir(joinpath(root,suite,entry)) &&
+                                       isfile(joinpath(root,suite,entry,"profile"))), entries)
+end
+common_benchmarks = intersect(values(benchmarks)...)
+
 # gather profiling data
-data = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
+measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
 for suite in suites, benchmark in common_benchmarks
     info("Processing $suite/$benchmark")
     dir = joinpath(root, suite, benchmark)
@@ -187,97 +168,7 @@ for suite in suites, benchmark in common_benchmarks
         writetable(cache_path, local_data)
     end
 
-    append!(data, local_data)
+    append!(measurements, local_data)
 end
 
-
-## analysis
-
-info("Processing...")
-
-# create a summary with a column per suite (except the baseline)
-summary = DataFrame(benchmark=String[], kernel=String[])
-for suite in non_baseline
-    summary[Symbol(suite)] = Float64[]
-end
-
-# add time totals for each benchmark
-# NOTE: we do this before summarizing across iterations, to make totals more fair
-#       (ie. the totals are affected by the amount of iterations for each kernel)
-# NOTE: we must normalize these timings by the number of iterations,
-#       as not every suite might have executed the same number of times
-append!(data, by(data, [:suite, :benchmark],
-                 dt->DataFrame(kernel="total",
-                               time=sum(dt[:time])/size(dt, 1))))
-
-# summarize across iterations
-grouped_data = by(data, [:suite, :benchmark, :kernel],
-                  dt->DataFrame(time=minimum(dt[:time]))
-                 )
-
-# calculate the slowdown/improvement compared against the baseline
-for benchmark in unique(grouped_data[:benchmark])
-    # get the data for this benchmark
-    benchmark_data = grouped_data[grouped_data[:benchmark] .== benchmark, :]
-    for kernel in unique(benchmark_data[:kernel])
-        # get the data for this kernel
-        kernel_data = benchmark_data[benchmark_data[:kernel] .== kernel, :]
-        if sort(kernel_data[:suite]) != sort(suites)
-            warn("$benchmark - $kernel: don't have data for all suites")
-            continue
-        end
-
-        # compare other suites against the chosen baseline
-        baseline_data = kernel_data[kernel_data[:suite] .== baseline, :]
-        others_data = kernel_data[kernel_data[:suite] .!= baseline, :]
-        for suite in others_data[:suite]
-            suite_data = kernel_data[kernel_data[:suite] .== suite, :]
-            difference = suite_data[:time][1] / baseline_data[:time][1]
-            push!(summary, [benchmark kernel difference])
-        end
-    end
-end
-
-# add difference totals for each suite (based on previous totals)
-# NOTE: this total only looks at each benchmark's performance increase/loss,
-#       not only ignores the iteration count, but the execution time altogether
-# FIXME: can't we do this with a `by`, summarizing over all remaining columns?
-totals = []
-for suite in names(summary)[3:end]
-    push!(totals, mean(summary[summary[:kernel] .== "total", suite]))
-end
-push!(summary, ["total", "total", totals...])
-
-# tools for accessing stats
-suite_stats(suite) = summary[summary[:kernel] .== "total", [:benchmark, Symbol(suite)]]
-benchmark_stats(benchmark) = summary[summary[:benchmark] .== benchmark, :]
-println(suite_stats("julia_cuda"))
-
-
-## plotting
-
-using Plots
-pyplot()
-
-df = suite_stats("julia_cuda")
-df = df[df[:benchmark] .!= "total", :]
-sort!(df, cols=:julia_cuda; rev=true)
-labels = df[:benchmark]
-
-# speed-ups
-performance = map(i->max(1,i), df[:julia_cuda])
-bar(labels,
-    -100.*performance.+100;
-    legend=false,
-    rotation=45,
-    color=:red,
-    xlabel = "benchmark",
-    ylabel = "performance difference (%)")
-
-# slow-downs
-performance = map(i->min(1,i), df[:julia_cuda])
-bar!(labels,
-    -100.*performance.+100;
-    color=:green)
-
-png("results")
+writetable("measurements.dat", measurements)
