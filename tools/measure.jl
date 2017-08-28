@@ -93,17 +93,9 @@ function read_data(output_path, suite, benchmark)
                      kernel = kernels,
                      time = raw_data[:Duration])
 
-    # these benchmarks spend a variable amount of time per kernel, so we can't aggregate.
-    # work around this by giving them unique names
-    blacklist = Dict(
-        "bfs"             => ["Kernel", "Kernel2"],
-        "leukocyte"       => ["IMGVF_kernel"],
-        "lud"             => ["lud_perimeter", "lud_internal"],
-        "particlefilter"  => ["find_index_kernel"],
-        "nw"              => ["needle_cuda_shared_1", "needle_cuda_shared_2"],
-    )
-    if haskey(blacklist, benchmark)
-        kernels = blacklist[benchmark]
+    # pull apart iterations of irregular kernels
+    if haskey(irregular_kernels, benchmark)
+        kernels = irregular_kernels[benchmark]
         for kernel in kernels
             for i in 1:size(data, 1)
                 if data[:kernel][i] in kernels

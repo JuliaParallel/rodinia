@@ -5,6 +5,16 @@ const baseline = "cuda"
 const non_baseline = filter(suite->suite!=baseline, suites)
 const root = dirname(@__DIR__)
 
+# some benchmarks spend a variable amount of time per kernel,
+# making it impossible to aggregate across kernel iterations.
+const irregular_kernels = Dict(
+    "bfs"             => ["Kernel", "Kernel2"],
+    "leukocyte"       => ["IMGVF_kernel"],
+    "lud"             => ["lud_perimeter", "lud_internal"],
+    "particlefilter"  => ["find_index_kernel"],
+    "nw"              => ["needle_cuda_shared_1", "needle_cuda_shared_2"],
+)
+
 # profiling parameters
 # NOTE: because of how we calculate totals (per-benchmark totals based on time x iterations,
 #       per-suite benchmarks based on flat performance difference) it is possible to gather
