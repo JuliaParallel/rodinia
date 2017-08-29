@@ -8,9 +8,8 @@ include("common.jl")
 
 function generate_plot(data, suite)
     df = suite_stats(analysis, suite)
-    delete!(df, Symbol(:∆, suite))
     delete!(df, Symbol(:ε, suite))
-    names!(df, [:benchmark, :performance])
+    names!(df, [:benchmark, :performance, :error])
     df[:performance] = -1.*df[:performance].+1
 
     total = df[df[:benchmark] .== "total", :performance][1]
