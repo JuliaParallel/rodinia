@@ -58,15 +58,16 @@ function run_benchmark(dir, suite, benchmark)
 end
 
 function read_data(output_path, suite, benchmark)
-    # nuke the headers and read the data
     output = readlines(output_path; chomp=false)
+    contains(join(output), "No kernels were profiled.") && return nothing
+
+    # nuke the headers and parse the data
     raw_data = mktemp() do path,io
         write(io, output[4])
         write(io, output[6:end])
         flush(io)
-        return readtable(path)
+        readtable(path)
     end
-    size(raw_data, 1) == 0 && return nothing
 
     # remove API calls
     raw_data = raw_data[!startswith.(raw_data[:Name], "[CUDA"), :]
