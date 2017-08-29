@@ -101,12 +101,14 @@ function process_data(raw_data, suite, benchmark)
 
     # pull apart iterations of irregular kernels
     if haskey(irregular_kernels, benchmark)
-        kernels = irregular_kernels[benchmark]
-        for kernel in kernels
-            for i in 1:size(data, 1)
-                if data[:kernel][i] in kernels
-                    data[:kernel][i] *= "#$i"
-                end
+        counters = Dict{String,Int64}()
+        bad_kernels = irregular_kernels[benchmark]
+        for i in 1:size(data, 1)
+            kernel = data[:kernel][i]
+            if kernel in bad_kernels
+                j = get(counters, kernel, 0) + 1
+                data[:kernel][i] *= "#$j"
+                counters[kernel] = j
             end
         end
     end
