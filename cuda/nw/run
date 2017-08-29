@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-./needle 2048 10
+./needle 8192 10
 
