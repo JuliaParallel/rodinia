@@ -6,7 +6,7 @@ include("common.jl")
 
 
 # run a benchmark once, returning the measurement data
-function run_benchmark(dir, suite, benchmark)
+function run_benchmark(dir)
     output_file = "nvprof.csv"
     output_pattern = "nvprof.csv.*"
 
@@ -41,7 +41,7 @@ function run_benchmark(dir, suite, benchmark)
         # but the resulting CSV should not contain any data.
         output_data = []
         for output_file in output_files
-            data = read_data(output_file, suite, benchmark)
+            data = read_data(output_file)
             if data != nothing
                 push!(output_data, data)
             end
@@ -57,7 +57,7 @@ function run_benchmark(dir, suite, benchmark)
     end
 end
 
-function read_data(output_path, suite, benchmark)
+function read_data(output_path)
     output = readlines(output_path; chomp=false)
     contains(join(output), "No kernels were profiled.") && return nothing
 
@@ -69,6 +69,10 @@ function read_data(output_path, suite, benchmark)
         readtable(path)
     end
 
+    return raw_data
+end
+
+function process_data(raw_data, suite, benchmark)
     # remove API calls
     raw_data = raw_data[!startswith.(raw_data[:Name], "[CUDA"), :]
 
@@ -88,10 +92,6 @@ function read_data(output_path, suite, benchmark)
         end
     end
 
-    return raw_data
-end
-
-function process_data(raw_data)
     # generate a nicer table
     rows = size(raw_data, 1)
     data = DataFrame(suite = repeat([suite]; inner=rows),   # DataFramesMeta.jl/#46
@@ -141,9 +141,10 @@ end
 common_benchmarks = intersect(values(benchmarks)...)
 
 # collect measurements
-measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[], time=Float64[])
+measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[],
+                         time=Float64[], execution=Int64[])
 for suite in suites, benchmark in common_benchmarks
-    info("Collecting measurements for $suite/$benchmark")
+    info("Processing $suite/$benchmark")
     dir = joinpath(root, suite, benchmark)
     cache_path = joinpath(dir, "profile.csv")
 
@@ -151,17 +152,21 @@ for suite in suites, benchmark in common_benchmarks
         local_data = readtable(cache_path)
     else
         t0 = time()
-        collect_data() = process_data(run_benchmark(dir, suite, benchmark))
+        iter = 1
+        function collect_data()
+            data = process_data(run_benchmark(dir), suite, benchmark)
+            data[:execution] = repeat([iter]; inner=size(data,1))
+            iter += 1
+            return data
+        end
 
         # iteration 0
-        iter = 1
         local_data = collect_data()
 
         # additional iterations
         while (time()-t0) < MAX_BENCHMARK_SECONDS &&
                iter < MAX_BENCHMARK_RUNS &&
                !is_accurate(local_data)
-            iter += 1
             append!(local_data, collect_data())
         end
 
