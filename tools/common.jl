@@ -26,5 +26,8 @@ const MAX_BENCHMARK_RUNS = 100
 const MAX_BENCHMARK_SECONDS = 300
 
 # tools for accessing analysis results
-suite_stats(analysis, suite) = analysis[analysis[:kernel] .== "total", [:benchmark, Symbol(suite)]]
+function suite_stats(analysis, suite)
+    analysis[analysis[:kernel] .== "total",
+             [:benchmark, Symbol(suite), Symbol(:∆, suite), Symbol(:ε, suite)]]
+end
 benchmark_stats(analysis, benchmark) = analysis[analysis[:benchmark] .== benchmark, :]

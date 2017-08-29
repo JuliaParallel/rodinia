@@ -1,4 +1,5 @@
 measurements.dat
 analysis.dat
+*.csv
 *.png
 

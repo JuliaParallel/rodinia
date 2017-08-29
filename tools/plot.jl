@@ -7,16 +7,25 @@ include("common.jl")
 
 
 function generate_plot(data, suite)
-    col = Symbol(suite)
     df = suite_stats(analysis, suite)
+    delete!(df, Symbol(:∆, suite))
+    delete!(df, Symbol(:ε, suite))
+    names!(df, [:benchmark, :performance])
+    df[:performance] = -1.*df[:performance].+1
+
+    total = df[df[:benchmark] .== "total", :performance][1]
     df = df[df[:benchmark] .!= "total", :]
-    sort!(df, cols=col; rev=true)
+    writedlm("$(suite)_total.csv", total)
+
+    sort!(df, cols=:performance; rev=true)
+    writetable("$suite.csv", df; header=true)
+
     labels = df[:benchmark]
 
     # speed-ups
-    performance = map(i->max(1,i), df[col])
+    performance = map(i->min(0,i), df[:performance])
     bar(labels,
-        -100.*performance.+100;
+        100*performance;
         legend=false,
         rotation=45,
         color=:red,
@@ -24,9 +33,9 @@ function generate_plot(data, suite)
         ylabel = "performance difference (%)")
 
     # slow-downs
-    performance = map(i->min(1,i), df[col])
+    performance = map(i->max(0,i), df[:performance])
     bar!(labels,
-        -100.*performance.+100;
+        100*performance;
         color=:green)
 
     png(suite)
