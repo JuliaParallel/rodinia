@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-julia "$@" lud.jl -s 256
+julia "$@" lud.jl -s 1024

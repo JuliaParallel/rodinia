@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-# cuda/lud_cuda -i ../../data/lud/256.dat 
-./lud -s 256 -v
+./lud -s 1024 -v
 
