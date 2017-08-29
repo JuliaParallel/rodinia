@@ -11,6 +11,8 @@ measurements = readtable("measurements.dat")
 # ε = relative uncertainty
 
 # summarize across executions
+# NOTE: this isn't entirely correct, because it also aggregates
+#       across kernel iterations within a single execution
 grouped = by(measurements, [:suite, :benchmark, :kernel],
              dt->DataFrame( time = fit(LogNormal, dt[:time]).μ,
                            ∆time = fit(LogNormal, dt[:time]).σ))
