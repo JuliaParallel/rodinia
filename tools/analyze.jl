@@ -1,7 +1,5 @@
 #!/usr/bin/env julia
 
-using Distributions
-
 include("common.jl")
 
 
@@ -10,9 +8,7 @@ measurements = readtable("measurements.dat")
 # summarize across executions
 # NOTE: this isn't entirely correct, because it also aggregates
 #       across kernel iterations within a single execution
-grouped = by(measurements, [:suite, :benchmark, :kernel],
-             dt->DataFrame(time = measurement(fit(LogNormal, dt[:time]).μ,
-                                              fit(LogNormal, dt[:time]).σ)))
+grouped = summarize(measurements, [:suite, :benchmark, :kernel], :time)
 
 # add time totals for each benchmark
 append!(grouped, by(grouped, [:suite, :benchmark],
@@ -52,7 +48,6 @@ for benchmark in unique(grouped[:benchmark])
         push!(analysis, [benchmark kernel ratios...])
     end
 end
-@show analysis
 
 # calculate per-suite totals
 geomean(x) = prod(x)^(1/length(x))  # analysis contains normalized numbers, so use geomean

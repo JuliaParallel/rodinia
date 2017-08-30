@@ -119,17 +119,14 @@ end
 # check if measurements are accurate enough
 function is_accurate(data)
     # group across iterations
-    grouped = by(data, [:suite, :benchmark, :kernel],
-                 dt->DataFrame(iterations=length(dt[:time]),
-                               abs_uncert=std(dt[:time]),     # TODO: lognormal
-                               best=minimum(dt[:time]))
-                )
+    grouped = summarize(data, [:suite, :benchmark, :kernel], :time;
+                        iterations=dt->length(dt[:time]))
 
     # calculate relative uncertainty
-    grouped[:rel_uncert] = grouped[:abs_uncert] ./ abs(grouped[:best])
+    grouped[:rel_error] = grouped[:error] ./ abs(grouped[:time])
 
     return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:iterations]) &&
-           all(val->val<MAX_KERNEL_UNCERTAINTY, grouped[:rel_uncert])
+           all(val->val<MAX_KERNEL_ERROR, grouped[:rel_error])
 end
 
 
