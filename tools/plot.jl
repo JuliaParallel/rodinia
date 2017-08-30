@@ -13,11 +13,11 @@ include("common.jl")
 
 function generate_plot(data, suite)
     df = suite_stats(analysis, suite)
-    df[:val] = map(x->x.val, df[:speedup])
-    df[:err] = map(x->x.err, df[:speedup])
-    delete!(df, :speedup)
-    names!(df, [:benchmark, :speedup, :error])
-    df[:speedup] = -1.*df[:speedup].+1
+    df[:speedup] = -1.*df[:ratio].+1
+    delete!(df, :ratio)
+
+    df[:error]   = map(x->x.err, df[:speedup])
+    df[:speedup] = map(x->x.val, df[:speedup])
 
     total = df[df[:benchmark] .== "total", :speedup][1]
     df = df[df[:benchmark] .!= "total", :]

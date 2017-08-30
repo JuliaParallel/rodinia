@@ -29,7 +29,7 @@ const MAX_BENCHMARK_SECONDS  = 300
 # tools for accessing analysis results
 function suite_stats(analysis, suite)
     df = analysis[analysis[:kernel] .== "total", [:benchmark, Symbol(suite)]]
-    names!(df, [:benchmark, :speedup])
+    names!(df, [:benchmark, :ratio])
     return df
 end
 benchmark_stats(analysis, benchmark) = analysis[analysis[:benchmark] .== benchmark, :]
