@@ -18,7 +18,7 @@ const irregular_kernels = Dict(
 )
 
 # measurement parameters
-const MIN_KERNEL_ITERATIONS = 10
+const MIN_KERNEL_ITERATIONS = 25
 const MAX_KERNEL_ERROR      = 0.02
 const MAX_BENCHMARK_RUNS    = 100
 const MAX_BENCHMARK_SECONDS = 300
