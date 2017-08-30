@@ -1,47 +1,59 @@
 #!/usr/bin/env julia
 
-using Plots
-pyplot()
+const hasplots = try
+    using Plots
+    pyplot()
+    true
+catch
+    false
+end
 
 include("common.jl")
 
 
 function generate_plot(data, suite)
     df = suite_stats(analysis, suite)
-    delete!(df, Symbol(:ε, suite))
-    names!(df, [:benchmark, :performance, :error])
-    df[:performance] = -1.*df[:performance].+1
+    df[:val] = map(x->x.val, df[:speedup])
+    df[:err] = map(x->x.err, df[:speedup])
+    delete!(df, :speedup)
+    names!(df, [:benchmark, :speedup, :error])
+    df[:speedup] = -1.*df[:speedup].+1
 
-    total = df[df[:benchmark] .== "total", :performance][1]
+    total = df[df[:benchmark] .== "total", :speedup][1]
     df = df[df[:benchmark] .!= "total", :]
     writedlm("$(suite)_total.csv", total)
 
-    sort!(df, cols=:performance; rev=true)
+    sort!(df, cols=:speedup; rev=true)
     writetable("$suite.csv", df; header=true)
 
-    labels = df[:benchmark]
+    if hasplots
+        labels = df[:benchmark]
 
-    # speed-ups
-    performance = map(i->min(0,i), df[:performance])
-    bar(labels,
-        100*performance;
-        legend=false,
-        rotation=45,
-        color=:red,
-        xlabel = "benchmark",
-        ylabel = "performance difference (%)")
+        # speed-ups
+        speedup = map(i->min(0,i), df[:speedup])
+        bar(labels,
+            100*speedup;
+            legend=false,
+            rotation=45,
+            color=:red,
+            xlabel = "benchmark",
+            ylabel = "speedup difference (%)")
 
-    # slow-downs
-    performance = map(i->max(0,i), df[:performance])
-    bar!(labels,
-        100*performance;
-        color=:green)
+        # slow-downs
+        speedup = map(i->max(0,i), df[:speedup])
+        bar!(labels,
+            100*speedup;
+            color=:green)
 
-    png(suite)
+        png(suite)
+    end
 end
 
 
 analysis = readtable("analysis.dat")
+for suite in non_baseline
+    analysis[Symbol(suite)] = map(str->measurement(str), analysis[Symbol(suite)])
+end
 
 for suite in non_baseline
     generate_plot(analysis, suite)

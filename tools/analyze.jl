@@ -7,32 +7,25 @@ include("common.jl")
 
 measurements = readtable("measurements.dat")
 
-# ∆ = absolute uncertainty
-# ε = relative uncertainty
-
 # summarize across executions
 # NOTE: this isn't entirely correct, because it also aggregates
 #       across kernel iterations within a single execution
 grouped = by(measurements, [:suite, :benchmark, :kernel],
-             dt->DataFrame( time = fit(LogNormal, dt[:time]).μ,
-                           ∆time = fit(LogNormal, dt[:time]).σ))
+             dt->DataFrame(time = measurement(fit(LogNormal, dt[:time]).μ,
+                                              fit(LogNormal, dt[:time]).σ)))
 
 # add time totals for each benchmark
 append!(grouped, by(grouped, [:suite, :benchmark],
                     dt->DataFrame(kernel = "total",
-                                    time = sum(dt[:time]),
-                                   ∆time = sum(dt[:∆time]))))
-grouped[:εtime] = grouped[:∆time] ./ abs(grouped[:time])
+                                    time = sum(dt[:time]))))
 
 info("Aggregated timings:")
 println(grouped[grouped[:kernel] .== "total", :])
 
-# create a summary with a column per suite (except the baseline)
+# create a summary with one column per suite (except for the baseline)
 analysis = DataFrame(benchmark=String[], kernel=String[])
 for suite in non_baseline
-    analysis[Symbol(suite)] = Float64[]
-    analysis[Symbol(:∆, suite)] = Float64[]
-    analysis[Symbol(:ε, suite)] = Float64[]
+    analysis[Symbol(suite)] = Measurement{Float64}[]
 end
 
 # calculate the slowdown/improvement compared against the baseline
@@ -50,24 +43,23 @@ for benchmark in unique(grouped[:benchmark])
         # compare other suites against the chosen baseline
         baseline_data = kernel_data[kernel_data[:suite] .== baseline, :]
         others_data = kernel_data[kernel_data[:suite] .!= baseline, :]
-        for suite in others_data[:suite]
+        speedups = Measurement{Float64}[]
+        for suite in non_baseline
             suite_data = kernel_data[kernel_data[:suite] .== suite, :]
-            difference = suite_data[:time][1] / baseline_data[:time][1]
-            εdifference = suite_data[:εtime][1] + baseline_data[:εtime][1]
-            ∆difference = difference * εdifference
-            push!(analysis, [benchmark kernel difference ∆difference εdifference])
+            speedup = suite_data[:time][1] / baseline_data[:time][1]
+            push!(speedups, speedup)
         end
+        push!(analysis, [benchmark kernel speedups...])
     end
 end
+@show analysis
 
 # calculate per-suite totals
 geomean(x) = prod(x)^(1/length(x))  # analysis contains normalized numbers, so use geomean
-totals = []
+totals = Measurement{Float64}[]
 for suite in non_baseline
     total = geomean(analysis[analysis[:kernel] .== "total", Symbol(suite)])
-    εtotal = sum(analysis[analysis[:kernel] .== "total", Symbol(:ε, suite)])
-    ∆total = εtotal * total
-    append!(totals, [total, ∆total, εtotal])
+    push!(totals, total)
 end
 push!(analysis, ["total", "total", totals...])
 
