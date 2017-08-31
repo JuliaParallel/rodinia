@@ -122,11 +122,11 @@ function is_accurate(data)
     grouped = summarize(data, [:suite, :benchmark, :kernel], :time;
                         iterations=dt->length(dt[:time]))
 
-    # calculate relative uncertainty
-    grouped[:rel_error] = grouped[:error] ./ abs(grouped[:time])
+    # calculate relative error
+    grouped[:ε] = map(t->t.err / abs(t.val), grouped[:time])
 
     return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:iterations]) &&
-           all(val->val<MAX_KERNEL_ERROR, grouped[:rel_error])
+           all(val->val<MAX_KERNEL_ERROR, grouped[:ε])
 end
 
 
@@ -148,31 +148,31 @@ for suite in suites, benchmark in common_benchmarks
     cache_path = joinpath(dir, "profile.csv")
 
     if isfile(cache_path)
-        local_data = readtable(cache_path)
+        data = readtable(cache_path)
     else
-        t0 = time()
         iter = 1
-        function collect_data()
-            data = process_data(run_benchmark(dir), suite, benchmark)
-            data[:execution] = repeat([iter]; inner=size(data,1))
+        t0 = time()
+        data = nothing
+        while true
+            new_data = process_data(run_benchmark(dir), suite, benchmark)
+            new_data[:execution] = repeat([iter]; inner=size(new_data,1))
             iter += 1
-            return data
+
+            if data == nothing
+                data = new_data
+            else
+                append!(data, new_data)
+            end
+
+            is_accurate(data)                    && break
+            iter >= MAX_BENCHMARK_RUNS           && break
+            (time()-t0) >= MAX_BENCHMARK_SECONDS && break
         end
 
-        # iteration 0
-        local_data = collect_data()
-
-        # additional iterations
-        while (time()-t0) < MAX_BENCHMARK_SECONDS &&
-               iter < MAX_BENCHMARK_RUNS &&
-               !is_accurate(local_data)
-            append!(local_data, collect_data())
-        end
-
-        writetable(cache_path, local_data)
+        writetable(cache_path, data)
     end
 
-    append!(measurements, local_data)
+    append!(measurements, data)
 end
 
 writetable("measurements.dat", measurements)

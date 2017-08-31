@@ -18,8 +18,8 @@ const irregular_kernels = Dict(
 )
 
 # measurement parameters
-const MIN_KERNEL_ITERATIONS = 25
-const MAX_KERNEL_ERROR      = 0.02
+const MIN_KERNEL_ITERATIONS = 5
+const MAX_KERNEL_ERROR      = 0.01
 const MAX_BENCHMARK_RUNS    = 100
 const MAX_BENCHMARK_SECONDS = 300
 
@@ -34,11 +34,20 @@ benchmark_stats(analysis, benchmark) = analysis[analysis[:benchmark] .== benchma
 # helper function for averaging measurements using a lognormal distribution
 function summarize(data, across::Vector{Symbol}, key::Symbol; fields...)
     function f(dt)
-        d = fit(LogNormal, dt[key])
-        kwargs = Any[(key, measurement(d.μ, d.σ))]
+        if length(unique(dt[key])) == 1
+            # all values identical, cannot estimate a distribution.
+            # assume a value without error (hence a minimal iteration parameter)
+            x = measurement(first(dt[key]))
+        else
+            d = fit(LogNormal, dt[key])
+            x = measurement(d.μ, d.σ)
+        end
+        kwargs = Any[(key, x)]
+
         for field in fields
             push!(kwargs, (field[1], field[2](dt)))
         end
+
         return DataFrame(;kwargs...)
     end
     return by(data, across, f)
