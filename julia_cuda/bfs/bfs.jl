@@ -67,7 +67,7 @@ function main(args)
     end
     input_f = args[1]
 
-    info("Reading File")
+    @info "Reading File"
     fp = open(input_f)
 
     no_of_nodes = parse(Int, readline(fp))
@@ -83,11 +83,11 @@ function main(args)
     end
 
     # allocate host memory
-    h_graph_nodes = Vector{Node}(no_of_nodes)
-    h_graph_mask = Vector{Bool}(no_of_nodes)
-    h_updating_graph_mask = Vector{Bool}(no_of_nodes)
-    h_graph_visited = Vector{Bool}(no_of_nodes)
-    h_cost = Vector{Int32}(no_of_nodes)
+    h_graph_nodes = Vector{Node}(undef, no_of_nodes)
+    h_graph_mask = Vector{Bool}(undef, no_of_nodes)
+    h_updating_graph_mask = Vector{Bool}(undef, no_of_nodes)
+    h_graph_visited = Vector{Bool}(undef, no_of_nodes)
+    h_cost = Vector{Int32}(undef, no_of_nodes)
 
     # initalize the memory
     for i = 1:no_of_nodes
@@ -99,13 +99,13 @@ function main(args)
         h_cost[i] = -1
     end
 
-    skipchars(fp, isspace)
+    skipchars(isspace, fp)
 
     # read the source node from the file
     source = parse(Int, readline(fp))
     source += 1
 
-    skipchars(fp, isspace)
+    skipchars(isspace, fp)
 
     # set the source node as true in the mask
     h_graph_mask[source] = true
@@ -114,19 +114,19 @@ function main(args)
 
     edge_list_size = parse(Int, readline(fp))
 
-    skipchars(fp, isspace)
+    skipchars(isspace, fp)
 
-    h_graph_edges = Vector{Int32}(edge_list_size)
+    h_graph_edges = Vector{Int32}(undef, edge_list_size)
     for i = 1:edge_list_size
         id, cost = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
         h_graph_edges[i] = id+1
     end
 
     close(fp)
-    info("Read File")
+    @info "Read File"
 
     # setup execution parameters
-    grid = num_of_blocks
+    blocks = num_of_blocks
     threads = num_of_threads_per_block
 
 
@@ -140,27 +140,27 @@ function main(args)
     g_stop = CuArray{Bool}(1)
 
     k = 0
-    info("Start traversing the tree")
+    @info "Start traversing the tree"
     stop = Bool[1]
 
     while true
         # if no thread changes this value then the loop stops
         stop[1] = false
-        copy!(g_stop, stop)
+        copyto!(g_stop, stop)
 
-        @cuda (grid, threads) Kernel(
+        @cuda blocks=blocks threads=threads Kernel(
             g_graph_nodes, g_graph_edges, g_graph_mask,
             g_updating_graph_mask, g_graph_visited,
             g_cost, no_of_nodes
         )
 
-        @cuda (grid, threads) Kernel2(
+        @cuda blocks=blocks threads=threads Kernel2(
             g_graph_mask, g_updating_graph_mask, g_graph_visited,
             g_stop, no_of_nodes
         )
 
         k += 1
-        copy!(stop, g_stop)
+        copyto!(stop, g_stop)
         if !stop[1]
             break
         end
@@ -169,7 +169,7 @@ function main(args)
     # Copy result back + free
     h_cost = Array(g_cost)
 
-    info("Kernel Executed $k times")
+    @info "Kernel Executed $k times"
 
     # Store the result into a file
     if OUTPUT
