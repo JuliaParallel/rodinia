@@ -61,7 +61,7 @@ function calculate_temp(iteration,    # number of iteration
                         border_cols,  # border offset
                         border_rows,  # border offset
                         Cap,          # Capacitance
-                        Rx, Ry, Rz, step, time_elapsed)
+                        Rx, Ry, Rz, step)
     temp_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     power_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     # for saving temporary temperature result
@@ -184,7 +184,6 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
 
     max_slope = MAX_PD / (FACTOR_CHIP * t_chip * SPEC_HEAT_SI)
     step = Float32(PRECISION / max_slope)
-    time_elapsed = 0.001f0
     src = 1
     dst = 0
 
@@ -195,7 +194,7 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
             min(num_iterations, total_iterations - t),
             MatrixPower, MatrixTemp[src + 1], MatrixTemp[dst + 1],
-            col, row, borderCols, borderRows, Cap, Rx, Ry, Rz, step, time_elapsed)
+            col, row, borderCols, borderRows, Cap, Rx, Ry, Rz, step)
     end
 
     return dst

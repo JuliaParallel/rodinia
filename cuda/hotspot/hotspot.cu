@@ -101,8 +101,7 @@ __global__ void calculate_temp(int iteration, // number of iteration
                                int border_cols, // border offset
                                int border_rows, // border offset
                                float Cap, // Capacitance
-                               float Rx, float Ry, float Rz, float step,
-                               float time_elapsed) {
+                               float Rx, float Ry, float Rz, float step) {
 
     __shared__ float temp_on_cuda[BLOCK_SIZE][BLOCK_SIZE];
     __shared__ float power_on_cuda[BLOCK_SIZE][BLOCK_SIZE];
@@ -238,8 +237,6 @@ int compute_tran_temp(float *MatrixPower, float *MatrixTemp[2], int col,
     float max_slope = MAX_PD / (FACTOR_CHIP * t_chip * SPEC_HEAT_SI);
     float step = PRECISION / max_slope;
     float t;
-    float time_elapsed;
-    time_elapsed = 0.001;
 
     int src = 1, dst = 0;
 
@@ -251,7 +248,7 @@ int compute_tran_temp(float *MatrixPower, float *MatrixTemp[2], int col,
             calculate_temp<<<dimGrid, dimBlock>>>(
                 MIN(num_iterations, total_iterations - t), MatrixPower,
                 MatrixTemp[src], MatrixTemp[dst], col, row, borderCols, borderRows,
-                Cap, Rx, Ry, Rz, step, time_elapsed)
+                Cap, Rx, Ry, Rz, step)
         ));
     }
     return dst;
