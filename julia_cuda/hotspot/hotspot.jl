@@ -3,6 +3,8 @@
 using ArgParse
 using CUDAdrv, CUDAnative
 
+using Printf
+
 const OUTPUT = haskey(ENV, "OUTPUT")
 
 # configuration
@@ -191,7 +193,7 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         temp = src
         src = dst
         dst = temp
-        @cuda ((blockCols, blockRows), (BLOCK_SIZE, BLOCK_SIZE)) calculate_temp(
+        @cuda blocks=(blockCols, blockRows) threads=(BLOCK_SIZE, BLOCK_SIZE) calculate_temp(
             min(num_iterations, total_iterations - t),
             MatrixPower, MatrixTemp[src + 1], MatrixTemp[dst + 1],
             col, row, borderCols, borderRows, Cap, Rx, Ry, Rz, step)
@@ -260,9 +262,9 @@ function main(args)
     blockRows = floor(Int32, grid_rows / smallBlockRow) +
         ((grid_rows % smallBlockRow == 0) ? 0 : 1)
 
-    FilesavingTemp = Vector{Float32}(size)
-    FilesavingPower = Vector{Float32}(size)
-    MatrixOut = Vector{Float32}(size)
+    FilesavingTemp = Vector{Float32}(undef, size)
+    FilesavingPower = Vector{Float32}(undef, size)
+    MatrixOut = Vector{Float32}(undef, size)
 
     @printf("pyramidHeight: %d\ngridSize: [%d, %d]\nborder:[%d, %d]\n",
         pyramid_height, grid_cols, grid_rows, borderCols, borderRows)
@@ -272,7 +274,7 @@ function main(args)
     readinput(FilesavingTemp, grid_rows, grid_cols, tfile)
     readinput(FilesavingPower, grid_rows, grid_cols, pfile)
 
-    MatrixTemp = Array{CuArray{Float32,1}}(2)
+    MatrixTemp = Array{CuArray{Float32,1}}(undef, 2)
     MatrixTemp[1] = CuArray(FilesavingTemp)
     MatrixTemp[2] = CuArray{Float32}(size)
     MatrixPower = CuArray(FilesavingPower)
