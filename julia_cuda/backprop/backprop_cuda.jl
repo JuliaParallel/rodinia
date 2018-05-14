@@ -11,9 +11,9 @@ function bpnn_train_cuda(net)
     m = 1
     num_blocks = Int(inp / 16)
 
-    input_weights_one_dim = Array{Float32}((inp + 1) * (hid + 1))
-    input_weights_prev_one_dim = Array{Float32}((inp + 1) * (hid + 1))
-    partial_sum = Array{Float32}(num_blocks * WIDTH)
+    input_weights_one_dim = Array{Float32}(undef, (inp + 1) * (hid + 1))
+    input_weights_prev_one_dim = Array{Float32}(undef, (inp + 1) * (hid + 1))
+    partial_sum = Array{Float32}(undef, num_blocks * WIDTH)
 
     # This preprocessing stage is added to correct the bugs of wrong memcopy
     # using two-dimensional net->inputweights.
@@ -30,7 +30,7 @@ function bpnn_train_cuda(net)
 
     println("Performing GPU computation")
 
-    @cuda ((1, num_blocks), (16, 16)) bpnn_layerforward_CUDA(
+    @cuda blocks=(1, num_blocks) threads=(16, 16) bpnn_layerforward_CUDA(
         input_cuda, output_hidden_cuda, input_hidden_cuda, hidden_partial_sum, inp, hid)
 
     partial_sum = Array(hidden_partial_sum)
@@ -57,7 +57,7 @@ function bpnn_train_cuda(net)
 
     input_hidden_cuda = CuArray(input_weights_one_dim)
 
-	@cuda ((1, num_blocks), (16, 16)) bpnn_adjust_weights_cuda(
+	@cuda blocks=(1, num_blocks) threads=(16, 16) bpnn_adjust_weights_cuda(
         hidden_delta_cuda, hid, input_cuda, inp, input_hidden_cuda, input_prev_weights_cuda)
 
 	net.input_units = Array(input_cuda)

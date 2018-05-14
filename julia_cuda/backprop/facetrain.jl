@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+using Printf
 
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
@@ -32,14 +33,14 @@ end
 
 function main(args)
     if length(args) != 1
-        println(STDERR, "usage: backprop <num of input elements>");
+        println(stderr, "usage: backprop <num of input elements>");
         exit(1)
     end
 
     layer_size = parse(Int, args[1])
 
     if layer_size % 16 != 0
-        @printf(STDERR, "The number of input points must be divisible by 16\n")
+        @printf(stderr, "The number of input points must be divisible by 16\n")
         exit(1)
     end
 

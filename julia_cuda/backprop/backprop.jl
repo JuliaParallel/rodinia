@@ -5,7 +5,7 @@ const MOMENTUM = 0.3 # momentum value
 # static data
 const BIGRND   = 0x7fffffff
 
-type BPNN
+mutable struct BPNN
     input_n  # number of input units
     hidden_n # number of hidden units
     output_n # number of output units
@@ -28,16 +28,16 @@ type BPNN
 
     BPNN(input_n, hidden_n, output_n) =
         new(input_n, hidden_n, output_n,
-            Array{Float32}(input_n + 1),
-            Array{Float32}(hidden_n + 1),
-            Array{Float32}(output_n + 1),
-            Array{Float32}(hidden_n + 1),
-            Array{Float32}(output_n + 1),
-            Array{Float32}(output_n + 1),
-            Array{Float32}(input_n + 1, hidden_n + 1),
-            Array{Float32}(hidden_n + 1, output_n + 1),
-            Array{Float32}(input_n + 1, hidden_n + 1),
-            Array{Float32}(hidden_n + 1, output_n + 1))
+            Array{Float32}(undef, input_n + 1),
+            Array{Float32}(undef, hidden_n + 1),
+            Array{Float32}(undef, output_n + 1),
+            Array{Float32}(undef, hidden_n + 1),
+            Array{Float32}(undef, output_n + 1),
+            Array{Float32}(undef, output_n + 1),
+            Array{Float32}(undef, input_n + 1, hidden_n + 1),
+            Array{Float32}(undef, hidden_n + 1, output_n + 1),
+            Array{Float32}(undef, input_n + 1, hidden_n + 1),
+            Array{Float32}(undef, hidden_n + 1, output_n + 1))
 end
 
 # Returns a random number between 0.0 and 1.0.
