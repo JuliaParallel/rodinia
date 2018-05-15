@@ -249,12 +249,12 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
         arrayY[x] = ye
     end
 
-    g_arrayX = CuArray(Float64, Nparticles)
-    g_arrayY = CuArray(Float64, Nparticles)
-    g_xj = CuArray(Float64, Nparticles)
-    g_yj = CuArray(Float64, Nparticles)
-    g_CDF = CuArray(Float64, Nparticles)
-    g_u = CuArray(Float64, Nparticles)
+    g_arrayX = CuArray{Float64}(Nparticles)
+    g_arrayY = CuArray{Float64}(Nparticles)
+    g_xj = CuArray{Float64}(Nparticles)
+    g_yj = CuArray{Float64}(Nparticles)
+    g_CDF = CuArray{Float64}(Nparticles)
+    g_u = CuArray{Float64}(Nparticles)
 
     for k=2:Nfr
         set_arrays = gettime()
@@ -347,7 +347,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed, Nparticles)
         copy!(g_CDF, CDF)
         copy!(g_u, u)
 
-        @cuda (num_blocks, threads_per_block) kernel_kernel(
+        @cuda blocks=num_blocks threads=threads_per_block kernel_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, Nparticles)
         copy!(xj, g_xj)
         copy!(yj, g_yj)

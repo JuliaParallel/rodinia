@@ -276,40 +276,38 @@ function sum_kernel(partial_sums, Nparticles)
 
     if i==1
         sum = 0.0
-        num_blocks = trunc(Int,CUDAnative.ceil(Nparticles/threads_per_block))
+        num_blocks = unsafe_trunc(Int,CUDAnative.ceil(Nparticles/threads_per_block))
         for x=1:num_blocks
             sum += partial_sums[x]
         end
         partial_sums[1] = sum
     end
-
-    return nothing
 end
 
-function likelihood_kernel(arrayX, arrayY, xj, yj, ind, objxy, likelihood, I, weights,
-                           Nparticles, count_ones, max_size, k, IszY, Nfr, seed, partial_sums)
+function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
+                           count_ones, k, IszY, Nfr, partial_sums, param)
     block_id = blockIdx().x
     i = blockDim().x * (block_id-1) + threadIdx().x
 
     buffer = @cuStaticSharedMem(Float64, 512)
-    if i <= Nparticles
-        arrayX[i] = xj[i]
-        arrayY[i] = yj[i]
-        weights[i] = 1/Nparticles
+    if i <= param.Nparticles
+        array.X[i] = j.x[i]
+        array.Y[i] = j.y[i]
+        weights[i] = 1/param.Nparticles
 
-        arrayX[i] = arrayX[i] + 1.0 + 5.0 * d_randn(seed, i)
-        arrayY[i] = arrayY[i] - 2.0 + 2.0 * d_randn(seed, i)
+        array.X[i] = array.X[i] + 1.0 + 5.0 * d_randn(param.seed, i)
+        array.Y[i] = array.Y[i] - 2.0 + 2.0 * d_randn(param.seed, i)
     end
 
     sync_threads()
 
-    if i <= Nparticles
+    if i <= param.Nparticles
         for y=0:count_ones-1
-            indX = dev_round_double(arrayX[i]) + objxy[y*2 + 2]
-            indY = dev_round_double(arrayY[i]) + objxy[y*2 + 1]
+            indX = dev_round_double(array.X[i]) + objxy[y*2 + 2]
+            indY = dev_round_double(array.Y[i]) + objxy[y*2 + 1]
 
             ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1) + 1
-            if ind[(i-1)*count_ones + y + 1] > max_size
+            if ind[(i-1)*count_ones + y + 1] > param.max_size
                 ind[(i-1)*count_ones + y + 1] = 1
             end
         end
@@ -321,7 +319,7 @@ function likelihood_kernel(arrayX, arrayY, xj, yj, ind, objxy, likelihood, I, we
 
     sync_threads()
 
-    if i<=Nparticles
+    if i <= param.Nparticles
         buffer[threadIdx().x] = weights[i]
     end
     sync_threads()
@@ -340,7 +338,6 @@ function likelihood_kernel(arrayX, arrayY, xj, yj, ind, objxy, likelihood, I, we
         partial_sums[blockIdx().x] = buffer[1]
     end
     sync_threads()
-    return nothing
 end
 
 function getneighbors(se::Array{Int}, num_ones, neighbors::Array{Int}, radius)
@@ -368,7 +365,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     # Expected object locations, compared to cneter
     radius = 5
     diameter = radius * 2 -1
-    disk = Vector{Int}(diameter * diameter)
+    disk = Vector{Int}(undef, diameter * diameter)
     streldisk(disk, radius)
     count_ones = 0
     for x=1:diameter
@@ -379,11 +376,11 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
         end
     end
 
-    objxy = Vector{Int}(count_ones * 2)
+    objxy = Vector{Int}(undef, count_ones * 2)
     getneighbors(disk, count_ones, objxy, radius)
 
     # Initial weights are all equal (1/Nparticles)
-    weights = Vector{Float64}(Nparticles)
+    weights = Vector{Float64}(undef, Nparticles)
     for x=1:Nparticles
         weights[x] = 1 / Nparticles
     end
@@ -392,8 +389,8 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_likelihood = CuArray(zeros(Float64, Nparticles))
     g_arrayX = CuArray{Float64}(Nparticles)
     g_arrayY = CuArray{Float64}(Nparticles)
-    xj = Vector{Float64}(Nparticles)
-    yj = Vector{Float64}(Nparticles)
+    xj = Vector{Float64}(undef, Nparticles)
+    yj = Vector{Float64}(undef, Nparticles)
     g_CDF = CuArray{Float64}(Nparticles)
 
     g_ind = CuArray{Int}(count_ones * Nparticles)
@@ -415,19 +412,19 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_seed = CuArray(seed)
 
     for k=2:Nfr
-        @cuda (num_blocks, threads_per_block) likelihood_kernel(
-            g_arrayX, g_arrayY, g_xj, g_yj, g_ind,
+        @cuda blocks=num_blocks threads=threads_per_block likelihood_kernel(
+            (X=g_arrayX, Y=g_arrayY), (x=g_xj, y=g_yj), g_ind,
             g_objxy, g_likelihood, g_I, g_weights,
-            Nparticles, count_ones, max_size, k, IszY, Nfr,
-            g_seed, g_partial_sums)
+            count_ones, k, IszY, Nfr, g_partial_sums,
+            (max_size=max_size, Nparticles=Nparticles, seed=g_seed))
 
-        @cuda (num_blocks, threads_per_block) sum_kernel(
+        @cuda blocks=num_blocks threads=threads_per_block sum_kernel(
             g_partial_sums, Nparticles)
 
-        @cuda (num_blocks, threads_per_block) normalize_weights_kernel(
+        @cuda blocks=num_blocks threads=threads_per_block normalize_weights_kernel(
             g_weights, Nparticles, g_partial_sums, g_CDF, g_u, g_seed)
 
-        @cuda (num_blocks, threads_per_block) find_index_kernel(
+        @cuda blocks=num_blocks threads=threads_per_block find_index_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
     end
 
@@ -501,7 +498,7 @@ function main(args)
     end
 
     # initialize
-    seed = Vector{Int32}(Nparticles)
+    seed = Vector{Int32}(undef, Nparticles)
     for i = 1:Nparticles
         seed[i] = i-1
     end
