@@ -22,7 +22,7 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     =#
 
     # Compute angle paramter
-    const increment = (2.0 * C_PI) / Np
+    increment = (2.0 * C_PI) / Np
 
     t = [increment * i for i in 0:Np-1]
 
@@ -36,7 +36,7 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     # Save the first snake for each cell
     xc[:,1] = xc0[1:Nc]
     yc[:,1] = yc0[1:Nc]
-    r[:,:,1] = R
+    r[:,:,1] .= R
 
     # Generate ellipse points for each cell
     for i in 1:Nc, j in 1:Np
@@ -49,16 +49,16 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     MGVF_time = 0
     snake_time = 0
 
-    xci = Array{Float64}(Nc)
-    yci = Array{Float64}(Nc)
-    ri = Array{Array{Float64,1}}(Nc)
-    ycavg = Array{Float64}(Nc)
-    u1 = Array{Int32}(Nc)
-    u2 = Array{Int32}(Nc)
-    v1 = Array{Int32}(Nc)
-    v2 = Array{Int32}(Nc)
-    Isub = Array{Array{Float64,2}}(Nc)
-    IE = Array{Array{Float64,2}}(Nc)
+    xci = Vector{Float64}(undef, Nc)
+    yci = Vector{Float64}(undef, Nc)
+    ri = Vector{Vector{Float64}}(undef, Nc)
+    ycavg = Vector{Float64}(undef, Nc)
+    u1 = Vector{Int32}(undef, Nc)
+    u2 = Vector{Int32}(undef, Nc)
+    v1 = Vector{Int32}(undef, Nc)
+    v2 = Vector{Int32}(undef, Nc)
+    Isub = Vector{Matrix{Float64}}(undef, Nc)
+    IE = Vector{Matrix{Float64}}(undef, Nc)
 
     # Process each frame sequentially
     for frame_num in 1:Nf
@@ -86,19 +86,19 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
         # Add up the last ten y-values for this cell
         #  (or fewer if there are not yet ten previous frames)
         for cell_num in eachindex(ycavg)
-            ycavg[cell_num] = sum(yc[cell_num,(frame_num>10?frame_num-10:0)+1:frame_num])
+            ycavg[cell_num] = sum(yc[cell_num,(frame_num>10 ? frame_num-10 : 0)+1:frame_num])
         end
 
         # Compute the average of the last ten y-values
         #  (this represents the expected y-location of the cell)
-        ycavg = ycavg / (frame_num>10?10:frame_num)
+        ycavg = ycavg / (frame_num>10 ? 10 : frame_num)
 
         # Determine the range of the subimage surrounding the current
         # position
-        u1[:] = trunc.(Int32,max.(xci[:] - 4.0 * R + 0.5, 0))
-        u2[:] = trunc.(Int32,min.(xci[:] + 4.0 * R + 0.5, Iw - 1))
-        v1[:] = trunc.(Int32,max.(yci[:] - 2.0 * R + 1.5, 0))
-        v2[:] = trunc.(Int32,min.(yci[:] + 2.0 * R + 1.5, Ih - 1))
+        u1[:] = trunc.(Int32,max.(xci[:] .- 4.0 .* R .+ 0.5, 0))
+        u2[:] = trunc.(Int32,min.(xci[:] .+ 4.0 .* R .+ 0.5, Iw - 1))
+        v1[:] = trunc.(Int32,max.(yci[:] .- 2.0 .* R .+ 1.5, 0))
+        v2[:] = trunc.(Int32,min.(yci[:] .+ 2.0 .* R .+ 1.5, Ih - 1))
 
         # Extract the subimage
         for cell_num in eachindex(Isub)
@@ -132,8 +132,8 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
             xc[cell_num,frame_num+1] = xci[cell_num]
             yc[cell_num,frame_num+1] = yci[cell_num]
             r[cell_num,:,frame_num+1] = ri[cell_num][:]
-            x[cell_num,:,frame_num+1] = xc[cell_num,frame_num+1] + ri[cell_num] .* cos.(t)
-            y[cell_num,:,frame_num+1] = yc[cell_num,frame_num+1] + ri[cell_num] .* sin.(t)
+            x[cell_num,:,frame_num+1] = xc[cell_num,frame_num+1] .+ ri[cell_num] .* cos.(t)
+            y[cell_num,:,frame_num+1] = yc[cell_num,frame_num+1] .+ ri[cell_num] .* sin.(t)
         end
         if OUTPUT & (frame_num == Nf)
             pFile = open("result.txt","w+")
@@ -180,9 +180,9 @@ function MGVF(IE, vx, vy, Nc)
     =#
 
     # Constants
-    const converge = 0.00001
-    const epsilon = 0.0000000001
-    const iterations = Int32(500)   # Maximum number of iterations to compute the MGVF matrix
+    converge = 0.00001
+    epsilon = 0.0000000001
+    iterations = Int32(500)   # Maximum number of iterations to compute the MGVF matrix
 
     for cell_num in eachindex(IE)
         m = size(IE[cell_num],1)
@@ -225,14 +225,14 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
     =#
 
     # Constants
-    const deltax = 0.2
-    const deltay = 0.2
-    const deltar = 0.2
-    const converge = 0.1
-    const lambdaedge = 1
-    const lambdasize = 0.2
-    const lambdapath = 0.05
-    const iterations = 1000 # maximum number of iterationsa
+    deltax = 0.2
+    deltay = 0.2
+    deltar = 0.2
+    converge = 0.1
+    lambdaedge = 1
+    lambdasize = 0.2
+    lambdapath = 0.05
+    iterations = 1000 # maximum number of iterationsa
 
     # Initialize variables
     xc = xc0
@@ -243,8 +243,8 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
     fx = gradient_x(f)
     fy = gradient_y(f)
 
-    const fh = size(f,1)
-    const fw = size(f,2)
+    fh = size(f,1)
+    fw = size(f,2)
 
     # Normalize the gradients
     fmag = sqrt.(fx.^2 + fy.^2)
@@ -289,13 +289,13 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
         # Compute the radial potential surface
         m = size(vf,1)
         n = size(vf,2)
-        vfr = (vf[1,:] + vfx[1,:] .* (x - xc) +
-               vfy[1,:] .* (y - yc) - vfmean) / L
+        vfr = (vf[1,:] .+ vfx[1,:] .* (x .- xc) .+
+               vfy[1,:] .* (y .- yc) .- vfmean) ./ L
 
         # Update the snake center and snaxels
         xc = xc + deltax * lambdaedge * vfxmean
         yc = (yc + deltay * lambdaedge * vfymean + deltay * lambdapath * Ey) / (1.0 + deltay * lambdapath)
-        r = (r + (deltar * lambdaedge * vfr + deltar * lambdasize * Er)) / (1.0 + deltar * lambdasize)
+        r = (r + (deltar * lambdaedge * vfr + deltar * lambdasize * Er)) / (1.0 .+ deltar * lambdasize)
         r_diff = sum(abs.(r-r_old))
 
         # Test for convergence

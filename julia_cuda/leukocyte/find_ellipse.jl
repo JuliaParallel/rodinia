@@ -24,7 +24,7 @@ function get_frame(cell_file, frame_num, cropped::Bool, scaled::Bool)
 
     AVI_set_video_position(cell_file, frame_num)
 
-    image_buf = Array{UInt8,2}(width,height)
+    image_buf = Matrix{UInt8}(undef, (width,height))
     dummy = zeros(Int32,1)
     frame = AVI_read_frame(cell_file, image_buf, dummy)
     if frame == -1
@@ -88,7 +88,8 @@ end
 
 # Returns a circular structuring element of the specified radius
 function structuring_element(radius)
-    [sqrt((i-radius)^2 + (j-radius)^2)<=radius?1.0:0.0 for i in 0:radius*2, j in 0:radius*2]
+    [sqrt((i-radius)^2 + (j-radius)^2)<=radius ? 1.0 : 0.0
+     for i in 0:radius*2, j in 0:radius*2]
 end
 
 
@@ -122,7 +123,7 @@ end
 function TMatrix(N, M)
     aindex, bindex, cindex, dindex = get_abcd_indices(N)
 
-    B = Array{Float64}(N*M,N)
+    B = Matrix{Float64}(undef, (N*M,N))
 
     for i in 1:N
         LB = zeros(Float64,M,N)
@@ -159,7 +160,7 @@ function uniformseg(cellx_row, celly_row, x, y)
 
 
     perm = dist[1]
-    dsum = Array{Float64}(36)
+    dsum = Vector{Float64}(undef, 36)
     dsum[1] = dist[1]
     for i in 2:size(dist,1)
       perm += dist[i]
@@ -169,7 +170,7 @@ function uniformseg(cellx_row, celly_row, x, y)
     # the inner array does not necessarily need constructing,
     # since we only use it for indmin(). A for loop may be
     # faster
-    index = [indmin([abs(dsum[j]-i*uperm) for j in 1:36]) for i in 0:35]
+    index = [argmin([abs(dsum[j]-i*uperm) for j in 1:36]) for i in 0:35]
 
     for i in 1:36
         x[1,i] = cellx_row[index[i]]
@@ -184,7 +185,7 @@ function getsampling(m, ns)
 
     aindex, bindex, cindex, dindex = get_abcd_indices(N)
 
-    retval = Array{Float64,1}(N*M)
+    retval = Vector{Float64}(undef, N*M)
     for i in 1:N, j in 1:M
         s = (j-1)/M
         # This indexing is inverted compared to the C version, but that is
@@ -205,7 +206,7 @@ function getfdriv(m, ns)
 
     aindex, bindex, cindex, dindex = get_abcd_indices(N)
 
-    retval = Array{Float64,1}(M*N)
+    retval = Vector{Float64}(undef, M*N)
     for i in 1:N, j in 1:M
         s = (j-1)/M
         # This indexing is inverted compared to the C version, but that is
@@ -224,7 +225,7 @@ end
 # vectors X and Y
 function linear_interp2(m, X, Y)
     # Kind of assumes X and Y have same len!
-    retval = Array{Float64}(1,length(X))
+    retval = Matrix{Float64}(undef, (1,length(X)))
 
     for i in 1:length(X)
         x_coord = X[i]

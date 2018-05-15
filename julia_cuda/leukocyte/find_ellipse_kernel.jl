@@ -7,12 +7,12 @@ const MAX_RAD = 20
 # The total number of sample ellipses
 const NCIRCLES = 7
 
-type CUDAConstValues
-        c_sin_angle::CuArray{Float32,1}
-        c_cos_angle::CuArray{Float32,1}
-        c_tX::CuArray{Int32,2}
-        c_tY::CuArray{Int32,2}
-        c_strel::CuArray{Float32,2}
+struct CUDAConstValues
+    c_sin_angle::CuArray{Float32,1}
+    c_cos_angle::CuArray{Float32,1}
+    c_tX::CuArray{Int32,2}
+    c_tY::CuArray{Int32,2}
+    c_strel::CuArray{Float32,2}
 end
 
 
@@ -82,12 +82,12 @@ end
 
 # Sets up and invokes the GICOV kernel and returns its output
 function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
-    const MaxR = MAX_RAD + 2
+    MaxR = MAX_RAD + 2
 
     # Allocate device memory
     # TODO: should be put in texture memory
-    device_grad_x = CuArray(convert(Array{Float32,2},host_grad_x)')
-    device_grad_y = CuArray(convert(Array{Float32,2},host_grad_y)')
+    device_grad_x = CuArray(collect(convert(Array{Float32,2},host_grad_x)'))
+    device_grad_y = CuArray(collect(convert(Array{Float32,2},host_grad_y)'))
 
     # Allocate & initialize device memory for result
     # (some elements are not assigned values in the kernel)
@@ -97,7 +97,7 @@ function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
     num_blocks = size(host_grad_y,2) - (2 * MaxR)
     threads_per_block = size(host_grad_x,1) - (2 * MaxR)
 
-    @cuda (num_blocks, threads_per_block) GICOV_kernel(device_grad_x, device_grad_y,
+    @cuda blocks=num_blocks threads=threads_per_block GICOV_kernel(device_grad_x, device_grad_y,
         GICOV_constants.c_sin_angle, GICOV_constants.c_cos_angle,
         GICOV_constants.c_tX, GICOV_constants.c_tY, device_gicov_out)
 
@@ -168,7 +168,7 @@ function dilate_CUDA(img_in, GICOV_constants)
     threads_per_block = 176
     num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
 
-    @cuda (num_blocks,threads_per_block) dilate_kernel(img_dev, GICOV_constants.c_strel, dilated_out)
+    @cuda blocks=num_blocks threads=threads_per_block dilate_kernel(img_dev, GICOV_constants.c_strel, dilated_out)
 
     Array(dilated_out)
 end

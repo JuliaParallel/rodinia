@@ -13,12 +13,9 @@ end
 
 function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
                       max_iterations, cutoff)
-
     # Constants
-    const mu = 0.5
-    const lambda = 8.0 * mu + 1.0
-    # 41 * 81, @cuStaticSharedMem can't deal with expressions -- even in constants
-    const IMGVF_SIZE = 3321
+    mu = 0.5f0
+    lambda = 8f0 * mu + 1f0
 
     cell_num = blockIdx().x
     m = m_array[cell_num]
@@ -26,7 +23,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
     cell_offset = offsets[cell_num]
 
     # Shared copy of the matrix being computed
-    IMGVF = @cuStaticSharedMem(Float32, (IMGVF_SIZE,))
+    IMGVF = @cuStaticSharedMem(Float32, (41 * 81,))
 
     # Shared buffer used for two purposes:
     # 1) To temporarily store newly computed matrix values so that only
@@ -43,13 +40,13 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
 
     # avoid error checks for undefined i later on (the loop below
     # always entered and hence i always initialised)
-    i::Int32 = 0
+    i = Int32(0)
 
     # Load the initial IMGVF matrix into shared memory
-    thread_id::Int32 = threadIdx().x - 1
+    thread_id = unsafe_trunc(Int32, threadIdx().x - 1)
 
     for thread_block in 0:max-1
-        offset = thread_block * threads_per_block
+        offset = unsafe_trunc(Int32, thread_block * threads_per_block)
         i = div(thread_id + offset, n)
         j = mod(thread_id + offset, n)
         if i < m
@@ -66,24 +63,24 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
 
 
     # Constants used to iterate through virtual thread blocks
-    const one_nth = 1.0/convert(Float32,n)
-    const tid_mod = thread_id % n
-    const tbsize_mod = threads_per_block % n
+    one_nth = 1f0/n
+    tid_mod = thread_id % n
+    tbsize_mod = threads_per_block % n
 
     # Constant used in the computation of Heaviside values
-    const one_over_e = Float32(1) / Float32(e)
+    one_over_e = Float32(1) / Float32(e)
 
     # Iteratively compute the IMGVF matrix until the computation has
-    #  converged or we have reached the maximum number of iterations
+    # converged or we have reached the maximum number of iterations
     iterations = 0
 
     @inbounds while (cell_converged[1] == 0) && (iterations < max_iterations)
         # The total change to this thread's matrix elements in the current
         # iteration
-        total_diff::Float32 = 0.0
+        total_diff = 0f0
 
-        old_i::Int32 = 0
-        old_j::Int32 = 0
+        old_i = Int32(0)
+        old_j = Int32(0)
         j = tid_mod - tbsize_mod
 
         # Iterate over virtual thread blocks
@@ -95,20 +92,20 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
 
             # Determine the index of this thread's current matrix element
             offset = thread_block * threads_per_block
-            i = trunc(Int32,(thread_id + offset) * one_nth)
+            i = unsafe_trunc(Int32, (thread_id + offset) * one_nth)
             j += tbsize_mod
             if j >= n
                 j -= n
             end
 
-            new_val::Float32 = 0.0
-            old_val::Float32 = 0.0
+            new_val = 0f0
+            old_val = 0f0
             
             # Make sure the thread has not gone off the end of the matrix
             if i < m
                 # Compute neighboring matrix element indices
                 rowU = (i == 0) ? 0  : i - 1
-                rowD = (i == m - 1) ? m - 1: i + 1
+                rowD = (i == m - 1) ? m - 1 : i + 1
                 colL = (j == 0) ? 0 : j - 1
                 colR = (j == n - 1) ? n -1 : j + 1
 
@@ -145,7 +142,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
                                URHe * UR + (DRHe * DR + ULHe * UL) + DLHe * DL)
                 # 2) Compute IMGVF -= (1 / lambda)(I .* (IMGVF - I))
                 @inbounds vI = I_flat[cell_offset + i * n + j + 1]
-                new_val -= ((1.0 / lambda) * vI * (new_val - vI));
+                new_val -= ((1f0 / lambda) * vI * (new_val - vI));
             end
 
             sync_threads()
@@ -162,24 +159,23 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
                 @inbounds buffer[thread_id + 1] = new_val
             else
                 # We've reached the final virtual thread block,
-                #  so write directly to the matrix
+                # so write directly to the matrix
                 if i < m
                     @inbounds IMGVF[(i * n) + j + 1] = new_val
                 end
             end
 
             # Keep track of the total change of this thread's matrix elements
-            total_diff += abs(new_val - old_val)
+            total_diff += CUDAnative.abs(new_val - old_val)
 
             # We need to synchronize between virtual thread blocks to prevent
-            #  threads from writing the values from the buffer to the actual
-            #  IMGVF matrix too early
+            # threads from writing the values from the buffer to the actual
+            # IMGVF matrix too early
             sync_threads()
         end
 
-        # We need to compute the overall sum of the change at each matrix
-        # element
-        #  by performing a tree reduction across the whole threadblock
+        # We need to compute the overall sum of the change at each matrix element by
+        # performing a tree reduction across the whole threadblock
         @inbounds buffer[thread_id+1] = total_diff
         sync_threads()
 
@@ -190,7 +186,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
         sync_threads()
         
         # Perform the tree reduction
-        th = div(next_lowest_power_of_two,2)
+        th = div(next_lowest_power_of_two, 2)
         while th > 0
             if thread_id < th
                 @inbounds buffer[thread_id + 1] += buffer[thread_id + th + 1]
@@ -204,7 +200,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
             @inbounds mean = buffer[1] / (m * n)
             if mean < cutoff
                 # We have converged, so set the appropriate flag
-                @inbounds cell_converged[1] = 1
+                @inbounds cell_converged[1] = Int32(1)
             end
         end
 
@@ -230,17 +226,15 @@ end
 
 
 function IMGVF_cuda(I, vx, vy, e, max_iterations, cutoff)
-
     # Copy input matrices to device
     num_cells = size(I,1)
-    m_array = Array{Int32}(num_cells)
-    n_array = Array{Int32}(num_cells)
-    offsets = Array{Int32}(num_cells)
+    m_array = Vector{Int32}(undef, num_cells)
+    n_array = Vector{Int32}(undef, num_cells)
+    offsets = Vector{Int32}(undef, num_cells)
 
     total_size = 0
 
     for c = 1:num_cells
-
         m = size(I[c],1)
         n = size(I[c],2)
 
@@ -250,10 +244,9 @@ function IMGVF_cuda(I, vx, vy, e, max_iterations, cutoff)
         total_size += m * n
     end
 
-    I_flat = Array{Float32}(total_size)
+    I_flat = Vector{Float32}(undef, total_size)
 
     for c = 1:num_cells
-
         m = m_array[c]
         n = n_array[c]
         offset = offsets[c]
@@ -270,20 +263,19 @@ function IMGVF_cuda(I, vx, vy, e, max_iterations, cutoff)
     dev_n_array = CuArray(n_array)
     dev_offsets = CuArray(offsets)
 
-    @cuda (num_cells, threads_per_block) IMGVF_kernel(dev_I_flat,
+    @cuda blocks=num_cells threads=threads_per_block IMGVF_kernel(dev_I_flat,
         dev_IMGVF_flat, dev_m_array, dev_n_array, dev_offsets, Float32(vx),
         Float32(vy), Float32(e), max_iterations, Float32(cutoff))
 
     # Copy results back to host
-    IMGVF = Array{Array{Float32,2}}(num_cells)
+    IMGVF = Vector{Matrix{Float32}}(undef, num_cells)
     IMGVF_flat = Array(dev_IMGVF_flat)
 
     for c = 1:num_cells
-
         m = m_array[c]
         n = n_array[c]
         offset = offsets[c]
-        IMGVF_c = Array{Float32}(m, n)
+        IMGVF_c = Matrix{Float32}(undef, (m, n))
         IMGVF[c] = IMGVF_c
 
         for i = 1:m, j = 1:n

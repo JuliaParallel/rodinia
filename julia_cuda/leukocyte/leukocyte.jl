@@ -2,6 +2,8 @@
 
 using CUDAdrv, CUDAnative
 
+using Printf
+
 include("../../common/julia/libavi.jl")
 
 include("misc_math.jl")
@@ -18,7 +20,7 @@ function main(args)
     num_frames = 1
 
     if length(args) != 2
-        println(STDERR,"usage: ",basename(Base.source_path())," <num of frames> <input file>")
+        println(stderr,"usage: ",basename(Base.source_path())," <num of frames> <input file>")
         exit(1)
     end
 
@@ -40,11 +42,11 @@ function main(args)
     ns = 4
     k_count = 0
     
-    const threshold = 1.8
-    const radius = 10.0
-    const delta = 3.0
-    const dt = 0.01
-    const b = 5.0
+    threshold = 1.8
+    radius = 10.0
+    delta = 3.0
+    dt = 0.01
+    b = 5.0
 
     # Extract a cropped version of the first frame from the video file
     image_chopped = get_frame(cell_file, 0, true, false)
@@ -55,15 +57,16 @@ function main(args)
     grad_y = gradient_y(image_chopped)
 
     # Get GICOV matrix corresponding to image gradients
-    tic()
     gicov = GICOV(grad_x, grad_y, GICOV_constants)
-    GICOV_end_time = toq()
+    GICOV_time = Base.@elapsed begin
+        gicov = GICOV(grad_x, grad_y, GICOV_constants)
+    end
 
     # Dilate the GICOV matrix
-    tic()
-    strel = structuring_element(12)
-    img_dilated = dilate(gicov, GICOV_constants)
-    dilate_end_time = toq()
+    dilate_time = Base.@elapsed begin
+        strel = structuring_element(12)
+        img_dilated = dilate(gicov, GICOV_constants)
+    end
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
@@ -78,7 +81,7 @@ function main(args)
 
     GICOV_spots = [sqrt(gicov[crow[i]+1,ccol[i]+1]) for i in 1:size(crow,1)]
 
-    result_indices = find((crow .> 26) .& (crow .< BOTTOM - TOP + 39))
+    result_indices = findall((crow .> 26) .& (crow .< BOTTOM - TOP + 39))
     x_result = ccol[result_indices]
     y_result = crow[result_indices] .- 40
     G = GICOV_spots[result_indices]
@@ -105,8 +108,8 @@ function main(args)
     for n in 0:size(x_result,1)-1
         if (G[n+1] < -1 * threshold) | (G[n+1] > threshold)
 
-            x = Array{Float64,2}(1,36)
-            y = Array{Float64,2}(1,36)
+            x = Matrix{Float64}(undef, (1,36))
+            y = Matrix{Float64}(undef, (1,36))
 
             # Get current values of possible cells from cellx/celly matrices
             uniformseg(view(cellx,n+1,:), view(celly,n+1,:), x, y)
@@ -161,8 +164,8 @@ function main(args)
     # Report the breakdown of the detection runtime
     println("Detection runtime");
     println("-----------------");
-    print(@sprintf("GICOV computation: %.5f seconds\n",GICOV_end_time))
-    print(@sprintf("   GICOV dilation: %.5f seconds\n",dilate_end_time))
+    print(@sprintf("GICOV computation: %.5f seconds\n",GICOV_time))
+    print(@sprintf("   GICOV dilation: %.5f seconds\n",dilate_time))
     print(@sprintf("            Total: %.5f seconds\n",time() - program_start_time))
 
     # Now that the cells have been detected in the first frame,
@@ -173,10 +176,11 @@ function main(args)
     else
         println("Tracking cells across 1 frame")
     end
-    tic()
-    num_snaxels = 20
-    ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames)
-    toc()
+
+    elipse_time = Base.@elapsed begin
+        num_snaxels = 20
+        ellipsetrack(cell_file, QAX_CENTERS, QAY_CENTERS, k_count, radius, num_snaxels, num_frames)
+    end
 
     # Report total program execution time
     print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
