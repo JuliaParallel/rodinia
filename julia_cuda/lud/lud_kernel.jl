@@ -136,16 +136,16 @@ end
 function lud_cuda(matrix, matrix_dim)
     i = 0
     while i < matrix_dim - BLOCK_SIZE
-        @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, i)
+        @cuda threads=BLOCK_SIZE lud_diagonal(matrix, i)
 
         grid_size = (matrix_dim-i)÷BLOCK_SIZE - 1
 
-        @cuda (grid_size, BLOCK_SIZE * 2) lud_perimeter(matrix, i)
+        @cuda blocks=grid_size threads=BLOCK_SIZE*2 lud_perimeter(matrix, i)
 
-        @cuda ((grid_size, grid_size), (BLOCK_SIZE, BLOCK_SIZE)) lud_internal(matrix, i)
+        @cuda blocks=(grid_size, grid_size) threads=(BLOCK_SIZE, BLOCK_SIZE) lud_internal(matrix, i)
 
         i += BLOCK_SIZE
     end
 
-    @cuda (1, BLOCK_SIZE) lud_diagonal(matrix, i)
+    @cuda threads=BLOCK_SIZE lud_diagonal(matrix, i)
 end
