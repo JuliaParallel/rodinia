@@ -31,7 +31,7 @@ const IBM_FORMAT_MULAW = 0x0101
 const IBM_FORMAT_ALAW = 0x0102
 const IBM_FORMAT_ADPCM = 0x0103
 
-type avi_t
+struct avi_t
 # opaque to Julia
 end
 
@@ -40,11 +40,11 @@ function AVI_open_output_file(filename::AbstractString)
 end
 
 function AVI_set_video(AVI::Ptr{avi_t},width::Cint,height::Cint,fps::Cdouble,compressor::AbstractString)
-    ccall((:AVI_set_video,"libavi"),Void,(Ptr{avi_t},Cint,Cint,Cdouble,Cstring),AVI,width,height,fps,compressor)
+    ccall((:AVI_set_video,"libavi"),Cvoid,(Ptr{avi_t},Cint,Cint,Cdouble,Cstring),AVI,width,height,fps,compressor)
 end
 
 function AVI_set_audio(AVI::Ptr{avi_t},channels::Cint,rate::Clong,bits::Cint,format::Cint,mp3rate::Clong)
-    ccall((:AVI_set_audio,"libavi"),Void,(Ptr{avi_t},Cint,Clong,Cint,Cint,Clong),AVI,channels,rate,bits,format,mp3rate)
+    ccall((:AVI_set_audio,"libavi"),Cvoid,(Ptr{avi_t},Cint,Clong,Cint,Cint,Clong),AVI,channels,rate,bits,format,mp3rate)
 end
 
 function AVI_write_frame(AVI::Ptr{avi_t},data::Array{UInt8,1},bytes::Clong,keyframe::Cint)
@@ -196,7 +196,7 @@ function AVI_read_data(AVI::Ptr{avi_t},vidbuf::Ptr{UInt8},max_vidbuf::Clong,audb
 end
 
 function AVI_print_error(str::AbstractString)
-    ccall((:AVI_print_error,"libavi"),Void,(Cstring,),str)
+    ccall((:AVI_print_error,"libavi"),Cvoid,(Cstring,),str)
 end
 
 function AVI_strerror()
@@ -224,7 +224,7 @@ function AVI_file_check(import_file::Ptr{UInt8})
 end
 
 function AVI_info(avifile::Ptr{avi_t})
-    ccall((:AVI_info,"libavi"),Void,(Ptr{avi_t},),avifile)
+    ccall((:AVI_info,"libavi"),Cvoid,(Ptr{avi_t},),avifile)
 end
 
 function AVI_max_size()
