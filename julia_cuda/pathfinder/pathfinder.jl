@@ -26,7 +26,7 @@ function init(args)
 
     # Initialize en fill wall
     # Switch semantics of row & col -> easy copy to gpu array in run function
-    wall = Array{Int32}(cols, rows)
+    wall = Matrix{Int32}(undef, (cols, rows))
     for i = 1:length(wall)
         wall[i] = Int32(rand(rng) % 10)
     end
@@ -64,7 +64,7 @@ function dynproc_kernel(iteration,
 
     xidx = blk_x + tx
 
-    valid_x_min = (blk_x < 0) ? -blk_x : 0
+    valid_x_min = (blk_x < 0) ? - blk_x : 0
     valid_x_max = (blk_x_max > cols-1) ? BLOCK_SIZE-1-(blk_x_max-cols+1) : BLOCK_SIZE-1
     valid_x_min = valid_x_min+1
     valid_x_max = valid_x_max+1
@@ -85,7 +85,7 @@ function dynproc_kernel(iteration,
     computed = false
     for i = 1:iteration
         computed = false
-        if inrange(tx, i+1, BLOCK_SIZE -i) && is_valid
+        if inrange(tx, i+1, BLOCK_SIZE-i) && is_valid
             computed = true
 
             left = prev[W]
@@ -111,15 +111,10 @@ function dynproc_kernel(iteration,
     if computed
         gpu_result[xidx] = result[tx]
     end
-
-    return nothing
 end
 
 """compute N time steps"""
 function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_cols)
-    dim_block = BLOCK_SIZE
-    dim_grid = block_cols
-
     src = 2
     dst = 1
 
@@ -127,7 +122,7 @@ function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_
         src,dst = dst,src
         iter = min(pyramid_height, rows-t-1)
 
-        @cuda (dim_grid, dim_block) dynproc_kernel(iter,
+        @cuda blocks=block_cols threads=BLOCK_SIZE dynproc_kernel(iter,
             wall, result[src], result[dst],
             cols, rows, t, border_cols
         )
@@ -153,7 +148,7 @@ function main(args)
                target_block: [$small_block_col]""")
 
     # Setup GPU memory
-    gpu_result = Array{CuArray{Int32,1}}(2)
+    gpu_result = Vector{CuArray{Int32,1}}(undef, 2)
     gpu_result[1] = CuArray(wall[:,1])
     gpu_result[2] = CuArray{Int32}(cols)
 
