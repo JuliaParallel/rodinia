@@ -2,24 +2,24 @@ const INT_MAX = 0x7fffffff
 
 # this structure represents a point
 # these will be passed around to avoid copying coordinates
-type Point
+mutable struct Point
     weight::Float32
-    coord::Array{Float32,1}
+    coord::Vector{Float32}
     assign::Int # number of point where this one is assigned
     cost::Float32 # cost of that assignment, weight*distance
 end
 
 # this is the array of points
-type Points
+mutable struct Points
     dim::Int32 # dimensionality
     num::Int # number of points; may not be N if this is a sample
-    p::Array{Point,1} # the array itself
+    p::Vector{Point} # the array itself
 
-    Points(dim, num, points) = new(dim, num, Array{Point}(points))
+    Points(dim, num, points) = new(dim, num, Vector{Point}(undef, points))
 end
 
 # synthetic stream
-type SimStream
+mutable struct SimStream
     n::Int64
 end
 
@@ -48,7 +48,7 @@ function delete(pstream::SimStream)
     # do nothing
 end
 
-type FileStream
+struct FileStream
     fp::IOStream
 
     FileStream(filename) = new(open(filename, "r"))

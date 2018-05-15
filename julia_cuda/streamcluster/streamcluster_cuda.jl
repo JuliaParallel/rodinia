@@ -28,7 +28,7 @@ end
 # Kernel - Compute Cost
 #=======================================#
 function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
-	                                     work_mem_d, center_table_d, switch_membership_d)
+	                         work_mem_d, center_table_d, switch_membership_d)
     gdx = Base.unsafe_trunc(Int32, gridDim().x)
     bdx = Base.unsafe_trunc(Int32, blockDim().x)
     bix = Base.unsafe_trunc(Int32, blockIdx().x)
@@ -36,8 +36,8 @@ function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
     tix = Base.unsafe_trunc(Int32, threadIdx().x)
 
     # block ID and global thread ID
-    const bid = bix - Int32(1) + gdx * (biy - Int32(1))
-    const tid = bdx * bid + tix - Int32(1)
+    bid = bix - Int32(1) + gdx * (biy - Int32(1))
+    tid = bdx * bid + tix - Int32(1)
 
     if tid < num
         lower_idx = tid * stride
@@ -55,11 +55,9 @@ function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
                 p_c[tid + 1] - x_cost
         end
     end
-
-    return nothing
 end
 
-const g_coord_h = Ref{Array{Float32}}()
+const g_coord_h = Ref{Vector{Float32}}()
 
 
 #=======================================#
@@ -67,9 +65,7 @@ const g_coord_h = Ref{Array{Float32}}()
 #=======================================#
 function pgain(x, points, z, numcenters, kmax, is_center, center_table,
                switch_membership, isCoordChanged)
-
     global g_iter
-    global g_coord_h
 
     stride = numcenters[] + 1 # size of each work_mem segment
     K = numcenters[]          # number of centers
@@ -80,11 +76,11 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     #=========================================#
     # ALLOCATE HOST MEMORY + DATA PREPARATION
     #=========================================#
-    work_mem_h = Array{Float32}(stride * (nThread + 1))
+    work_mem_h = Vector{Float32}(undef, stride * (nThread + 1))
 
     # Only on the first iteration
     if g_iter == 0
-        g_coord_h[] = Array{Float32}(num * dim)
+        g_coord_h[] = Vector{Float32}(undef, num * dim)
     end
 
     # build center-index table
@@ -117,9 +113,9 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
 
     center_table_d = CuArray(center_table)
 
-    p_w::Array{Float32} = [p.weight for p in points.p]
-    p_a::Array{Int64}   = [p.assign for p in points.p]
-    p_c::Array{Float32} = [p.cost   for p in points.p]
+    p_w = Float32[p.weight for p in points.p]
+    p_a =   Int64[p.assign for p in points.p]
+    p_c = Float32[p.cost   for p in points.p]
 
     p_wd = CuArray(p_w)
     p_ad = CuArray(p_a)
@@ -136,7 +132,7 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     num_blocks_y = (num_blocks + MAXBLOCKS - 1) ÷ MAXBLOCKS
     num_blocks_x = (num_blocks + num_blocks_y - 1) ÷ num_blocks_y
 
-    @cuda ((num_blocks_x, num_blocks_y, 1), THREADS_PER_BLOCK) kernel_compute_cost(
+    @cuda blocks=(num_blocks_x, num_blocks_y, 1) threads=THREADS_PER_BLOCK kernel_compute_cost(
         Int32(num),         # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at

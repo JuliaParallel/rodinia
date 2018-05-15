@@ -2,6 +2,8 @@
 
 using CUDAdrv, CUDAnative
 
+using Printf
+
 include("../../common/julia/crand.jl")
 const rng = LibcRNG48()
 
@@ -21,9 +23,6 @@ g_isCoordChanged = false
 
 # shuffle points into random order
 function shuffle(points)
-
-    global g_time_shuffle
-
     for i = 0:points.num-2
         j = (rand(rng, Culong) % (points.num - i)) + i
         temp = points.p[i + 1]
@@ -36,9 +35,6 @@ end
 
 # shuffle an array of integers
 function intshuffle(intarray, length)
-
-    global g_time_shuffle
-
     for i = 0:length-1
         j = (rand(rng, Culong) % (length - i)) + i
         temp = intarray[i + 1]
@@ -51,7 +47,6 @@ end
 
 # compute Euclidean distance squared between two points
 function dist(p1, p2, dim)
-
     result = 0f0
 
     for i = 1:dim
@@ -63,18 +58,11 @@ end
 
 const __pspeedy_i = Ref{Int32}(0)
 const __pspeedy_open = Ref{Bool}(false)
-const __pspeedy_costs = Ref{Array{Float32,1}}() # cost for each thread.
+const __pspeedy_costs = Ref{Vector{Float32}}() # cost for each thread.
 const __pspeedy_totalcost = Ref{Float32}(0f0)
 
 # run speedy on the points, return total cost of solution
 function pspeedy(points, z, kcenter, pid)
-
-    global g_time_speedy
-    global __pspeedy_i
-    global __pspeedy_open
-    global __pspeedy_costs
-    global __pspeedy_totalcost
-
     # my block
     bsize = Int(points.num / nproc[])
     k1 = bsize * pid
@@ -85,7 +73,7 @@ function pspeedy(points, z, kcenter, pid)
     end
 
     if PRINT_INFO && pid == 0
-        @printf(STDERR, "Speedy: facility cost %lf\n", z)
+        @printf(stderr, "Speedy: facility cost %lf\n", z)
     end
 
     # create center at first point, send it to itself
@@ -97,7 +85,7 @@ function pspeedy(points, z, kcenter, pid)
 
     if pid == 0
         kcenter[] = 1
-        __pspeedy_costs[] = Array{Float32}(nproc[])
+        __pspeedy_costs[] = Vector{Float32}(undef, nproc[])
 
         # I am the master thread. I decide whether to open a center and notify others if so.
         for __pspeedy_i[] = 1:points.num-1
@@ -151,9 +139,9 @@ function pspeedy(points, z, kcenter, pid)
     end
 
     if PRINT_INFO && pid == 0
-        @printf(STDERR, "Speedy opened %d facilities for total cost %lf\n", kcenter[],
+        @printf(stderr, "Speedy opened %d facilities for total cost %lf\n", kcenter[],
             totalcost)
-        @printf(STDERR, "Distance Cost %lf\n", __pspeedy_totalcost[] - z * kcenter[])
+        @printf(stderr, "Distance Cost %lf\n", __pspeedy_totalcost[] - z * kcenter[])
     end
 
     return __pspeedy_totalcost[]
@@ -191,7 +179,7 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
         cost -= change
 
         if PRINT_INFO && pid == 0
-            @printf(STDERR, "%d centers, cost %lf, total distance %lf\n", k[],
+            @printf(stderr, "%d centers, cost %lf, total distance %lf\n", k[],
                 cost, cost - z * k[])
         end
     end
@@ -209,7 +197,7 @@ function selectfeasible_fast(points, kmin, pid)
         numfeasible = floor(Int32, ITER * kmin * log(kmin))
     end
 
-    feasible = Array{Int32}(numfeasible)
+    feasible = Vector{Int32}(undef, numfeasible)
 
     # Calcuate my block.
     # For now this routine does not seem to be the bottleneck, so it is not parallelized.
@@ -229,7 +217,7 @@ function selectfeasible_fast(points, kmin, pid)
         return feasible
     end
 
-    accumweight = Array{Float32}(points.num)
+    accumweight = Vector{Float32}(undef, points.num)
     accumweight[1] = points.p[1].weight
     totalweight = 0
 
@@ -268,8 +256,8 @@ function selectfeasible_fast(points, kmin, pid)
 end
 
 const __pkmedian_k = Ref{Int64}(0)
-const __pkmedian_hizs = Ref{Array{Float32,1}}()
-const __pkmedian_feasible = Ref{Array{Int32,1}}()
+const __pkmedian_hizs = Ref{Vector{Float32}}()
+const __pkmedian_feasible = Ref{Vector{Int32}}()
 
 # compute approximate kmedian on the points
 function pkmedian(points, kmin, kmax, kfinal, pid)
@@ -523,7 +511,7 @@ function outcenterIDs(centers, centerIDs, outfile)
 
         close(fp)
     catch
-        @printf(STDERR, "error opening %s\n", outfile)
+        @printf(stderr, "error opening %s\n", outfile)
         exit(1)
     end
 end
@@ -534,16 +522,16 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
     global g_isCoordChanged
     global g_switch_membership
 
-    centerIDs = Array{Int64}(centersize * dim)
+    centerIDs = Vector{Int64}(undef, centersize * dim)
     points = Points(dim, chunksize, chunksize)
     centers = Points(dim, 0, centersize)
 
     for i = 1:chunksize
-        points.p[i] = Point(0f0, Array{Float32}(dim), 0, 0f0)
+        points.p[i] = Point(0f0, Vector{Float32}(undef, dim), 0, 0f0)
     end
 
     for i = 1:centersize
-        centers.p[i] = Point(1f0, Array{Float32}(dim), 0, 0f0)
+        centers.p[i] = Point(1f0, Vector{Float32}(undef, dim), 0, 0f0)
     end
 
     IDoffset = 0
@@ -556,10 +544,10 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
             numRead += read(stream, points.p[i].coord, dim, 1)
         end
 
-        @printf(STDERR, "read %d points\n", numRead)
+        @printf(stderr, "read %d points\n", numRead)
 
         if numRead < chunksize && !feof(stream)
-            @printf(STDERR, "error reading data!\n")
+            @printf(stderr, "error reading data!\n")
             exit(1)
         end
 
@@ -569,20 +557,20 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
             points.p[i].weight = 1f0
         end
 
-        g_switch_membership = Array{Bool}(points.num)
+        g_switch_membership = Vector{Bool}(undef, points.num)
         g_is_center = [false for i = 1:points.num]
-        g_center_table = Array{Int32}(points.num)
+        g_center_table = Vector{Int32}(undef, points.num)
 
         localSearch(points, kmin, kmax, kfinal)
 
-        @printf(STDERR, "finish local search\n")
+        @printf(stderr, "finish local search\n")
 
         contcenters(points)
         g_isCoordChanged = true
 
         if kfinal[] + centers.num > centersize
             # here we don't handle the situation where # of centers gets too large.
-            @printf(STDERR, "oops! no more space for centers\n")
+            @printf(stderr, "oops! no more space for centers\n")
             exit(1)
         end
 
@@ -603,9 +591,9 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
     end
 
     # finally cluster all temp centers
-    g_switch_membership = Array{Bool}(points.num)
+    g_switch_membership = Vector{Bool}(undef, points.num)
     g_is_center = [false for i = 1:points.num]
-    g_center_table = Array{Int32}(points.num)
+    g_center_table = Vector{Int32}(undef, points.num)
 
     localSearch(centers, kmin, kmax, kfinal)
     contcenters(centers)
@@ -620,20 +608,20 @@ function main(args)
     global nproc
 
     if length(args) < 9
-        @printf(STDERR, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n",
+        @printf(stderr, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n",
             "streamcluster")
-        @printf(STDERR, "  k1:          Min. number of centers allowed\n")
-        @printf(STDERR, "  k2:          Max. number of centers allowed\n")
-        @printf(STDERR, "  d:           Dimension of each data point\n")
-        @printf(STDERR, "  n:           Number of data points\n")
-        @printf(STDERR, "  chunksize:   Number of data points to handle per step\n")
-        @printf(STDERR, "  clustersize: Maximum number of intermediate centers\n")
-        @printf(STDERR, "  infile:      Input file (if n<=0)\n")
-        @printf(STDERR, "  outfile:     Output file\n")
-        @printf(STDERR, "  nproc:       Number of threads to use\n")
-        @printf(STDERR, "\n")
-        @printf(STDERR, "if n > 0, points will be randomly generated instead of ")
-        @printf(STDERR, "reading from infile.\n")
+        @printf(stderr, "  k1:          Min. number of centers allowed\n")
+        @printf(stderr, "  k2:          Max. number of centers allowed\n")
+        @printf(stderr, "  d:           Dimension of each data point\n")
+        @printf(stderr, "  n:           Number of data points\n")
+        @printf(stderr, "  chunksize:   Number of data points to handle per step\n")
+        @printf(stderr, "  clustersize: Maximum number of intermediate centers\n")
+        @printf(stderr, "  infile:      Input file (if n<=0)\n")
+        @printf(stderr, "  outfile:     Output file\n")
+        @printf(stderr, "  nproc:       Number of threads to use\n")
+        @printf(stderr, "\n")
+        @printf(stderr, "if n > 0, points will be randomly generated instead of ")
+        @printf(stderr, "reading from infile.\n")
         exit(1)
     end
 
