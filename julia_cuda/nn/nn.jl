@@ -3,6 +3,8 @@
 using ArgParse
 using CUDAdrv, CUDAnative
 
+using Printf
+
 const OUTPUT = haskey(ENV, "OUTPUT")
 
 # configuration
@@ -12,29 +14,26 @@ const OPEN = 10000 # initial value of nearest neighbors
 
 ceilDiv(a, b) = ceil(Int, a / b)
 
-immutable LatLong
+struct LatLong
     lat::Float32
     lng::Float32
 end
 
-type Record
+mutable struct Record
     recString::String
     distance::Float32
 end
 
-# Calculates the Euclidean distance from each record in the database to the
-# target position.
+# Calculates the Euclidean distance from each record in the database to the target position.
 function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
                 (gridDim().x * (blockIdx().y - UInt32(1)) + (blockIdx().x - UInt32(1)))
     if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
-            sqrt((lat - latLong.lat) * (lat - latLong.lat) +
-                 (lng - latLong.lng) * (lng - latLong.lng))
+            CUDAnative.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
+                            (lng - latLong.lng) * (lng - latLong.lng))
     end
-
-    return nothing
 end
 
 # This program finds the k-nearest neighbors.
@@ -48,8 +47,7 @@ function main(args)
         resultsCount = numRecords
     end
 
-    ctx = CuCurrentContext()
-    dev = device(ctx)
+    dev = device()
 
     # Scaling calculations - added by Sam Kauffman
     synchronize()
@@ -67,8 +65,7 @@ function main(args)
     maxThreads = floor(UInt, usableDeviceMemory / 12) # 4 bytes in 3 vectors per thread
 
     if numRecords > maxThreads
-        println(STDERR, "Error: Input too large.")
-        exit(1)
+        error("input too large")
     end
 
     blocks = ceilDiv(numRecords, threadsPerBlock) # extra threads do nothing
@@ -80,7 +77,7 @@ function main(args)
     d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda ((gridX, gridY), threadsPerBlock) euclid(
+    @cuda blocks=(gridX, gridY) threads=threadsPerBlock euclid(
         d_locations, d_distances, UInt32(numRecords), lat, lng)
 
     # Copy data from device memory to host memory.
