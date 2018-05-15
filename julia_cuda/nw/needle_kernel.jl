@@ -70,8 +70,6 @@ function needle_cuda_shared_1(reference, matrix_cuda, cols, penalty, i, block_wi
     for ty = 0:BLOCK_SIZE-1
         @inbounds matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
-
-    return nothing
 end
 
 # FIXME: remove @inbounds (is work-around for shared memory bug)
@@ -140,6 +138,4 @@ function needle_cuda_shared_2(reference, matrix_cuda, cols, penalty, i, block_wi
     for ty = 0:BLOCK_SIZE-1
         @inbounds matrix_cuda[index + ty * cols + 1] = temp[tx + 2, ty + 2]
     end
-
-    return nothing
 end

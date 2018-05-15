@@ -1,6 +1,9 @@
 #!/usr/bin/env julia
 
 using CUDAdrv, CUDAnative
+using LLVM
+
+using Printf
 
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
@@ -61,7 +64,7 @@ function main(args)
         max_rows = parse(Int32, args[1])
         max_cols = parse(Int32, args[1])
         penalty = parse(Int32, args[2])
-	    assert(max_rows % 16 == 0)
+	    @assert max_rows % 16 == 0
     else
         usage(argc, argv)
     end
@@ -69,7 +72,7 @@ function main(args)
     max_rows = max_rows + 1
     max_cols = max_cols + 1
 
-    reference = Array{Int32}(max_rows, max_cols)
+    reference = Matrix{Int32}(undef, (max_rows, max_cols))
     input_itemsets = zeros(Int32, (max_rows, max_cols))
 
     srand(rng, 7)
@@ -101,14 +104,14 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_1(
+        @cuda blocks=(i, 1) threads=(BLOCK_SIZE, 1) needle_cuda_shared_1(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @cuda ((i, 1), (BLOCK_SIZE, 1)) needle_cuda_shared_2(
+        @cuda blocks=(i, 1) threads=(BLOCK_SIZE, 1) needle_cuda_shared_2(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
