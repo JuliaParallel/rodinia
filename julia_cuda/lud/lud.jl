@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 
-using ArgParse
 using CUDAdrv, CUDAnative
 using LLVM
 
@@ -10,21 +9,17 @@ include("lud_kernel.jl")
 function main(args)
     @info "WG size of kernel = $BLOCK_SIZE X $BLOCK_SIZE"
 
-    s = ArgParseSettings()
-    @add_arg_table s begin
-        "-i", "--input"
-        "-s", "--size"
-            arg_type = Int
-            default = 32
-        "-v", "--verify"
-            action = :store_true
+    verify = haskey(ENV, "OUTPUT")
+
+    matrix_dim, input_file = if ARGS == 1
+        try
+            parse(Int, ARGS[1]), nothing
+        catch
+            nothing, ARGS[1]
+        end
+    else
+        32, nothing
     end
-
-    args = parse_args(args, s)
-
-    verify = args["verify"]
-    matrix_dim = args["size"]
-    input_file = args["input"]
 
     if input_file != nothing
         @info "Reading matrix from file $input_file"
