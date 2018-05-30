@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 
-using ArgParse
 using CUDAdrv, CUDAnative
 
 using Printf
@@ -154,50 +153,20 @@ function findLowest(records, distances, numRecords, topN)
 end
 
 function parseCommandline(args)
-    s = ArgParseSettings("Nearest Neighbor")
-    @add_arg_table s begin
-        "-r" # number of results
-            arg_type = Int
-            default = 10
-            help = "the number of records to return (default: 10)"
-        "--lat"
-            arg_type = Float32
-            help = "the latitude for nearest neighbors (default: 0)"
-        "--lng"
-            arg_type = Float32
-            help = "the longitude for nearest neighbors (default: 0)"
-        "-q" # quiet
-            action = :store_true
-            help = "Quiet mode. Suppress all text output."
-        "-t" # timing
-            action = :store_true
-            help = "Print timing information."
-        "-p" # platform
-            arg_type = Int
-            default = 0
-            help = "Choose the platform (must choose both platform and device)"
-        "-d" # device
-            arg_type = Int
-            default = 0
-            help = "Choose the device (must choose both platform and device)"
-        "filename"
-            help = "the filename that lists the data input files"
-            required = true
-    end
+    r = parse(Int, get(ENV, "r", "10"))     # the number of records to return (default: 10)
+    lat = parse(Float32, ENV["lat"])        # the latitude for nearest neighbors (default: 0)
+    lng = parse(Float32, ENV["lng"])        # the longitude for nearest neighbors (default: 0)
+    q = parse(Bool, get(ENV, "q", "false")) # Quiet mode. Suppress all text output.
+    t = parse(Bool, get(ENV, "t", "false")) # Print timing information.
+    p = parse(Int, get(ENV, "p", "0"))      # Choose the platform (must choose both platform and device)
+    d = parse(Int, get(ENV, "d", "0"))      # Choose the device (must choose both platform and device)
+    filename = ENV["filename"]              # the filename that lists the data input files
 
-    options = parse_args(args, s)
-
-    d = options["d"]
-    p = options["p"]
-
-    # Both p and d must be specified if either are specified.
     if (d >= 0 && p < 0) || (p >= 0 && d < 0)
-        println("Yep")
-        parse_args(["-h"], args)
+        error("Both p and d must be specified if either are specified.")
     end
 
-    return (options["filename"], options["r"], options["lat"], options["lng"],
-            options["q"], options["t"], p, d)
+    return (filename, r, lat, lng, q, t, p, d)
 end
 
 
