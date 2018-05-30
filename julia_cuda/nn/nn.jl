@@ -26,7 +26,7 @@ end
 # Calculates the Euclidean distance from each record in the database to the target position.
 function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
-                (gridDim().x * (blockIdx().y - UInt32(1)) + (blockIdx().x - UInt32(1)))
+                (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
     if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
@@ -77,7 +77,7 @@ function main(args)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
     @cuda blocks=(gridX, gridY) threads=threadsPerBlock euclid(
-        d_locations, d_distances, UInt32(numRecords), lat, lng)
+        d_locations, d_distances, numRecords, lat, lng)
 
     # Copy data from device memory to host memory.
     distances = Array(d_distances)
