@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
 set -ue
 
-julia "$@" hotspot.jl 512 2 2 ../../data/hotspot/temp_512 ../../data/hotspot/power_512
+grid_rows_cols=512 \
+pyramid_height=2 \
+sim_time=2 \
+temp_file=../../data/hotspot/temp_512 \
+power_file=../../data/hotspot/power_512 \
+julia "$@" hotspot.jl

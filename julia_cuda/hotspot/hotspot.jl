@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 
-using ArgParse
 using CUDAdrv, CUDAnative
 
 using Printf
@@ -205,51 +204,19 @@ end
 function main(args)
     @printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE)
 
-    s = ArgParseSettings()
-    @add_arg_table s begin
-        "grid_rows_cols"
-            arg_type = Int32
-            required = true
-            help = "number of rows/cols in the grid (positive integer)"
-        "pyramid_height"
-            arg_type = Int32
-            required = true
-            default = Int32(1)
-            help = "pyramid height (positive integer)"
-        "sim_time"
-            arg_type = Int
-            required = true
-            default = 60
-            help = "number of iterations"
-        "temp_file"
-            required = true
-            help = "name of the file containing the initial temperature " *
-                "values of each cell"
-        "power_file"
-            required = true
-            help = "name of the file containing the dissipated power values " *
-                "of each cell"
-        "output_file"
-            help = "name of the output file"
-    end
+    grid_rows_cols = parse(Int32, ENV["grid_rows_cols"])           # number of rows/cols in the grid (positive integer)
+    pyramid_height = parse(Int32, get(ENV, "pyramid_height", "1")) # pyramid height (positive integer)
+    total_iterations = parse(Int32, get(ENV, "sim_time", "60"))    # number of iterations
+    tfile = ENV["temp_file"]                                       # file containing the initial temperature values of each cell
+    pfile = ENV["power_file"]                                      # file containing the dissipated power values of each cell
 
-    if length(args) != 5
-        parse_args(["-h"], s)
-    end
-
-    args = parse_args(args, s)
-
-    grid_rows = args["grid_rows_cols"]
+    grid_rows = grid_rows_cols
     grid_cols = grid_rows
-    pyramid_height = args["pyramid_height"]
-    total_iterations = args["sim_time"]
 
     if grid_rows <= 0 || pyramid_height <= 0 || total_iterations <= 0
-        parse_args(["-h"], s)
+        error()
     end
 
-    tfile = args["temp_file"]
-    pfile = args["power_file"]
     size = grid_rows * grid_cols
 
     # --------------- pyramid parameters ---------------
