@@ -1,7 +1,7 @@
 include ../common.mk
 
 EXE  = kmeans_cuda
-OBJS = cluster.o getopt.o kmeans.o kmeans_clustering.o rmse.o
+OBJS = cluster.o kmeans.o kmeans_clustering.o rmse.o
 
 .PHONY: all
 all: $(EXE)
