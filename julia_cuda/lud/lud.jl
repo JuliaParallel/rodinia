@@ -11,7 +11,7 @@ function main(args)
 
     verify = haskey(ENV, "OUTPUT")
 
-    matrix_dim, input_file = if ARGS == 1
+    matrix_dim, input_file = if length(ARGS) == 1
         try
             parse(Int, ARGS[1]), nothing
         catch
