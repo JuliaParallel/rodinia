@@ -2,7 +2,7 @@
 
 using Glob
 
-include("common.jl")
+# include("common.jl")
 
 
 # run a benchmark once, returning the measurement data
@@ -74,7 +74,7 @@ end
 
 function process_data(raw_data, suite, benchmark)
     # remove API calls
-    raw_data = raw_data[!startswith.(raw_data[:Name], "[CUDA"), :]
+    raw_data = raw_data[.!startswith.(raw_data[:Name], "[CUDA"), :]
 
     # demangle kernel names
     kernels = raw_data[:Name]
@@ -129,50 +129,52 @@ function is_accurate(data)
            all(val->val<MAX_KERNEL_ERROR, grouped[:ε])
 end
 
+function measure()
+    # find benchmarks common to all suites
+    benchmarks = Dict()
+    for suite in suites
+        entries = readdir(joinpath(root, suite))
+        benchmarks[suite] = filter(entry->(isdir(joinpath(root,suite,entry)) &&
+                                           isfile(joinpath(root,suite,entry,"profile"))), entries)
+    end
+    common_benchmarks = intersect(values(benchmarks)...)
 
-# find benchmarks common to all suites
-benchmarks = Dict()
-for suite in suites
-    entries = readdir(joinpath(root, suite))
-    benchmarks[suite] = filter(entry->(isdir(joinpath(root,suite,entry)) &&
-                                       isfile(joinpath(root,suite,entry,"profile"))), entries)
-end
-common_benchmarks = intersect(values(benchmarks)...)
+    # collect measurements
+    measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[],
+                             time=Float64[], execution=Int64[])
+    for suite in suites, benchmark in common_benchmarks
+        info("Processing $suite/$benchmark")
+        dir = joinpath(root, suite, benchmark)
+        cache_path = joinpath(dir, "profile.csv")
 
-# collect measurements
-measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[],
-                         time=Float64[], execution=Int64[])
-for suite in suites, benchmark in common_benchmarks
-    info("Processing $suite/$benchmark")
-    dir = joinpath(root, suite, benchmark)
-    cache_path = joinpath(dir, "profile.csv")
+        if isfile(cache_path)
+            data = readtable(cache_path)
+        else
+            iter = 1
+            t0 = time()
+            data = nothing
+            while true
+                new_data = process_data(run_benchmark(dir), suite, benchmark)
+                new_data[:execution] = repeat([iter]; inner=size(new_data,1))
+                iter += 1
 
-    if isfile(cache_path)
-        data = readtable(cache_path)
-    else
-        iter = 1
-        t0 = time()
-        data = nothing
-        while true
-            new_data = process_data(run_benchmark(dir), suite, benchmark)
-            new_data[:execution] = repeat([iter]; inner=size(new_data,1))
-            iter += 1
+                if data == nothing
+                    data = new_data
+                else
+                    append!(data, new_data)
+                end
 
-            if data == nothing
-                data = new_data
-            else
-                append!(data, new_data)
+                is_accurate(data)                    && break
+                iter >= MAX_BENCHMARK_RUNS           && break
+                (time()-t0) >= MAX_BENCHMARK_SECONDS && break
             end
 
-            is_accurate(data)                    && break
-            iter >= MAX_BENCHMARK_RUNS           && break
-            (time()-t0) >= MAX_BENCHMARK_SECONDS && break
+            writetable(cache_path, data)
         end
+        data = withoutmissing(data)
 
-        writetable(cache_path, data)
+        append!(measurements, data)
     end
 
-    append!(measurements, data)
+    writetable("measurements.dat", measurements)
 end
-
-writetable("measurements.dat", measurements)

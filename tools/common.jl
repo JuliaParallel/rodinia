@@ -34,12 +34,13 @@ benchmark_stats(analysis, benchmark) = analysis[analysis[:benchmark] .== benchma
 # helper function for averaging measurements using a lognormal distribution
 function summarize(data, across::Vector{Symbol}, key::Symbol; fields...)
     function f(dt)
-        if length(unique(dt[key])) == 1
+        data = collect(skipmissing(dt[key]))
+        if length(unique(data)) == 1
             # all values identical, cannot estimate a distribution.
             # assume a value without error (hence a minimal iteration parameter)
-            x = measurement(first(dt[key]))
+            x = measurement(first(data))
         else
-            d = fit(LogNormal, dt[key])
+            d = fit(LogNormal, data)
             x = measurement(d.μ, d.σ)
         end
         kwargs = Any[(key, x)]
@@ -52,3 +53,8 @@ function summarize(data, across::Vector{Symbol}, key::Symbol; fields...)
     end
     return by(data, across, f)
 end 
+
+# helper function to create a new DataFrame with plain columns (ie. no Union{Missing, T})
+withoutmissing(df::DataFrame) = 
+    DataFrame((key=>Vector{Missings.T(eltype(df[key]))}(df[key])
+               for key in names(df))...)
