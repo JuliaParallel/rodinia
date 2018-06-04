@@ -80,7 +80,7 @@ function process_data(raw_data, suite, benchmark)
     # demangle kernel names
     kernels = raw_data[:Name]
     for i = 1:length(kernels)
-        jl_match = match(r"ptxcall_(.*)_[0-9]+ .*", kernels[i])
+        jl_match = match(r"ptxcall_(.*)_[0-9]+", kernels[i])
         if jl_match != nothing
             kernels[i] = jl_match.captures[1]
             continue
@@ -91,6 +91,8 @@ function process_data(raw_data, suite, benchmark)
             kernels[i] = cu_match.captures[1]
             continue
         end
+
+        error("could not match kernel name $(kernels[i])")
     end
 
     # generate a nicer table
