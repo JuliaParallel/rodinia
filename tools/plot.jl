@@ -8,11 +8,11 @@ catch
     false
 end
 
-include("common.jl")
+# include("common.jl")
 
 
 function generate_plot(data, suite)
-    df = suite_stats(analysis, suite)
+    df = suite_stats(data, suite)
     df[:speedup] = -1.*df[:ratio].+1
     delete!(df, :ratio)
 
@@ -49,12 +49,13 @@ function generate_plot(data, suite)
     end
 end
 
+function plot()
+    analysis = readtable("analysis.dat")
+    for suite in non_baseline
+        analysis[Symbol(suite)] = map(str->measurement(str), analysis[Symbol(suite)])
+    end
 
-analysis = readtable("analysis.dat")
-for suite in non_baseline
-    analysis[Symbol(suite)] = map(str->measurement(str), analysis[Symbol(suite)])
-end
-
-for suite in non_baseline
-    generate_plot(analysis, suite)
+    for suite in non_baseline
+        generate_plot(analysis, suite)
+    end
 end
