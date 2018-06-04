@@ -221,7 +221,6 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
             IMGVF_flat[cell_offset + i * n + j + 1] = IMGVF[(i * n) + j + 1]
         end
     end
-    return nothing
 end
 
 

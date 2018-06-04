@@ -29,8 +29,6 @@ function shuffle(points)
         points.p[i + 1] = points.p[j + 1]
         points.p[j + 1] = temp
     end
-
-    return nothing
 end
 
 # shuffle an array of integers
@@ -41,8 +39,6 @@ function intshuffle(intarray, length)
         intarray[i + 1] = intarray[j + 1]
         intarray[j + 1] = temp
     end
-
-    return nothing
 end
 
 # compute Euclidean distance squared between two points

@@ -27,8 +27,6 @@ function Kernel(g_graph_nodes, g_graph_edges, g_graph_mask,
             end
         end
     end
-
-    return nothing
 end
 
 function Kernel2(g_graph_mask, g_updating_graph_mask, g_graph_visited,
@@ -40,8 +38,6 @@ function Kernel2(g_graph_mask, g_updating_graph_mask, g_graph_visited,
         g_over[1] = true
         g_updating_graph_mask[tid] = false
     end
-
-    return nothing
 end
 
 # generate an expression (strs=split(str,delim); tuple(parse(Ts[1],strs[1], ...)))

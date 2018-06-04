@@ -45,8 +45,6 @@ function bpnn_layerforward_CUDA(input_cuda,
     if tx == 1
         @inbounds hidden_partial_sum[by * hid + ty] = weight_matrix[ty, tx]
     end
-
-    return nothing
 end
 
 function bpnn_adjust_weights_cuda(delta, hid, ly, inp, w, oldw)
@@ -69,6 +67,4 @@ function bpnn_adjust_weights_cuda(delta, hid, ly, inp, w, oldw)
         w[index_x] += Float32(ETA * delta[index_x] + MOMENTUM * oldw[index_x])
         oldw[index_x] = Float32(ETA * delta[index_x] + MOMENTUM * oldw[index_x])
     end
-
-    return nothing
 end

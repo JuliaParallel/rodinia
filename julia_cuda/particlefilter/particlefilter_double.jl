@@ -266,8 +266,6 @@ function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, see
         u1 = shared[u1_i]
         u[i] = u1 + i / Nparticles
     end
-
-    return nothing
 end
 
 function sum_kernel(partial_sums, Nparticles)

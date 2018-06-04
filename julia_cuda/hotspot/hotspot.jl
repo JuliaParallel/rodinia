@@ -167,8 +167,6 @@ function calculate_temp(iteration,    # number of iteration
     if computed
         temp_dst[index + 1] = temp_t[tx, ty]
     end
-
-    return nothing
 end
 
 # compute N time steps
