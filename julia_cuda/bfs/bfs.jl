@@ -185,5 +185,5 @@ end
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
-    CUDAnative.@profile main(ARGS)
+    CUDAdrv.@profile main(ARGS)
 end

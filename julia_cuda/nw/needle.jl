@@ -195,5 +195,5 @@ clopts("--unroll-threshold=300")
 main(ARGS)
 
 if haskey(ENV, "PROFILE")
-    CUDAnative.@profile main(ARGS)
+    CUDAdrv.@profile main(ARGS)
 end
