@@ -18,6 +18,7 @@ function run_benchmark(dir)
     cmd = ```
         nvprof
         --profile-from-start off
+        --concurrent-kernels off
         --profile-child-processes
         --unified-memory-profiling off
         --print-gpu-trace
