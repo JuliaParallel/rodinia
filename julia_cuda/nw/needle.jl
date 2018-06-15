@@ -181,16 +181,10 @@ function main(args)
     end
 end
 
-function clopts(opts...)
-    args = ["", opts...]
-    LLVM.API.LLVMParseCommandLineOptions(Int32(length(args)),
-        [Base.unsafe_convert(Cstring, arg) for arg in args], C_NULL)
-end
-
 # FIXME: for now we increase the unroll threshold to ensure that kernel loops are
 # unrolled, as is the case for the CUDA version. Ideally, we should annotate the loops or
 # the kernel(s) with the @unroll macro once it is available.
-clopts("--unroll-threshold=300")
+LLVM.clopts("--unroll-threshold=300")
 
 main(ARGS)
 
