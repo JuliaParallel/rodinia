@@ -44,44 +44,37 @@ function lud_perimeter(matrix, offset)
     peri_row = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
     peri_col = @cuStaticSharedMem(Float32, (BLOCK_SIZE,BLOCK_SIZE))
 
-    # FIXME: typecast because otherwise `index` isn't inferred correctly,
-    #        probably because of JuliaLang/#15276
-    bx = Int(blockIdx().x)
-    tx = Int(threadIdx().x)
-
-    # FIXME: for some strange reason having bounds checking on the accesses below
-    #        introduces diverging results (even though non actually go out of bounds...)
-    if tx <= BLOCK_SIZE
-        index = tx
+    if threadIdx().x <= BLOCK_SIZE
+        index = threadIdx().x
 
         for i = 1:BLOCK_SIZE÷2
             @inbounds dia[index, i] = matrix[offset+index, offset+i]
         end
 
         for i = 1:BLOCK_SIZE
-            @inbounds peri_row[index, i] = matrix[offset + index + bx * BLOCK_SIZE, offset + i]
+            @inbounds peri_row[index, i] = matrix[offset + index + blockIdx().x * BLOCK_SIZE, offset + i]
         end
     else
-        index = tx - BLOCK_SIZE
+        index = threadIdx().x - BLOCK_SIZE
 
         for i = 1+BLOCK_SIZE÷2:BLOCK_SIZE
             @inbounds dia[index, i] = matrix[offset + index, offset + i]
         end
 
         for i = 1:BLOCK_SIZE
-            @inbounds peri_col[index, i] = matrix[offset + index, offset + i + bx * BLOCK_SIZE]
+            @inbounds peri_col[index, i] = matrix[offset + index, offset + i + blockIdx().x * BLOCK_SIZE]
         end
     end
 
     sync_threads()
 
-    if tx <= BLOCK_SIZE # peri-row
-        index = tx
+    if threadIdx().x <= BLOCK_SIZE # peri-row
+        index = threadIdx().x
         for i = 2:BLOCK_SIZE, j = 1:i-1
             @inbounds peri_row[index, i] -= dia[j, i] * peri_row[index, j]
         end
     else # peri-col
-        index = tx - BLOCK_SIZE
+        index = threadIdx().x - BLOCK_SIZE
         for i = 1:BLOCK_SIZE
             for j = 1:i-1
                 @inbounds peri_col[i, index] -= peri_col[j, index] * dia[i, j]
@@ -92,15 +85,15 @@ function lud_perimeter(matrix, offset)
 
     sync_threads()
 
-    if tx <= BLOCK_SIZE # peri-row
-        index = tx
+    if threadIdx().x <= BLOCK_SIZE # peri-row
+        index = threadIdx().x
         for i = 2:BLOCK_SIZE
-            @inbounds matrix[offset + index + bx * BLOCK_SIZE, offset + i] = peri_row[index, i]
+            @inbounds matrix[offset + index + blockIdx().x * BLOCK_SIZE, offset + i] = peri_row[index, i]
         end
     else # peri-col
-        index = tx - BLOCK_SIZE
+        index = threadIdx().x - BLOCK_SIZE
         for i = 1:BLOCK_SIZE
-            @inbounds matrix[offset + index, offset + bx * BLOCK_SIZE + i] = peri_col[index, i]
+            @inbounds matrix[offset + index, offset + blockIdx().x * BLOCK_SIZE + i] = peri_col[index, i]
         end
     end
 end
