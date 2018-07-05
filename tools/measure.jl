@@ -25,7 +25,7 @@ function run_benchmark(dir)
         --normalized-time-unit us
         --csv
         --log-file $output_file.%p
-        ./profile --depwarn=no
+        ./profile --project --depwarn=no
     ```
     cmd_success = cd(dir) do
         success(pipeline(ignorestatus(cmd), stdout=out, stderr=out))
