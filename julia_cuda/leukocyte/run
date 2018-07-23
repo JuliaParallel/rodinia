@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 set -e
 
-LD_LIBRARY_PATH=../../common/avi:${LD_LIBRARY_PATH} \
 julia "$@" leukocyte.jl 10 ../../data/leukocyte/testfile.avi
