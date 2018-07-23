@@ -121,8 +121,10 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     p_ad = CuArray(p_a)
     p_cd = CuArray(p_c)
 
-    work_mem_d = CuArray(zeros(Float32, stride * (nThread + 1)))
-    switch_membership_d = CuArray([false for i = 1:num])
+    work_mem_d = CuArray{Float32}(stride * (nThread + 1))
+    Mem.set!(work_mem_d.buf, UInt8(0), sizeof(work_mem_d)) # FIXME: needs wrapper
+    switch_membership_d = CuArray{Bool}(num)
+    Mem.set!(switch_membership_d.buf, UInt8(0), sizeof(switch_membership_d)) # FIXME: needs wrapper
 
     #=======================================#
     # KERNEL: CALCULATE COST
@@ -144,6 +146,7 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
         center_table_d,     # in:  center index table
         switch_membership_d # out: changes in membership
     )
+    CUDAdrv.synchronize()
 
     #=======================================#
     # GPU-TO-CPU MEMORY COPY

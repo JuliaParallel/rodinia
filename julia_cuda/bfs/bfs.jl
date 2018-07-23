@@ -40,43 +40,10 @@ function Kernel2(g_graph_mask, g_updating_graph_mask, g_graph_visited,
     end
 end
 
-# generate an expression (strs=split(str,delim); tuple(parse(Ts[1],strs[1], ...)))
-@generated function parse_tuple(::Type{Ts}, str, delim) where Ts <: Tuple
-    @gensym strs
-    ex = Expr(:tuple)
-    for i in 1:length(Ts.parameters)
-        push!(ex.args, :(parse($(Ts.parameters[i]), $strs[$i])))
-    end
-    quote
-        $(Expr(:meta, :inline))
-        $strs = split(str, delim)
-        $ex
-    end
-end
-
-# a more sane alternative, 20% slower because of the Vector allocation:
-Base.parse(::Type{Vector{T}}, str, delim) where T = map(x->parse(T, x), split(str, delim))
-
-function main(args)
-    if length(args) != 1
-        error("Usage: bfs.jl <input_file>")
-    end
-    input_f = args[1]
-
-    @info "Reading File"
+function read_file(input_f)
     fp = open(input_f)
 
     no_of_nodes = parse(Int, readline(fp))
-
-    num_of_blocks = 1
-    num_of_threads_per_block = no_of_nodes
-
-    # Make execution Parameters according to the number of nodes
-    # Distribute threads across multiple Blocks if necessary
-    if no_of_nodes > MAX_THREADS_PER_BLOCK
-        num_of_blocks = ceil(Integer, no_of_nodes / MAX_THREADS_PER_BLOCK)
-        num_of_threads_per_block = MAX_THREADS_PER_BLOCK
-    end
 
     # allocate host memory
     h_graph_nodes = Vector{Node}(undef, no_of_nodes)
@@ -87,7 +54,8 @@ function main(args)
 
     # initalize the memory
     for i = 1:no_of_nodes
-        start, edgeno = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
+        start = parse(Int, readuntil(fp, ' '))
+        edgeno = parse(Int, readline(fp))
         h_graph_nodes[i] = Node(start+1, edgeno)
         h_graph_mask[i] = false
         h_updating_graph_mask[i] = false
@@ -114,12 +82,35 @@ function main(args)
 
     h_graph_edges = Vector{Int32}(undef, edge_list_size)
     for i = 1:edge_list_size
-        id, cost = parse_tuple(Tuple{Int, Int}, readline(fp), " ")
+        id = parse(Int, readuntil(fp, ' '))
+        cost = parse(Int, readline(fp))
         h_graph_edges[i] = id+1
     end
 
     close(fp)
+
+    return no_of_nodes, h_graph_nodes, h_graph_mask, h_updating_graph_mask, h_graph_visited, h_cost, h_graph_edges
+end
+
+function main(args)
+    if length(args) != 1
+        error("Usage: bfs.jl <input_file>")
+    end
+    input_f = args[1]
+
+    @info "Reading File"
+    no_of_nodes, h_graph_nodes, h_graph_mask, h_updating_graph_mask, h_graph_visited, h_cost, h_graph_edges = read_file(input_f)
     @info "Read File"
+
+    num_of_blocks = 1
+    num_of_threads_per_block = no_of_nodes
+
+    # Make execution Parameters according to the number of nodes
+    # Distribute threads across multiple Blocks if necessary
+    if no_of_nodes > MAX_THREADS_PER_BLOCK
+        num_of_blocks = ceil(Integer, no_of_nodes / MAX_THREADS_PER_BLOCK)
+        num_of_threads_per_block = MAX_THREADS_PER_BLOCK
+    end
 
     # setup execution parameters
     blocks = num_of_blocks

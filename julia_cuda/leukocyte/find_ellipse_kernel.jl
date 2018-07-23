@@ -89,7 +89,7 @@ function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
 
     # Allocate & initialize device memory for result
     # (some elements are not assigned values in the kernel)
-    device_gicov_out = CuArray(zeros(Float32,size(device_grad_x,1),size(device_grad_y,2)))
+    device_gicov_out = CuArray{Float32}(size(device_grad_x,1),size(device_grad_y,2))
 
     # Setup execution parameters
     num_blocks = size(host_grad_y,2) - (2 * MaxR)

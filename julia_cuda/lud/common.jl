@@ -39,7 +39,7 @@ function create_matrix(size)
 
     matrix = Matrix{Float32}(undef, (size, size))
 
-    for i = 1:size, j = 1:size
+    for j = 1:size, i = 1:size
         matrix[i,j] = coe[size - i + j]
     end
 

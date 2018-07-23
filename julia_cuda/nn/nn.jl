@@ -18,8 +18,8 @@ struct LatLong
     lng::Float32
 end
 
-mutable struct Record
-    recString::String
+struct Record
+    recString::Cstring # NOTE: to emulate C benchmark
     distance::Float32
 end
 
@@ -111,12 +111,15 @@ function loadData(filename)
 
         # read each record
         while !eof(fp)
-            record = chomp(readline(fp))
-            # Parse for lat and lng
-            lat, lng = map(x -> parse(Float32, x),
-                split(record[LATITUDE_POS:end]))
+            record = String(read(fp, 48))
+            read(fp, Char)
+            if eof(fp)
+                break
+            end
+            lat = parse(Float32, record[29:33])
+            lng = parse(Float32, record[34:38])
 
-            push!(records, Record(record, OPEN))
+            push!(records, Record(Cstring(pointer(record)), OPEN))
             push!(locations, LatLong(lat, lng))
             recNum = recNum + 1
         end
@@ -148,7 +151,7 @@ function findLowest(records, distances, numRecords, topN)
         distances[minLoc + 1] = tmp
 
         # Add distance to the min we just found.
-        records[i].distance = distances[i]
+        records[i] = Record(records[i].recString, distances[i])
     end
 end
 

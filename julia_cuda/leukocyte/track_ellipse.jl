@@ -294,8 +294,8 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
 
         # Update the snake center and snaxels
         xc = xc + deltax * lambdaedge * vfxmean
-        yc = (yc + deltay * lambdaedge * vfymean + deltay * lambdapath * Ey) / (1.0 + deltay * lambdapath)
-        r = (r + (deltar * lambdaedge * vfr + deltar * lambdasize * Er)) / (1.0 + deltar * lambdasize)
+        yc = (yc + deltay * lambdaedge * vfymean + deltay * lambdapath * Ey) / (1.0 .+ deltay * lambdapath)
+        r = (r + (deltar * lambdaedge * vfr + deltar * lambdasize * Er)) / (1.0 .+ deltar * lambdasize)
         r_diff = sum(abs.(r-r_old))
 
         # Test for convergence

@@ -60,5 +60,5 @@ function bpnn_train_cuda(net)
 	@cuda blocks=(1, num_blocks) threads=(16, 16) bpnn_adjust_weights_cuda(
         hidden_delta_cuda, hid, input_cuda, inp, input_hidden_cuda, input_prev_weights_cuda)
 
-	net.input_units = Array(input_cuda)
+	Array(input_cuda)
 end

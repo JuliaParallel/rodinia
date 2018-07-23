@@ -5,39 +5,39 @@ const MOMENTUM = 0.3 # momentum value
 # static data
 const BIGRND   = 0x7fffffff
 
-mutable struct BPNN
-    input_n  # number of input units
-    hidden_n # number of hidden units
-    output_n # number of output units
+struct BPNN
+    input_n::Int  # number of input units
+    hidden_n::Int # number of hidden units
+    output_n::Int # number of output units
 
-    input_units  # the input units
-    hidden_units # the hidden units
-    output_units # the output units
+    input_units::Vector{Float32}  # the input units
+    hidden_units::Vector{Float32} # the hidden units
+    output_units::Vector{Float32} # the output units
 
-    hidden_delta # storage for hidden unit error
-    output_delta # storage for output unit error
+    hidden_delta::Vector{Float32} # storage for hidden unit error
+    output_delta::Vector{Float32} # storage for output unit error
 
-    target # storage for target vector
+    target::Vector{Float32} # storage for target vector
 
-    input_weights  # weights from input to hidden layer
-    hidden_weights # weights from hidden to output layer
+    input_weights::Matrix{Float32}  # weights from input to hidden layer
+    hidden_weights::Matrix{Float32} # weights from hidden to output layer
 
     # The next two are for momentum.
-    input_prev_weights  # previous change on input to hidden weights
-    hidden_prev_weights # previous change on hidden to output weights
+    input_prev_weights::Matrix{Float32}  # previous change on input to hidden weights
+    hidden_prev_weights::Matrix{Float32} # previous change on hidden to output weights
 
     BPNN(input_n, hidden_n, output_n) =
         new(input_n, hidden_n, output_n,
-            Array{Float32}(undef, input_n + 1),
-            Array{Float32}(undef, hidden_n + 1),
-            Array{Float32}(undef, output_n + 1),
-            Array{Float32}(undef, hidden_n + 1),
-            Array{Float32}(undef, output_n + 1),
-            Array{Float32}(undef, output_n + 1),
-            Array{Float32}(undef, input_n + 1, hidden_n + 1),
-            Array{Float32}(undef, hidden_n + 1, output_n + 1),
-            Array{Float32}(undef, input_n + 1, hidden_n + 1),
-            Array{Float32}(undef, hidden_n + 1, output_n + 1))
+            Vector{Float32}(undef, input_n + 1),
+            Vector{Float32}(undef, hidden_n + 1),
+            Vector{Float32}(undef, output_n + 1),
+            Vector{Float32}(undef, hidden_n + 1),
+            Vector{Float32}(undef, output_n + 1),
+            Vector{Float32}(undef, output_n + 1),
+            Matrix{Float32}(undef, input_n + 1, hidden_n + 1),
+            Matrix{Float32}(undef, hidden_n + 1, output_n + 1),
+            Matrix{Float32}(undef, input_n + 1, hidden_n + 1),
+            Matrix{Float32}(undef, hidden_n + 1, output_n + 1))
 end
 
 # Returns a random number between 0.0 and 1.0.

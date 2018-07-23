@@ -17,9 +17,6 @@ const SEED = 1
 const ITER  = 3 # iterate ITER* k log k times ITER >= 1
 const PRINT_INFO = false
 
-# global state
-g_isCoordChanged = false
-
 
 # shuffle points into random order
 function shuffle(points)
@@ -69,7 +66,7 @@ function pspeedy(points, z, kcenter, pid)
     end
 
     if PRINT_INFO && pid == 0
-        @printf(stderr, "Speedy: facility cost %lf\n", z)
+        println("Speedy: facility cost $z")
     end
 
     # create center at first point, send it to itself
@@ -135,9 +132,8 @@ function pspeedy(points, z, kcenter, pid)
     end
 
     if PRINT_INFO && pid == 0
-        @printf(stderr, "Speedy opened %d facilities for total cost %lf\n", kcenter[],
-            totalcost)
-        @printf(stderr, "Distance Cost %lf\n", __pspeedy_totalcost[] - z * kcenter[])
+        println("Speedy opened $(kcenter[]) facilities for total cost $totalcost")
+        println("Distance Cost $(__pspeedy_totalcost[] - z * kcenter[])")
     end
 
     return __pspeedy_totalcost[]
@@ -150,7 +146,6 @@ end
 # halt if there is < e improvement after iter calls to gain
 # feasible is an array of numfeasible points which may be centers
 function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
-
     change = cost
     numfeasible = length(feasible)
 
@@ -169,14 +164,13 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
         for i = 0:iter-1
             x = i % numfeasible
             change += pgain(feasible[x + 1], points, z, k, kmax, g_is_center,
-                            g_center_table, g_switch_membership, g_isCoordChanged)
+                            g_center_table, g_switch_membership, g_isCoordChanged[])
         end
 
         cost -= change
 
         if PRINT_INFO && pid == 0
-            @printf(stderr, "%d centers, cost %lf, total distance %lf\n", k[],
-                cost, cost - z * k[])
+            println("$(k[]) centers, cost $cost, total distance $(cost - z * k[])")
         end
     end
 
@@ -252,18 +246,16 @@ function selectfeasible_fast(points, kmin, pid)
 end
 
 const __pkmedian_k = Ref{Int64}(0)
-const __pkmedian_hizs = Ref{Vector{Float32}}()
-const __pkmedian_feasible = Ref{Vector{Int32}}()
 
 # compute approximate kmedian on the points
 function pkmedian(points, kmin, kmax, kfinal, pid)
     global g_is_center
     global __pkmedian_k
-    global __pkmedian_hizs
-    global __pkmedian_feasible
+    __pkmedian_hizs = Vector{Float32}()
+    __pkmedian_feasible = Vector{Int32}()
 
     if pid == 0
-        __pkmedian_hizs[] = zeros(Float32, nproc[])
+        __pkmedian_hizs = zeros(Float32, nproc[])
     end
 
     hiz = 0f0
@@ -292,10 +284,10 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
         myhiz += dist(points.p[kk], points.p[1], ptDimension) * points.p[kk].weight
     end
 
-    __pkmedian_hizs[][pid + 1] = myhiz
+    __pkmedian_hizs[pid + 1] = myhiz
 
     for i = 1:nproc[]
-        hiz += __pkmedian_hizs[][i]
+        hiz += __pkmedian_hizs[i]
     end
 
     loz = 0f0
@@ -369,7 +361,7 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
     # helps to guarantee correct # of centers at the end
 
     if pid == 0
-        __pkmedian_feasible[] = selectfeasible_fast(points, kmin, pid)
+        __pkmedian_feasible = selectfeasible_fast(points, kmin, pid)
 
         for i = 1:points.num
             g_is_center[points.p[i].assign + 1] = true
@@ -384,7 +376,7 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
 
         # first get a rough estimate on the FL solution
         lastcost = cost
-        cost = pFL(points, __pkmedian_feasible[], z, __pkmedian_k, kmax, cost,
+        cost = pFL(points, __pkmedian_feasible, z, __pkmedian_k, kmax, cost,
             floor(Int64, ITER * kmax * log(kmax)), 0.1, pid)
 
         # if number of centers seems good, try a more accurate FL
@@ -396,7 +388,7 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
             end
 
             # may need to run a little longer here before halting without improvement
-            cost = pFL(points, __pkmedian_feasible[], z, __pkmedian_k, kmax, cost,
+            cost = pFL(points, __pkmedian_feasible, z, __pkmedian_k, kmax, cost,
                 floor(Int64, ITER * kmax * log(kmax)), 0.001, pid)
         end
 
@@ -484,39 +476,40 @@ function localSearch(points, kmin, kmax, kfinal)
 end
 
 function outcenterIDs(centers, centerIDs, outfile)
-    try
-        fp = open(outfile, "w")
-        is_a_median = [false for i = 1:centers.num]
+    fp = open(outfile, "w")
+    is_a_median = [false for i = 1:centers.num]
 
-        for i = 1:centers.num
-            is_a_median[centers.p[i].assign + 1] = true
-        end
-
-        for i = 1:centers.num
-            if is_a_median[i]
-                @printf(fp, "%u\n", centerIDs[i])
-                @printf(fp, "%lf\n", centers.p[i].weight)
-
-                for k = 1:centers.dim
-                    @printf(fp, "%lf ", centers.p[i].coord[k])
-                end
-
-                @printf(fp, "\n\n")
-            end
-        end
-
-        close(fp)
-    catch
-        @printf(stderr, "error opening %s\n", outfile)
-        exit(1)
+    for i = 1:centers.num
+        is_a_median[centers.p[i].assign + 1] = true
     end
+
+    for i = 1:centers.num
+        if is_a_median[i]
+            @printf(fp, "%u\n", centerIDs[i])
+            @printf(fp, "%lf\n", centers.p[i].weight)
+
+            for k = 1:centers.dim
+                @printf(fp, "%lf ", centers.p[i].coord[k])
+            end
+
+            @printf(fp, "\n\n")
+        end
+    end
+
+    close(fp)
 end
 
+const g_switch_membership = Vector{Bool}()
+const g_is_center = Vector{Bool}()
+const g_center_table = Vector{Int32}()
+
+const g_isCoordChanged = Ref{Bool}(false)
+
 function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
+    global g_switch_membership
     global g_is_center
     global g_center_table
     global g_isCoordChanged
-    global g_switch_membership
 
     centerIDs = Vector{Int64}(undef, centersize * dim)
     points = Points(dim, chunksize, chunksize)
@@ -540,11 +533,10 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
             numRead += read(stream, points.p[i].coord, dim, 1)
         end
 
-        @printf(stderr, "read %d points\n", numRead)
+        println("read $numRead points")
 
         if numRead < chunksize && !feof(stream)
-            @printf(stderr, "error reading data!\n")
-            exit(1)
+            error("error reading data!")
         end
 
         points.num = numRead
@@ -553,21 +545,21 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
             points.p[i].weight = 1f0
         end
 
-        g_switch_membership = Vector{Bool}(undef, points.num)
-        g_is_center = [false for i = 1:points.num]
-        g_center_table = Vector{Int32}(undef, points.num)
+        resize!(g_switch_membership, points.num)
+        resize!(g_is_center, points.num)
+        fill!(g_is_center, false)
+        resize!(g_center_table, points.num)
 
         localSearch(points, kmin, kmax, kfinal)
 
-        @printf(stderr, "finish local search\n")
+        println("finish local search")
 
         contcenters(points)
-        g_isCoordChanged = true
+        g_isCoordChanged[] = true
 
         if kfinal[] + centers.num > centersize
             # here we don't handle the situation where # of centers gets too large.
-            @printf(stderr, "oops! no more space for centers\n")
-            exit(1)
+            error("oops! no more space for centers")
         end
 
         if PRINT_INFO
@@ -587,9 +579,10 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
     end
 
     # finally cluster all temp centers
-    g_switch_membership = Vector{Bool}(undef, points.num)
-    g_is_center = [false for i = 1:points.num]
-    g_center_table = Vector{Int32}(undef, points.num)
+    resize!(g_switch_membership, points.num)
+    resize!(g_is_center, points.num)
+    fill!(g_is_center, false)
+    resize!(g_center_table, points.num)
 
     localSearch(centers, kmin, kmax, kfinal)
     contcenters(centers)
@@ -604,21 +597,18 @@ function main(args)
     global nproc
 
     if length(args) < 9
-        @printf(stderr, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n",
-            "streamcluster")
-        @printf(stderr, "  k1:          Min. number of centers allowed\n")
-        @printf(stderr, "  k2:          Max. number of centers allowed\n")
-        @printf(stderr, "  d:           Dimension of each data point\n")
-        @printf(stderr, "  n:           Number of data points\n")
-        @printf(stderr, "  chunksize:   Number of data points to handle per step\n")
-        @printf(stderr, "  clustersize: Maximum number of intermediate centers\n")
-        @printf(stderr, "  infile:      Input file (if n<=0)\n")
-        @printf(stderr, "  outfile:     Output file\n")
-        @printf(stderr, "  nproc:       Number of threads to use\n")
-        @printf(stderr, "\n")
-        @printf(stderr, "if n > 0, points will be randomly generated instead of ")
-        @printf(stderr, "reading from infile.\n")
-        exit(1)
+        println("""usage: streamcluster k1 k2 d n chunksize clustersize infile outfile nproc
+                     k1:          Min. number of centers allowed
+                     k2:          Max. number of centers allowed
+                     d:           Dimension of each data point
+                     n:           Number of data points
+                     chunksize:   Number of data points to handle per step
+                     clustersize: Maximum number of intermediate centers
+                     infile:      Input file (if n<=0)
+                     outfile:     Output file
+                     nproc:       Number of threads to use
+                   
+                   if n > 0, points will be randomly generated instead of reading from infile.""")
     end
 
     kmin = parse(Int32, args[1])
@@ -632,8 +622,7 @@ function main(args)
     nproc[] = parse(Int32, args[9])
 
     # reset global state
-    global g_isCoordChanged
-    g_isCoordChanged = false
+    g_isCoordChanged[] = false
     srand(rng, SEED)
 
     stream = n > 0 ? SimStream(n) : FileStream(infilename)
