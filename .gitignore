@@ -1,5 +1,5 @@
 Make.user
-profile.csv
+profile_*.csv
 *.nvvp
 nvprof.csv.*
 Manifest.toml
