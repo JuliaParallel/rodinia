@@ -21,6 +21,7 @@ function run_benchmark(dir)
         --concurrent-kernels off
         --profile-child-processes
         --unified-memory-profiling off
+        --print-api-trace
         --print-gpu-trace
         --normalized-time-unit us
         --csv
@@ -60,47 +61,45 @@ end
 
 function read_data(output_path)
     output = readlines(output_path; chomp=false)
-    contains(join(output), "No kernels were profiled.") && return nothing
+    any(line->contains(line, "No kernels were profiled."), output) && return nothing
 
-    # nuke the headers and parse the data
-    raw_data = mktemp() do path,io
-        write(io, output[4])
-        write(io, output[6:end])
-        flush(io)
-        CSV.read(path)
-    end
+    # skip nvprof comments
+    comments = findlast(line->occursin(r"^==\d+==", line), output)
 
-    return raw_data
+    CSV.read(output_path; header=comments+1, datarow=comments+3)
 end
 
 function process_data(raw_data, suite, benchmark)
-    # remove API calls
-    raw_data = raw_data[.!startswith.(raw_data[:Name], "[CUDA"), :]
+    # extract kernel timings
+    kernel_data = filter(entry -> begin
+            !(startswith(entry[:Name], "cu") && ismissing(entry[:Device])) &&
+            !occursin(r"^\[CUDA .+\]$", entry[:Name]) &&
+            !occursin(r"^\[Range .+\] .+", entry[:Name])
+        end, raw_data)
 
     # demangle kernel names
-    kernels = raw_data[:Name]
-    for i = 1:length(kernels)
-        jl_match = match(r"ptxcall_(.*)_[0-9]+", kernels[i])
+    for kernel in eachrow(kernel_data)
+        jl_match = match(r"ptxcall_(.*)_[0-9]+", kernel[:Name])
         if jl_match != nothing
-            kernels[i] = jl_match.captures[1]
+            kernel[:Name] = jl_match.captures[1]
             continue
         end
 
-        cu_match = match(r"(.*)\(.*", kernels[i])
+        cu_match = match(r"(.*)\(.*", kernel[:Name])
         if cu_match != nothing
-            kernels[i] = cu_match.captures[1]
+            kernel[:Name] = cu_match.captures[1]
             continue
         end
 
-        error("could not match kernel name $(kernels[i])")
+        error("could not match kernel name $(kernel[:Name])")
     end
 
     # generate a nicer table
-    rows = size(raw_data, 1)
-    data = DataFrame(suite = repeat([suite]; inner=rows),   # DataFramesMeta.jl/#46
+    rows = size(kernel_data, 1)
+    data = DataFrame(suite = suite,
                      benchmark = benchmark,
-                     kernel = kernels,
-                     time = raw_data[:Duration])
+                     kernel = kernel_data[:Name],
+                     time = kernel_data[:Duration])
 
     # pull apart iterations of irregular kernels
     if haskey(irregular_kernels, benchmark)
@@ -116,13 +115,23 @@ function process_data(raw_data, suite, benchmark)
         end
     end
 
+    # extract NVTX range timings
+    range_data = filter(entry -> startswith(entry[:Name], "[Range"), raw_data)
+    ## there should be one range, called "host"
+    range_data[:Name]
+    @assert size(range_data, 1) == 2
+    host_time =  range_data[:Start][2] - range_data[:Start][1]
+    ## add it as a pseudo kernel, and rename the column to reflect that
+    rename!(data, :kernel => :target)
+    push!(data, [suite benchmark "host" host_time])
+
     return data
 end
 
 # check if measurements are accurate enough
 function is_accurate(data)
     # group across iterations
-    grouped = summarize(data, [:suite, :benchmark, :kernel], :time;
+    grouped = summarize(data, [:suite, :benchmark, :target], :time;
                         iterations=dt->length(dt[:time]))
 
     # calculate relative error
@@ -141,10 +150,9 @@ function measure(host=gethostname())
                                            isfile(joinpath(root,suite,entry,"profile"))), entries)
     end
     common_benchmarks = intersect(values(benchmarks)...)
-    common_benchmarks = ["lud"]
 
     # collect measurements
-    measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[],
+    measurements = DataFrame(suite=String[], benchmark=String[], target=String[],
                              time=Float64[], execution=Int64[])
     for suite in suites, benchmark in common_benchmarks
         @info "Processing $suite/$benchmark"
@@ -168,7 +176,7 @@ function measure(host=gethostname())
             data = nothing
             while true
                 new_data = process_data(run_benchmark(dir), suite, benchmark)
-                new_data[:execution] = repeat([iter]; inner=size(new_data,1))
+                new_data[:execution] = iter
                 iter += 1
 
                 if data == nothing
@@ -182,7 +190,6 @@ function measure(host=gethostname())
                 (time()-t0) >= MAX_BENCHMARK_SECONDS && break
             end
 
-            println(data)
             CSV.write(cache_path, data)
         end
 
