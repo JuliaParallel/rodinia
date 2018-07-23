@@ -49,13 +49,13 @@ unsigned int num_blocks = 0;
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) {
-    if (getenv("PROFILE"))
-        profile_start();
+    checkCudaErrors(cudaProfilerStart());
+    nvtxRangePushA("application");
 
     run(argc, argv);
 
-    if (getenv("PROFILE"))
-        profile_stop();
+    nvtxRangePop();
+    checkCudaErrors(cudaProfilerStop());
 
     return EXIT_SUCCESS;
 }

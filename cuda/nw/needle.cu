@@ -79,13 +79,13 @@ double gettime() {
 int main(int argc, char **argv) {
     printf("WG size of kernel = %d \n", BLOCK_SIZE);
 
-    if (getenv("PROFILE"))
-        profile_start();
+    checkCudaErrors(cudaProfilerStart());
+    nvtxRangePushA("application");
 
     runTest(argc, argv);
 
-    if (getenv("PROFILE"))
-        profile_stop();
+    nvtxRangePop();
+    checkCudaErrors(cudaProfilerStop());
 
     return EXIT_SUCCESS;
 }

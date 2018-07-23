@@ -58,13 +58,13 @@ int main(int argc, char **argv) {
     no_of_nodes = 0;
     edge_list_size = 0;
 
-    if (getenv("PROFILE"))
-        profile_start();
+    checkCudaErrors(cudaProfilerStart());
+    nvtxRangePushA("application");
 
     BFSGraph(argc, argv);
 
-    if (getenv("PROFILE"))
-        profile_stop();
+    nvtxRangePop();
+    checkCudaErrors(cudaProfilerStop());
 
     return EXIT_SUCCESS;
 }

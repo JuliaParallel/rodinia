@@ -278,13 +278,13 @@ int run(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    if (getenv("PROFILE"))
-        profile_start();
+    cudaProfilerStart();
+    nvtxRangePushA("application");
 
     run(argc, argv);
 
-    if (getenv("PROFILE"))
-        profile_stop();
+    nvtxRangePop();
+    cudaProfilerStop();
 
     return EXIT_SUCCESS;
 }

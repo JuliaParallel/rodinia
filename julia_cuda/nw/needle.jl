@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative
+using CUDAdrv, CUDAnative, NVTX
 using LLVM
 
 using Printf
@@ -186,8 +186,11 @@ end
 # the kernel(s) with the @unroll macro once it is available.
 LLVM.clopts("--unroll-threshold=300")
 
-main(ARGS)
+if abspath(PROGRAM_FILE) == @__FILE__
+    main(ARGS)
 
-if haskey(ENV, "PROFILE")
-    CUDAdrv.@profile main(ARGS)
+    if haskey(ENV, "PROFILE")
+        main(ARGS) # really make sure everything has been compiled
+        CUDAdrv.@profile NVTX.@range "application" main(ARGS)
+    end
 end

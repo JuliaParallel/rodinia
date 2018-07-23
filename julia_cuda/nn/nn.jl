@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative
+using CUDAdrv, CUDAnative, NVTX
 
 using Printf
 
@@ -170,8 +170,11 @@ function parseCommandline(args)
 end
 
 
-main(ARGS)
+if abspath(PROGRAM_FILE) == @__FILE__
+    main(ARGS)
 
-if haskey(ENV, "PROFILE")
-    CUDAdrv.@profile main(ARGS)
+    if haskey(ENV, "PROFILE")
+        main(ARGS) # really make sure everything has been compiled
+        CUDAdrv.@profile NVTX.@range "application" main(ARGS)
+    end
 end

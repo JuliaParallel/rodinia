@@ -34,7 +34,7 @@ CPPFLAGS += -D_FORCE_INLINES
 
 NVCC=$(CUDA_ROOT)/bin/nvcc
 
-LDLIBS   += -lcudart
+LDLIBS   += -lcudart -lnvToolsExt
 
 
 #

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative
+using CUDAdrv, CUDAnative, NVTX
 using Printf
 
 include("../../common/julia/crand.jl")
@@ -48,9 +48,11 @@ function main(args)
     backprop_face(layer_size)
 end
 
+if abspath(PROGRAM_FILE) == @__FILE__
+    main(ARGS)
 
-main(ARGS)
-
-if haskey(ENV, "PROFILE")
-    CUDAdrv.@profile main(ARGS)
+    if haskey(ENV, "PROFILE")
+        main(ARGS) # really make sure everything has been compiled
+        CUDAdrv.@profile NVTX.@range "application" main(ARGS)
+    end
 end
