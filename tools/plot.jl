@@ -9,7 +9,7 @@ catch
 end
 
 function plot(host=gethostname())
-    analysis = readtable("analysis_$host.dat")
+    analysis = CSV.read("analysis_$host.dat")
     for suite in non_baseline
         analysis[Symbol(suite)] = map(str->measurement(str), analysis[Symbol(suite)])
     end
@@ -24,10 +24,12 @@ function plot(host=gethostname())
 
         total = df[df[:benchmark] .== "total", :speedup][1]
         df = df[df[:benchmark] .!= "total", :]
-        writedlm("$(host)-$(suite)_total.csv", total)
+        open("$(host)-$(suite)_total.csv", "w") do io
+            println(io, total)
+        end
 
         sort!(df, cols=:speedup; rev=true)
-        writetable("$(host)-$suite.csv", df; header=true)
+        CSV.write("$(host)-$suite.csv", df; header=true)
 
         if hasplots
             labels = df[:benchmark]

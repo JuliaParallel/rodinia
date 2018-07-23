@@ -4,7 +4,7 @@
 
 
 function analyze(host=gethostname())
-    measurements = withoutmissing(readtable("measurements_$host.dat"))
+    measurements = CSV.read("measurements_$host.dat")
 
     # summarize across executions
     # NOTE: this isn't entirely correct, because it also aggregates
@@ -59,7 +59,7 @@ function analyze(host=gethostname())
     end
     push!(analysis, ["total", "total", totals...])
 
-    writetable("analysis_$host.dat", analysis)
+    CSV.write("analysis_$host.dat", analysis)
     for suite in non_baseline
         info("Performance ratio of $suite vs $baseline:")
         println(suite_stats(analysis, suite))

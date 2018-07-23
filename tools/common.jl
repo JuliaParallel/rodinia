@@ -1,4 +1,4 @@
-using DataFrames
+using DataFrames, CSV
 using Measurements
 using Distributions
 
@@ -53,8 +53,3 @@ function summarize(data, across::Vector{Symbol}, key::Symbol; fields...)
     end
     return by(data, across, f)
 end 
-
-# helper function to create a new DataFrame with plain columns (ie. no Union{Missing, T})
-withoutmissing(df::DataFrame) = 
-    DataFrame((key=>Vector{Missings.T(eltype(df[key]))}(df[key])
-               for key in names(df))...)

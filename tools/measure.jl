@@ -67,7 +67,7 @@ function read_data(output_path)
         write(io, output[4])
         write(io, output[6:end])
         flush(io)
-        readtable(path)
+        CSV.read(path)
     end
 
     return raw_data
@@ -141,18 +141,28 @@ function measure(host=gethostname())
                                            isfile(joinpath(root,suite,entry,"profile"))), entries)
     end
     common_benchmarks = intersect(values(benchmarks)...)
+    common_benchmarks = ["lud"]
 
     # collect measurements
     measurements = DataFrame(suite=String[], benchmark=String[], kernel=String[],
                              time=Float64[], execution=Int64[])
     for suite in suites, benchmark in common_benchmarks
-        info("Processing $suite/$benchmark")
+        @info "Processing $suite/$benchmark"
         dir = joinpath(root, suite, benchmark)
         cache_path = joinpath(dir, "profile_$host.csv")
 
-        if isfile(cache_path)
-            data = readtable(cache_path)
+        data = if isfile(cache_path)
+            try
+                CSV.read(cache_path)
+            catch
+                @warn "Corrupt cache file at $cache_path"
+                nothing
+            end
         else
+            nothing
+        end
+
+        if data == nothing
             iter = 1
             t0 = time()
             data = nothing
@@ -172,12 +182,14 @@ function measure(host=gethostname())
                 (time()-t0) >= MAX_BENCHMARK_SECONDS && break
             end
 
-            writetable(cache_path, data)
+            println(data)
+            CSV.write(cache_path, data)
         end
-        data = withoutmissing(data)
 
         append!(measurements, data)
     end
 
-    writetable("measurements_$host.dat", measurements)
+    CSV.write("measurements_$host.dat", measurements)
+
+    return
 end
