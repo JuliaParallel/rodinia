@@ -2,3 +2,5 @@ Make.user
 profile.csv
 *.nvvp
 nvprof.csv.*
+Manifest.toml
+

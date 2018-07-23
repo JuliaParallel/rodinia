@@ -1,0 +1,6 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
+Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
