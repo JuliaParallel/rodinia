@@ -3,8 +3,8 @@
 # include("common.jl")
 
 
-function analyze()
-    measurements = withoutmissing(readtable("measurements.dat"))
+function analyze(host=gethostname())
+    measurements = withoutmissing(readtable("measurements_$host.dat"))
 
     # summarize across executions
     # NOTE: this isn't entirely correct, because it also aggregates
@@ -59,7 +59,7 @@ function analyze()
     end
     push!(analysis, ["total", "total", totals...])
 
-    writetable("analysis.dat", analysis)
+    writetable("analysis_$host.dat", analysis)
     for suite in non_baseline
         info("Performance ratio of $suite vs $baseline:")
         println(suite_stats(analysis, suite))

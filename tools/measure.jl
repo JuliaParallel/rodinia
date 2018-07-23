@@ -25,7 +25,7 @@ function run_benchmark(dir)
         --normalized-time-unit us
         --csv
         --log-file $output_file.%p
-        ./profile --project --depwarn=no
+        ./profile --depwarn=no
     ```
     cmd_success = cd(dir) do
         success(pipeline(ignorestatus(cmd), stdout=out, stderr=out))
@@ -132,7 +132,7 @@ function is_accurate(data)
            all(val->val<MAX_KERNEL_ERROR, grouped[:ε])
 end
 
-function measure()
+function measure(host=gethostname())
     # find benchmarks common to all suites
     benchmarks = Dict()
     for suite in suites
@@ -148,7 +148,7 @@ function measure()
     for suite in suites, benchmark in common_benchmarks
         info("Processing $suite/$benchmark")
         dir = joinpath(root, suite, benchmark)
-        cache_path = joinpath(dir, "profile.csv")
+        cache_path = joinpath(dir, "profile_$host.csv")
 
         if isfile(cache_path)
             data = readtable(cache_path)
@@ -179,5 +179,5 @@ function measure()
         append!(measurements, data)
     end
 
-    writetable("measurements.dat", measurements)
+    writetable("measurements_$host.dat", measurements)
 end
