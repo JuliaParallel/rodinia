@@ -347,7 +347,7 @@ void real_main(int argc, char **argv) {
 
 int main(int argc, char **argv) {
     checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("application");
+    nvtxRangePushA("host");
 
     real_main(argc, argv);
 

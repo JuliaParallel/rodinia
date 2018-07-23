@@ -262,6 +262,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     if haskey(ENV, "PROFILE")
         main(ARGS) # really make sure everything has been compiled
-        CUDAdrv.@profile NVTX.@range "application" main(ARGS)
+        CUDAdrv.@profile NVTX.@range "host" main(ARGS)
     end
 end

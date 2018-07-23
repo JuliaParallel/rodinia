@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
     printf("WG size of kernel = %d \n", BLOCK_SIZE);
 
     checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("application");
+    nvtxRangePushA("host");
 
     runTest(argc, argv);
 

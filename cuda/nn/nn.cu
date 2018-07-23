@@ -187,7 +187,7 @@ void run(int argc, char *argv[]) {
 
 int main(int argc, char **argv) {
     checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("application");
+    nvtxRangePushA("host");
 
     run(argc, argv);
 

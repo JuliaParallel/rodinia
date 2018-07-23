@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     edge_list_size = 0;
 
     checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("application");
+    nvtxRangePushA("host");
 
     BFSGraph(argc, argv);
 
