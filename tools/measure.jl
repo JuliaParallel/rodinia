@@ -66,7 +66,27 @@ function read_data(output_path)
     # skip nvprof comments
     comments = findlast(line->occursin(r"^==\d+==", line), output)
 
-    CSV.read(output_path; header=comments+1, datarow=comments+3)
+    # NOTE: the first row often contains missing values (because it is the NVTX range),
+    #       which confuses CSV.jl (https://github.com/JuliaData/CSV.jl/issues/156)
+    CSV.read(output_path; header=comments+1, datarow=comments+3,
+             types=Dict("Duration"              => Union{Missing,Float64},
+                        "Grid X"                => Union{Missing,Int},
+                        "Grid Y"                => Union{Missing,Int},
+                        "Grid Z"                => Union{Missing,Int},
+                        "Block X"               => Union{Missing,Int},
+                        "Block Y"               => Union{Missing,Int},
+                        "Block Z"               => Union{Missing,Int},
+                        "Registers Per Thread"  => Union{Missing,Int},
+                        "Static SMem"           => Union{Missing,Float64},
+                        "Dynamic SMem"          => Union{Missing,Float64},
+                        "Size"                  => Union{Missing,Float64},
+                        "Throughput"            => Union{Missing,Float64},
+                        "SrcMemType"            => Union{Missing,String},
+                        "DstMemType"            => Union{Missing,String},
+                        "Device"                => Union{Missing,String},
+                        "Context"               => Union{Missing,String},
+                        "Stream"                => Union{Missing,String},
+                        "Correlation_ID"        => Union{Missing,Int}))
 end
 
 function process_data(raw_data, suite, benchmark)
