@@ -42,7 +42,7 @@ end
 
 # tools for accessing analysis results
 function suite_stats(analysis, suite)
-    df = filter(row->row[:target] == "host" || row[:target] == "device",
+    df = filter(row->startswith(row[:target], '#'),
                 analysis)[[:benchmark, :target, Symbol(suite)]]
     names!(df, [:benchmark, :timing, :ratio])
     return df

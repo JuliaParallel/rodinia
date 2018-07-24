@@ -114,11 +114,26 @@ function process_data(raw_data, suite, benchmark)
         error("could not match kernel name $(kernel[:Name])")
     end
 
+    # extract NVTX range timings
+    if any(name->startswith(name, "[Range"), raw_data[:Name])
+        range_start = filter(row -> startswith(row[:Name], "[Range start]"), raw_data)
+        range_end   = filter(row -> startswith(row[:Name], "[Range end]"),   raw_data)
+        @assert size(range_start) == size(range_end)
+
+        ranges = range_start
+        ranges[:Name] = map(name->'#' * match(r"\[Range start\] (.+) \(Domain: .+\)",
+                                              name).captures[1],
+                            ranges[:Name])
+        ranges[:Duration] = range_end[:Start] - range_start[:Start]
+
+        kernel_data = vcat(kernel_data, ranges)
+    end
+
     # generate a nicer table
     rows = size(kernel_data, 1)
     data = DataFrame(suite = suite,
                      benchmark = benchmark,
-                     kernel = kernel_data[:Name],
+                     target = kernel_data[:Name],
                      time = kernel_data[:Duration])
 
     # pull apart iterations of irregular kernels
@@ -126,24 +141,15 @@ function process_data(raw_data, suite, benchmark)
         counters = Dict{String,Int64}()
         bad_kernels = irregular_kernels[benchmark]
         for i in 1:size(data, 1)
-            kernel = data[:kernel][i]
-            if kernel in bad_kernels
-                j = get(counters, kernel, 0) + 1
-                data[:kernel][i] *= "#$j"
-                counters[kernel] = j
+            target = data[:target][i]
+            if target in bad_kernels
+                j = get(counters, target, 0) + 1
+                data[:target][i] *= "#$j"
+                counters[target] = j
             end
         end
     end
 
-    # extract NVTX range timings
-    range_data = filter(entry -> startswith(entry[:Name], "[Range"), raw_data)
-    ## there should be one range, called "host"
-    @assert size(range_data, 1) == 2
-    @assert all(name->occursin(r"\[Range .+\] host", name), range_data[:Name])
-    host_time =  range_data[:Start][2] - range_data[:Start][1]
-    ## add it as a pseudo kernel, and rename the column to reflect that
-    rename!(data, :kernel => :target)
-    push!(data, [suite benchmark "host" host_time])
 
     return data
 end

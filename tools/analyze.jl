@@ -9,16 +9,14 @@ function analyze(host=gethostname())
     delete!(grouped, [:kernel_invocations, :benchmark_executions])
 
     # add device totals for each benchmark
-    grouped_kernels = filter(entry->entry[:target] != "host", grouped)
+    grouped_kernels = filter(entry->!startswith(entry[:target], '#'), grouped)
     grouped = vcat(grouped,
                    by(grouped_kernels, [:suite, :benchmark],
-                      dt->DataFrame(target = "device",
+                      dt->DataFrame(target = "#device",
                                     time = sum(dt[:time]))))
 
     info("Aggregated timings:")
-    println(filter(entry->entry[:target] == "device" ||
-                          entry[:target] == "host",
-                   grouped))
+    println(filter(entry->!startswith(entry[:target], '#'), grouped))
 
     # create a summary with one column per suite (except for the baseline)
     analysis = DataFrame(benchmark=String[], target=String[])
@@ -53,13 +51,14 @@ function analyze(host=gethostname())
 
     # calculate grand totals
     geomean(x) = prod(x)^(1/length(x))  # analysis contains normalized numbers, so use geomean
-    for total in ["host", "device"]
-        total_times = Measurement{Float64}[]
+    ranges = filter(target->startswith(target, '#'), unique(analysis[:target]))
+    for range in ranges
+        times = Measurement{Float64}[]
         for suite in non_baseline
-            total_time = geomean(analysis[analysis[:target] .== total, Symbol(suite)])
-            push!(total_times, total_time)
+            total_time = geomean(analysis[analysis[:target] .== range, Symbol(suite)])
+            push!(times, total_time)
         end
-        push!(analysis, ["total", total, total_times...])
+        push!(analysis, ["#all", range, times...])
     end
 
     CSV.write("analysis_$host.dat", analysis)
