@@ -10,9 +10,10 @@ function analyze(host=gethostname())
 
     # add device totals for each benchmark
     grouped_kernels = filter(entry->entry[:target] != "host", grouped)
-    append!(grouped, by(grouped_kernels, [:suite, :benchmark],
-                        dt->DataFrame(target = "device",
-                                        time = sum(dt[:time]))))
+    grouped = vcat(grouped,
+                   by(grouped_kernels, [:suite, :benchmark],
+                      dt->DataFrame(target = "device",
+                                    time = sum(dt[:time]))))
 
     info("Aggregated timings:")
     println(filter(entry->entry[:target] == "device" ||

@@ -180,7 +180,7 @@ function measure(host=gethostname())
                 if data == nothing
                     data = new_data
                 else
-                    append!(data, new_data)
+                    data = vcat(data, new_data)
                 end
 
                 is_accurate(data)                    && break
@@ -191,7 +191,7 @@ function measure(host=gethostname())
             CSV.write(cache_path, data)
         end
 
-        append!(measurements, data)
+        measurements = vcat(measurements, data)
     end
 
     CSV.write("measurements_$host.dat", measurements)
