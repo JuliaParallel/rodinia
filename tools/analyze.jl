@@ -23,29 +23,37 @@ function analyze(host=gethostname(), suite="julia_cuda")
     analysis = by(grouped, [:benchmark, :target]) do df
         baseline_data = df[df[:suite] .== baseline, :]
         suite_data = df[df[:suite] .== suite, :]
-        time = if size(suite_data, 1) == 1
-            suite_data[1, :time]
-        else
-            missing
-        end
-        ratio = if size(baseline_data,1) == 1 && size(suite_data, 1) == 1
-            suite_data[1, :time] / baseline_data[1, :time]
-        else
-            missing
-        end
-        DataFrame(time = time, ratio = ratio)
+
+        reference = size(baseline_data, 1) == 1 ? baseline_data[1, :time] : missing
+        time      = size(suite_data, 1) == 1    ?  suite_data[1, :time]   : missing
+        ratio = ismissing(reference) || ismissing(time) ? missing : time / reference
+        DataFrame(reference = reference, time = time, ratio = ratio)
     end
 
     # calculate ratio grand totals
     geomean(x) = prod(x)^(1/length(x))  # ratios are normalized, so use geomean
     totals = by(filter(row->startswith(row[:target], '#'), analysis), [:target]) do df
-        DataFrame(time = sum(df[:time]), ratio = geomean(df[:ratio]))
+        DataFrame(reference = sum(df[:reference]), time = sum(df[:time]),
+                  ratio = geomean(df[:ratio]))
     end
     totals = hcat(DataFrame(benchmark=fill("#all", size(totals,1))), totals)
     analysis = vcat(analysis, totals)
 
     @info "Analysis complete"
     println(filter(row->startswith(row[:target], '#'), analysis))
+
+    # prepare data for PGF
+    ## decompose measurements
+    for column in [:time, :ratio]
+        analysis[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
+                                                analysis[column])
+        analysis[Symbol("$(column)_err")] = map(datum->ismissing(datum)?missing:datum.err,
+                                                analysis[column])
+        delete!(analysis, column)
+    end
+    ## get rid of noninteresting rows
+    filter!(row->startswith(row[:target], '#'), analysis)
+
     CSV.write("analysis_$(host)_$suite.csv", analysis; header=true)
 
     return
