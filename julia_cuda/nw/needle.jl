@@ -187,10 +187,14 @@ end
 LLVM.clopts("--unroll-threshold=300")
 
 if abspath(PROGRAM_FILE) == @__FILE__
+    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
-        main(ARGS) # really make sure everything has been compiled
-        CUDAdrv.@profile NVTX.@range "host" main(ARGS)
+        empty!(CUDAnative.compilecache)
+        NVTX.@activate begin
+            main(ARGS)                                       # measure compile time
+            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        end
     end
 end
