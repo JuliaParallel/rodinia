@@ -5,11 +5,8 @@
 
 function analyze(host=gethostname())
     measurements = CSV.read("measurements_$host.dat")
-
-    # summarize across executions
-    # NOTE: this isn't entirely correct, because it also aggregates
-    #       across kernel iterations within a single execution
-    grouped = summarize(measurements, [:suite, :benchmark, :target], :time)
+    grouped = summarize(measurements)
+    delete!(grouped, [:kernel_invocations, :benchmark_executions])
 
     # add device totals for each benchmark
     grouped_kernels = filter(entry->entry[:target] != "host", grouped)

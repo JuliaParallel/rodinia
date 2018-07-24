@@ -1,6 +1,5 @@
 using DataFrames, CSV
 using Measurements
-using Distributions
 
 const suites = ["cuda", "julia_cuda"]   # which benchmark suites to process
 const baseline = "cuda"
@@ -23,6 +22,24 @@ const MAX_KERNEL_ERROR      = 0.01
 const MAX_BENCHMARK_RUNS    = 100
 const MAX_BENCHMARK_SECONDS = 300
 
+# summarize across executions
+function summarize(measurements)
+    # first, sum timings of identical kernels within an execution
+    # (or the sum of all device timings within an execution wouldn't be correct,
+    # after taking the average below)
+    grouped = by(measurements, [:suite, :benchmark, :target, :execution],
+                 df->DataFrame(time = sum(df[:time]),
+                               kernel_invocations = length(df[:time])))
+
+    # next, take the average across all executions
+    grouped = by(grouped, [:suite, :benchmark, :target],
+                 df->DataFrame(time = measurement(mean(df[:time]), std(df[:time])),
+                               kernel_invocations = sum(df[:kernel_invocations]),
+                               benchmark_executions = length(df[:time])))
+
+    grouped
+end
+
 # tools for accessing analysis results
 function suite_stats(analysis, suite)
     df = filter(row->row[:target] == "host" || row[:target] == "device",
@@ -31,26 +48,3 @@ function suite_stats(analysis, suite)
     return df
 end
 benchmark_stats(analysis, benchmark) = analysis[analysis[:benchmark] .== benchmark, :]
-
-# helper function for averaging measurements using a lognormal distribution
-function summarize(data, across::Vector{Symbol}, key::Symbol; fields...)
-    function f(dt)
-        data = collect(skipmissing(dt[key]))
-        if length(unique(data)) == 1
-            # all values identical, cannot estimate a distribution.
-            # assume a value without error (hence a minimal iteration parameter)
-            x = measurement(first(data))
-        else
-            d = fit(LogNormal, data)
-            x = measurement(d.μ, d.σ)
-        end
-        kwargs = Any[(key, x)]
-
-        for field in fields
-            push!(kwargs, (field[1], field[2](dt)))
-        end
-
-        return DataFrame(;kwargs...)
-    end
-    return by(data, across, f)
-end 

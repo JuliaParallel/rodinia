@@ -130,14 +130,12 @@ end
 
 # check if measurements are accurate enough
 function is_accurate(data)
-    # group across iterations
-    grouped = summarize(data, [:suite, :benchmark, :target], :time;
-                        iterations=dt->length(dt[:time]))
+    grouped = summarize(data)
 
     # calculate relative error
     grouped[:ε] = map(t->t.err / abs(t.val), grouped[:time])
 
-    return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:iterations]) &&
+    return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:kernel_invocations]) &&
            all(val->val<MAX_KERNEL_ERROR, grouped[:ε])
 end
 
