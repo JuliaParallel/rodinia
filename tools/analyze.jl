@@ -44,7 +44,7 @@ function analyze(host=gethostname(), suite="julia_cuda")
 
     # prepare data for PGF
     ## decompose measurements
-    for column in [:time, :ratio]
+    for column in [:reference, :time, :ratio]
         analysis[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
                                                 analysis[column])
         analysis[Symbol("$(column)_err")] = map(datum->ismissing(datum)?missing:datum.err,
