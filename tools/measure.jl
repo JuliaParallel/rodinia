@@ -118,8 +118,8 @@ function process_data(raw_data, suite, benchmark)
     # extract NVTX range timings
     range_data = filter(entry -> startswith(entry[:Name], "[Range"), raw_data)
     ## there should be one range, called "host"
-    range_data[:Name]
     @assert size(range_data, 1) == 2
+    @assert all(name->occursin(r"\[Range .+\] host", name), range_data[:Name])
     host_time =  range_data[:Start][2] - range_data[:Start][1]
     ## add it as a pseudo kernel, and rename the column to reflect that
     rename!(data, :kernel => :target)
