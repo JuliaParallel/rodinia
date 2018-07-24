@@ -30,7 +30,6 @@ LDFLAGS += -L$(CUDA_ROOT)/lib
 endif
 
 CPPFLAGS += -isystem $(CUDA_ROOT)/include -isystem $(CUDA_DIR)/../common/cuda
-CPPFLAGS += -D_FORCE_INLINES
 
 NVCC=$(CUDA_ROOT)/bin/nvcc
 
@@ -48,7 +47,7 @@ NONCUDA_LDLIBS = $(filter-out -lcuda -lcudart,$(LDLIBS))
 ifneq ($(strip $(NONCUDA_LDLIBS)),)
 NVCC_LDLIBS += -Xcompiler $(call join-list,$(NONCUDA_LDLIBS),$(COMMA))
 endif
-NVCC_LDLIBS += -lcuda
+NVCC_LDLIBS += -lcuda -lnvToolsExt
 
 NVCCFLAGS += --generate-line-info
 ifdef DEBUG
