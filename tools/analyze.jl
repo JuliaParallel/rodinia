@@ -15,55 +15,79 @@ function analyze(host=gethostname())
                       dt->DataFrame(target = "#device",
                                     time = sum(dt[:time]))))
 
-    info("Aggregated timings:")
-    println(filter(entry->!startswith(entry[:target], '#'), grouped))
-
-    # create a summary with one column per suite (except for the baseline)
-    analysis = DataFrame(benchmark=String[], target=String[])
+    # create summary dataframes with one column per suite
+    ## with timings
+    time_analysis = DataFrame(benchmark=String[], target=String[])
+    for suite in suites
+        time_analysis[Symbol(suite)] = Union{Missing,Measurement{Float64}}[]
+    end
+    ## with ratios
+    ratio_analysis = DataFrame(benchmark=String[], target=String[])
     for suite in non_baseline
-        analysis[Symbol(suite)] = Measurement{Float64}[]
+        ratio_analysis[Symbol(suite)] = Union{Missing,Measurement{Float64}}[]
     end
 
-    # calculate the slowdown/improvement compared against the baseline
     for benchmark in unique(grouped[:benchmark])
         # get the measurements for this benchmark
         benchmark_data = grouped[grouped[:benchmark] .== benchmark, :]
         for target in unique(benchmark_data[:target])
             # get the measurements for this target
             target_data = benchmark_data[benchmark_data[:target] .== target, :]
-            if sort(target_data[:suite]) != sort(suites)
-                warn("$benchmark - $target: don't have measurements for all suites")
-                continue
-            end
 
-            # compare other suites against the chosen baseline
-            baseline_data = target_data[target_data[:suite] .== baseline, :]
-            others_data = target_data[target_data[:suite] .!= baseline, :]
-            ratios = Measurement{Float64}[]
-            for suite in non_baseline
-                suite_data = target_data[target_data[:suite] .== suite, :]
-                ratio = suite_data[:time][1] / baseline_data[:time][1]
-                push!(ratios, ratio)
+            timings = Union{Missing,Measurement{Float64}}[]
+            for suite in suites
+                measurement = target_data[target_data[:suite] .== suite, :time]
+                if size(measurement, 1) == 1
+                    push!(timings, first(measurement))
+                else
+                    @assert size(measurement, 1) == 0
+                    push!(timings, missing)
+                end
             end
-            push!(analysis, [benchmark target ratios...])
+            push!(time_analysis, [benchmark target timings...])
+
+            # TODO: make sure multiple #compilation's are dealt with properly
+
+            # calculate performance ratios against the baseline
+            ratios = Union{Missing,Measurement{Float64}}[]
+            if baseline in target_data[:suite]
+                baseline_data = target_data[target_data[:suite] .== baseline, :]
+                others_data = target_data[target_data[:suite] .!= baseline, :]
+                for suite in non_baseline
+                    ratio = if suite in others_data[:suite]
+                        suite_data = target_data[target_data[:suite] .== suite, :]
+                        suite_data[:time][1] / baseline_data[:time][1]
+                    else
+                        missing
+                    end
+                    push!(ratios, ratio)
+                end
+            else
+                for suite in non_baseline
+                    push!(ratios, missing)
+                end
+            end
+            push!(ratio_analysis, [benchmark target ratios...])
         end
     end
 
-    # calculate grand totals
+    # calculate ratio grand totals
     geomean(x) = prod(x)^(1/length(x))  # analysis contains normalized numbers, so use geomean
-    ranges = filter(target->startswith(target, '#'), unique(analysis[:target]))
+    ranges = filter(target->startswith(target, '#'), unique(ratio_analysis[:target]))
     for range in ranges
-        times = Measurement{Float64}[]
+        times = Union{Missing,Measurement{Float64}}[]
         for suite in non_baseline
-            total_time = geomean(analysis[analysis[:target] .== range, Symbol(suite)])
+            total_time = geomean(ratio_analysis[ratio_analysis[:target] .== range, Symbol(suite)])
             push!(times, total_time)
         end
-        push!(analysis, ["#all", range, times...])
+        push!(ratio_analysis, ["#all", range, times...])
     end
 
-    CSV.write("analysis_$host.dat", analysis)
-    for suite in non_baseline
-        info("Performance ratio of $suite vs $baseline:")
-        println(suite_stats(analysis, suite))
-    end
+    @info("Analysis complete",
+          timings           = filter(row->startswith(row[:target], '#'), time_analysis),
+          performance_ratio = filter(row->startswith(row[:target], '#'), ratio_analysis))
+    CSV.write("analysis_time_$host.dat", time_analysis)
+    CSV.write("analysis_ratio_$host.dat", ratio_analysis)
+
+    return
 end
