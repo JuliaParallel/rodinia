@@ -43,36 +43,50 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
     println(filter(row->startswith(row[:target], '#'), analysis))
 
     # prepare measurements for PGF
-    for column in [:reference, :time, :ratio]
-        analysis[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
-                                                analysis[column])
-        analysis[Symbol("$(column)_err")] = map(datum->ismissing(datum)?missing:datum.err,
-                                                analysis[column])
-        delete!(analysis, column)
+    analysis[:speedup] = 1 - analysis[:ratio]
+    function decompose(df)
+        df = copy(df)
+        for column in names(df)
+            if eltype(df[column]) <: Union{Measurement, Union{Missing,<:Measurement}}
+                df[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
+                                                        df[column])
+                df[Symbol("$(column)_err")] = map(datum->ismissing(datum)?missing:datum.err,
+                                                        df[column])
+                delete!(df, column)
+            end
+        end
+        return df
     end
 
     let analysis = filter(row->!startswith(row[:benchmark], '#') && startswith(row[:target], '#'), analysis)
-        analysis = analysis[[:benchmark, :target, :time_val, :time_err, :reference_val, :reference_err]]
-        sort!(analysis, cols=[:benchmark, :target]; rev=true)
+        # move from time and reference time for every benchmark x target,
+        # to different time columns for every benchmark
+        # (easier for PGF to plot)
+        analysis = DataFrame(
+            benchmark           = unique(analysis[:benchmark]),
+            cuda_host           = analysis[analysis[:target] .== "#host",        :reference],
+            cuda_device         = analysis[analysis[:target] .== "#device",      :reference],
+            julia_host          = analysis[analysis[:target] .== "#host",        :time],
+            julia_device        = analysis[analysis[:target] .== "#device",      :time],
+            julia_compilation   = analysis[analysis[:target] .== "#compilation", :time])
+        sort!(analysis, cols=:julia_host)
         if dst != nothing
-            CSV.write(joinpath(dst, "perf.csv"), analysis; header=true)
+            CSV.write(joinpath(dst, "perf.csv"), decompose(analysis); header=true)
         end
     end
 
     let analysis = filter(row->!startswith(row[:benchmark], '#') && row[:target] == "#device", analysis)
-        analysis = analysis[[:benchmark, :ratio_val, :ratio_err]]
-        analysis[:ratio_val] = 1 - analysis[:ratio_val]
-        rename!(analysis, :ratio_val=>:speedup_val, :ratio_err=>:speedup_err)
-        sort!(analysis, cols=:speedup_val; rev=true)
+        analysis = analysis[[:benchmark, :speedup]]
+        sort!(analysis, cols=:speedup; rev=true)
         if dst != nothing
-            CSV.write(joinpath(dst, "perf_device.csv"), analysis; header=true)
+            CSV.write(joinpath(dst, "perf_device.csv"), decompose(analysis); header=true)
         end
     end
 
-    let analysis = analysis[(analysis[:benchmark] .== "#all") .& (analysis[:target] .== "#device"), :ratio_val]
+    let analysis = analysis[(analysis[:benchmark] .== "#all") .& (analysis[:target] .== "#device"), :speedup]
         if dst != nothing
             open(joinpath(dst, "perf_device_total.csv"), "w") do io
-                println(io, analysis[1])
+                println(io, analysis[1].val)
             end
         end
     end
