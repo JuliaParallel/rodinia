@@ -3,7 +3,7 @@
 # include("common.jl")
 
 
-function analyze(host=gethostname(), suite="julia_cuda")
+function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
     measurements = CSV.read("measurements_$host.dat")
     grouped = summarize(measurements)
     delete!(grouped, [:kernel_invocations, :benchmark_executions])
@@ -42,8 +42,7 @@ function analyze(host=gethostname(), suite="julia_cuda")
     @info "Analysis complete"
     println(filter(row->startswith(row[:target], '#'), analysis))
 
-    # prepare data for PGF
-    ## decompose measurements
+    # prepare measurements for PGF
     for column in [:reference, :time, :ratio]
         analysis[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
                                                 analysis[column])
@@ -51,10 +50,32 @@ function analyze(host=gethostname(), suite="julia_cuda")
                                                 analysis[column])
         delete!(analysis, column)
     end
-    ## get rid of noninteresting rows
-    filter!(row->startswith(row[:target], '#'), analysis)
 
-    CSV.write("analysis_$(host)_$suite.csv", analysis; header=true)
+    let analysis = filter(row->!startswith(row[:benchmark], '#') && startswith(row[:target], '#'), analysis)
+        analysis = analysis[[:benchmark, :target, :time_val, :time_err, :reference_val, :reference_err]]
+        sort!(analysis, cols=[:benchmark, :target]; rev=true)
+        if dst != nothing
+            CSV.write(joinpath(dst, "perf.csv"), analysis; header=true)
+        end
+    end
+
+    let analysis = filter(row->!startswith(row[:benchmark], '#') && row[:target] == "#device", analysis)
+        analysis = analysis[[:benchmark, :ratio_val, :ratio_err]]
+        analysis[:ratio_val] = 1 - analysis[:ratio_val]
+        rename!(analysis, :ratio_val=>:speedup_val, :ratio_err=>:speedup_err)
+        sort!(analysis, cols=:speedup_val; rev=true)
+        if dst != nothing
+            CSV.write(joinpath(dst, "perf_device.csv"), analysis; header=true)
+        end
+    end
+
+    let analysis = analysis[(analysis[:benchmark] .== "#all") .& (analysis[:target] .== "#device"), :ratio_val]
+        if dst != nothing
+            open(joinpath(dst, "perf_device_total.csv"), "w") do io
+                println(io, analysis[1])
+            end
+        end
+    end
 
     return
 end
