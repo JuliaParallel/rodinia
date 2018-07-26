@@ -86,7 +86,7 @@ function main(args)
         input_itemsets[1,j] = rand(rng) % 10 + 1
     end
 
-    for i = 2:max_rows, j = 2:max_cols
+    for j = 2:max_cols, i = 2:max_rows
         reference[i,j] = blosum62[input_itemsets[i,1] + 1, input_itemsets[1,j] + 1]
     end
 
