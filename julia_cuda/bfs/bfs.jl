@@ -174,9 +174,22 @@ if abspath(PROGRAM_FILE) == @__FILE__
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
+        # warm up
+        for i in 1:5
+            main(ARGS)
+            GC.gc()
+        end
+
         empty!(CUDAnative.compilecache)
+
         NVTX.@activate begin
+            for i in 1:5
+                GC.gc(true)
+            end
             main(ARGS)                                       # measure compile time
+            for i in 1:5
+                GC.gc(true)
+            end
             CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
