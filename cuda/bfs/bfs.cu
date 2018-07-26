@@ -43,7 +43,7 @@ struct Node {
 #include "kernel.cu"
 #include "kernel2.cu"
 
-void BFSGraph(int argc, char **argv);
+void run(int argc, char **argv);
 
 void Usage(int argc, char **argv) {
 
@@ -54,17 +54,23 @@ void Usage(int argc, char **argv) {
 ////////////////////////////////////////////////////////////////////////////////
 // Main Program
 ////////////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char **argv) {
-    no_of_nodes = 0;
-    edge_list_size = 0;
+    run(argc, argv);
 
-    checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("host");
+    if (getenv("PROFILE")) {
+        // warm up
+        for (int i = 0; i < 5; i++)
+            run(argc, argv);
 
-    BFSGraph(argc, argv);
+        checkCudaErrors(cudaProfilerStart());
+        nvtxRangePushA("host");
 
-    nvtxRangePop();
-    checkCudaErrors(cudaProfilerStop());
+        run(argc, argv);
+
+        nvtxRangePop();
+        checkCudaErrors(cudaProfilerStop());
+    }
 
     return EXIT_SUCCESS;
 }
@@ -73,8 +79,10 @@ int main(int argc, char **argv) {
 ////////////////////////////////////////////////////////////////////////////////
 // Apply BFS on a Graph
 ////////////////////////////////////////////////////////////////////////////////
-void BFSGraph(int argc, char **argv) {
+void run(int argc, char **argv) {
     char *input_f;
+    no_of_nodes = 0;
+    edge_list_size = 0;
 
     if (argc != 2) {
         Usage(argc, argv);

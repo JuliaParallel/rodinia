@@ -47,6 +47,7 @@ static struct option long_options[] = {
     {0, 0, 0, 0}};
 
 extern void lud_cuda(float *d_m, int matrix_dim);
+extern int optind;
 
 
 int run(int argc, char *argv[]) {
@@ -59,6 +60,7 @@ int run(int argc, char *argv[]) {
     float *m, *d_m, *mm;
     stopwatch sw;
 
+    optind = 1;
     while ((opt = getopt_long(argc, argv, "::vs:i:", long_options,
                               &option_index)) != -1) {
         switch (opt) {
@@ -158,13 +160,21 @@ int run(int argc, char *argv[]) {
 }
 
 int main(int argc, char **argv) {
-    checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("host");
-
     run(argc, argv);
 
-    nvtxRangePop();
-    checkCudaErrors(cudaProfilerStop());
+    if (getenv("PROFILE")) {
+        // warm up
+        for (int i = 0; i < 5; i++)
+            run(argc, argv);
+
+        checkCudaErrors(cudaProfilerStart());
+        nvtxRangePushA("host");
+
+        run(argc, argv);
+
+        nvtxRangePop();
+        checkCudaErrors(cudaProfilerStop());
+    }
 
     return EXIT_SUCCESS;
 }

@@ -42,7 +42,7 @@ int *center_table_d;
 bool *switch_membership_d;
 Point *p;
 
-static int iter = 0; // counter for total# of iteration
+extern int iter; // counter for total# of iteration
 
 
 //=======================================

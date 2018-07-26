@@ -34,6 +34,7 @@ static bool *is_center; // whether a point is a center
 static int *center_table; // index table of centers
 static int nproc; //# of threads
 bool isCoordChanged;
+int iter;
 
 void inttofile(int data, char *filename) {
     FILE *fp = fopen(filename, "w");
@@ -809,6 +810,7 @@ int run(int argc, char **argv) {
     char *infilename = new char[MAXNAMESIZE];
     long kmin, kmax, n, chunksize, clustersize;
     int dim;
+    iter = 0;
 
     if (argc < 10) {
         fprintf(stderr, "usage: %s k1 k2 d n chunksize clustersize infile outfile nproc\n", argv[0]);
@@ -857,13 +859,24 @@ int run(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    cudaProfilerStart();
-    nvtxRangePushA("host");
-
     run(argc, argv);
 
-    nvtxRangePop();
-    cudaProfilerStop();
+    size_t free_byte, total_byte;
+    cudaMemGetInfo( &free_byte, &total_byte ) ;
+
+    if (getenv("PROFILE")) {
+        // warm up
+        for (int i = 0; i < 5; i++)
+            run(argc, argv);
+
+        cudaProfilerStart();
+        nvtxRangePushA("host");
+
+        run(argc, argv);
+
+        nvtxRangePop();
+        cudaProfilerStop();
+    }
 
     return EXIT_SUCCESS;
 }

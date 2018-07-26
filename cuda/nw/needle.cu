@@ -14,7 +14,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // declaration, forward
-void runTest(int argc, char **argv);
+void run(int argc, char **argv);
 
 
 int blosum62[24][24] = {{4, -1, -2, -2, 0, -1, -1, 0, -2, -1, -1, -1, -1, -2,
@@ -77,15 +77,21 @@ double gettime() {
 ////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv) {
-    printf("WG size of kernel = %d \n", BLOCK_SIZE);
+    run(argc, argv);
 
-    checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("host");
+    if (getenv("PROFILE")) {
+        // warm up
+        for (int i = 0; i < 5; i++)
+            run(argc, argv);
 
-    runTest(argc, argv);
+        checkCudaErrors(cudaProfilerStart());
+        nvtxRangePushA("host");
 
-    nvtxRangePop();
-    checkCudaErrors(cudaProfilerStop());
+        run(argc, argv);
+
+        nvtxRangePop();
+        checkCudaErrors(cudaProfilerStop());
+    }
 
     return EXIT_SUCCESS;
 }
@@ -98,11 +104,14 @@ void usage(int argc, char **argv) {
     exit(1);
 }
 
-void runTest(int argc, char **argv) {
+void run(int argc, char **argv) {
     int max_rows, max_cols, penalty;
     int *input_itemsets, *output_itemsets, *referrence;
     int *matrix_cuda, *referrence_cuda;
     int size;
+
+
+    printf("WG size of kernel = %d \n", BLOCK_SIZE);
 
 
     // the lengths of the two sequences should be able to divided by 16.

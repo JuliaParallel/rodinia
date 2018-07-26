@@ -33,8 +33,6 @@ float chip_width = 0.016;
 /* ambient temperature, assuming no package at all	*/
 float amb_temp = 80.0;
 
-void run(int argc, char **argv);
-
 /* define timer macros */
 #define pin_stats_reset() startCycle()
 #define pin_stats_pause(cycles) stopCycle(cycles)
@@ -270,7 +268,7 @@ void usage(int argc, char **argv) {
     exit(1);
 }
 
-void real_main(int argc, char **argv) {
+void run(int argc, char **argv) {
     printf("WG size of kernel = %d X %d\n", BLOCK_SIZE, BLOCK_SIZE);
 
     int size;
@@ -346,13 +344,21 @@ void real_main(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    checkCudaErrors(cudaProfilerStart());
-    nvtxRangePushA("host");
+    run(argc, argv);
 
-    real_main(argc, argv);
+    if (getenv("PROFILE")) {
+        // warm up
+        for (int i = 0; i < 5; i++)
+            run(argc, argv);
 
-    nvtxRangePop();
-    checkCudaErrors(cudaProfilerStop());
+        checkCudaErrors(cudaProfilerStart());
+        nvtxRangePushA("host");
+
+        run(argc, argv);
+
+        nvtxRangePop();
+        checkCudaErrors(cudaProfilerStop());
+    }
 
     return EXIT_SUCCESS;
 }
