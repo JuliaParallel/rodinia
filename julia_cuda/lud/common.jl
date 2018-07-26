@@ -17,7 +17,7 @@ function lud_verify(m, lu, matrix_dim)
 
     for i = 1:matrix_dim, j = 1:matrix_dim
         if abs(m[j,i] - tmp[j,i]) > 0.0001
-            @warn "dismatch at ($j,$i): (o)$(m[j,i]) (n)$(tmp[j,i])"
+            println("dismatch at ($j,$i): (o)$(m[j,i]) (n)$(tmp[j,i])")
         end
     end
 end

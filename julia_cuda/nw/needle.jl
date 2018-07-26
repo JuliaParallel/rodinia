@@ -44,9 +44,10 @@ const blosum62 = [
 ]
 
 function usage()
-    @printf(STDERR, "Usage: %s <max_rows/max_cols> <penalty>\n", "needle.jl")
-    @printf(STDERR, "\t<dimension>      - x and y dimensions\n")
-    @printf(STDERR, "\t<penalty>        - penalty(positive integer)\n")
+    println(STDERR, """
+        Usage: needle.jl <max_rows/max_cols> <penalty>
+        <dimension>      - x and y dimensions
+        <penalty>        - penalty(positive integer)""")
     exit(1)
 end
 
@@ -56,7 +57,7 @@ end
 ################################################################################
 
 function main(args)
-    @printf("WG size of kernel = %d \n", BLOCK_SIZE)
+    println("WG size of kernel = $BLOCK_SIZE")
 
     # The lengths of the two sequences should be divisible by 16.
     # And at current stage max_rows needs to equal max_cols

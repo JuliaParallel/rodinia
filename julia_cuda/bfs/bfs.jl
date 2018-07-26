@@ -98,9 +98,9 @@ function main(args)
     end
     input_f = args[1]
 
-    @info "Reading File"
+    println("Reading File")
     no_of_nodes, h_graph_nodes, h_graph_mask, h_updating_graph_mask, h_graph_visited, h_cost, h_graph_edges = read_file(input_f)
-    @info "Read File"
+    println("Read File")
 
     num_of_blocks = 1
     num_of_threads_per_block = no_of_nodes
@@ -127,7 +127,7 @@ function main(args)
     g_stop = CuArray{Bool}(1)
 
     k = 0
-    @info "Start traversing the tree"
+    println("Start traversing the tree")
     stop = Bool[1]
 
     while true
@@ -156,7 +156,7 @@ function main(args)
     # Copy result back + free
     h_cost = Array(g_cost)
 
-    @info "Kernel Executed $k times"
+    println("Kernel Executed $k times")
 
     # Store the result into a file
     if OUTPUT
