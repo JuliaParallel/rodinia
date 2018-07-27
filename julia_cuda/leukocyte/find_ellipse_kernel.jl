@@ -15,6 +15,8 @@ struct CUDAConstValues
     c_strel::CuArray{Float32,2}
 end
 
+# NOTE: we emulate unsupported texture and constant accesses with ldg...
+
 
 # Kernel to find the maximal GICOV value at each pixel of a
 #  video frame, based on the input x- and y-gradient matrices
@@ -39,12 +41,15 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_
         for n in 1:NPOINTS
             # Determine the x- and y-coordinates of the current sample
             # point
-            @inbounds y = j + c_tY[k,n]
-            @inbounds x = i + c_tX[k,n]
+            y = j + ldg(c_tY, LinearIndices(c_tY)[k,n])
+            x = i + ldg(c_tX, LinearIndices(c_tX)[k,n])
 
             # Compute the combined gradient value at the current sample
             # point
-            @inbounds p = device_grad_x[x,y] * c_cos_angle[n] + device_grad_y[x,y] * c_sin_angle[n]
+            p = ldg(device_grad_x, LinearIndices(device_grad_x)[x,y]) *
+                    ldg(c_cos_angle, LinearIndices(c_cos_angle)[n]) +
+                ldg(device_grad_y, LinearIndices(device_grad_y)[x,y]) *
+                    ldg(c_sin_angle, LinearIndices(c_sin_angle)[n])
 
             # Update the running total
             sum += p
@@ -142,8 +147,8 @@ function dilate_kernel(img_dev, c_strel, dilated_out)
         y = i - el_center_i + el_i
         x = j - el_center_j + el_j
         # Make sure we have not gone off the edge of the matrix
-        @inbounds if (1 <= y <= size(img_dev,1)) & (1 <= x <= size(img_dev,2)) & (c_strel[el_i,el_j] != 0.0)
-            @inbounds temp = img_dev[y,x]
+        @inbounds if (1 <= y <= size(img_dev,1)) & (1 <= x <= size(img_dev,2)) & (ldg(c_strel, LinearIndices(c_strel)[el_i,el_j]) != 0.0)
+            temp = ldg(img_dev, LinearIndices(img_dev)[y,x])
             if temp > max
                 max = temp
             end

@@ -57,7 +57,6 @@ function main(args)
     grad_y = gradient_y(image_chopped)
 
     # Get GICOV matrix corresponding to image gradients
-    gicov = GICOV(grad_x, grad_y, GICOV_constants)
     GICOV_time = Base.@elapsed begin
         gicov = GICOV(grad_x, grad_y, GICOV_constants)
     end
@@ -158,6 +157,7 @@ function main(args)
             end
         end
     end
+
     # Report the total number of cells detected
     println("Cells detected: ",k_count)
     println()

@@ -39,7 +39,7 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
     r[:,:,1] .= R
 
     # Generate ellipse points for each cell
-    for i in 1:Nc, j in 1:Np
+    for j in 1:Np, i in 1:Nc
         x[i,j,1] = xc[i,1] + r[i,j,1] .* cos(t[j])
         y[i,j,1] = yc[i,1] + r[i,j,1] .* sin(t[j])
     end
@@ -135,7 +135,8 @@ function ellipsetrack(video, xc0, yc0, Nc, R, Np, Nf)
             x[cell_num,:,frame_num+1] = xc[cell_num,frame_num+1] .+ ri[cell_num] .* cos.(t)
             y[cell_num,:,frame_num+1] = yc[cell_num,frame_num+1] .+ ri[cell_num] .* sin.(t)
         end
-        if OUTPUT & (frame_num == Nf)
+
+        if OUTPUT && (frame_num == Nf)
             pFile = open("result.txt","w+")
             for cell_num in 1:Nc
                 println(pFile)
@@ -294,9 +295,9 @@ function ellipseevolve(f, xc0, yc0, r0, t, Np, Er, Ey)
 
         # Update the snake center and snaxels
         xc = xc + deltax * lambdaedge * vfxmean
-        yc = (yc + deltay * lambdaedge * vfymean + deltay * lambdapath * Ey) / (1.0 .+ deltay * lambdapath)
-        r = (r + (deltar * lambdaedge * vfr + deltar * lambdasize * Er)) / (1.0 .+ deltar * lambdasize)
-        r_diff = sum(abs.(r-r_old))
+        yc = (yc + deltay * lambdaedge * vfymean + deltay * lambdapath * Ey) / (1.0 + deltay * lambdapath)
+        r = (r .+ (deltar * lambdaedge * vfr .+ deltar * lambdasize * Er)) / (1.0 + deltar * lambdasize)
+        r_diff = sum(abs.(r.-r_old))
 
         # Test for convergence
         snakediff = abs(xc - xc_old) + abs(yc - yc_old) + r_diff
