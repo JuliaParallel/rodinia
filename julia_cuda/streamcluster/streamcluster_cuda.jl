@@ -76,7 +76,6 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     #=========================================#
     # ALLOCATE HOST MEMORY + DATA PREPARATION
     #=========================================#
-    work_mem_h = Vector{Float32}(undef, stride * (nThread + 1))
 
     # Only on the first iteration
     if g_iter == 0
@@ -134,7 +133,7 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     num_blocks_y = (num_blocks + MAXBLOCKS - 1) ÷ MAXBLOCKS
     num_blocks_x = (num_blocks + num_blocks_y - 1) ÷ num_blocks_y
 
-    @cuda blocks=(num_blocks_x, num_blocks_y, 1) threads=THREADS_PER_BLOCK kernel_compute_cost(
+    @cuda blocks=(num_blocks_x, num_blocks_y) threads=THREADS_PER_BLOCK kernel_compute_cost(
         Int32(num),         # in:  # of data
         dim,                # in:  dimension of point coordinates
         x,                  # in:  point to open a center at
@@ -146,7 +145,6 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
         center_table_d,     # in:  center index table
         switch_membership_d # out: changes in membership
     )
-    CUDAdrv.synchronize()
 
     #=======================================#
     # GPU-TO-CPU MEMORY COPY
