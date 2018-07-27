@@ -22,6 +22,12 @@ const MAX_KERNEL_ERROR      = 0.01
 const MAX_BENCHMARK_RUNS    = 100
 const MAX_BENCHMARK_SECONDS = 300
 
+function allequal(it)
+    items = unique(it)
+    @assert length(items) == 1
+    return first(items)
+end
+
 # summarize across executions
 function summarize(measurements)
     # first, sum timings of identical kernels within an execution
@@ -29,13 +35,13 @@ function summarize(measurements)
     # after taking the average below)
     grouped = by(measurements, [:suite, :benchmark, :target, :execution],
                  df->DataFrame(time = sum(df[:time]),
-                               kernel_invocations = length(df[:time])))
+                               target_iterations = length(df[:time])))
 
     # next, take the average across all executions
     grouped = by(grouped, [:suite, :benchmark, :target],
                  df->DataFrame(time = measurement(mean(df[:time]), std(df[:time])),
-                               kernel_invocations = sum(df[:kernel_invocations]),
-                               benchmark_executions = length(df[:time])))
+                               target_iterations = allequal(df[:target_iterations]),
+                               benchmark_iterations = length(df[:time])))
 
     grouped
 end

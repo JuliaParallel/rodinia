@@ -161,7 +161,7 @@ function is_accurate(data)
     # calculate relative error
     grouped[:ε] = map(t->t.err / abs(t.val), grouped[:time])
 
-    return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:kernel_invocations]) &&
+    return all(i->i>=MIN_KERNEL_ITERATIONS, grouped[:target_iterations]) &&
            all(val->val<MAX_KERNEL_ERROR, grouped[:ε])
 end
 
