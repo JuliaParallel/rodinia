@@ -73,6 +73,10 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
         if dst != nothing
             CSV.write(joinpath(dst, "perf.csv"), decompose(analysis); header=true)
         end
+
+        x = analysis[[:benchmark, :julia_compilation]]
+        x[:julia_compilation] = x[:julia_compilation] ./ 1000
+        @info "JIT compilation" data=x mean=mean(x[:julia_compilation])
     end
 
     let analysis = filter(row->!startswith(row[:benchmark], '#') && row[:target] == "#device", analysis)
