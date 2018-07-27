@@ -8,6 +8,11 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
 
     # add device totals for each benchmark
     grouped_kernels = filter(entry->!startswith(entry[:target], '#'), grouped)
+    by(grouped_kernels, [:benchmark, :target]) do df
+        if df[df[:suite] .== baseline, :target_iterations] != df[df[:suite] .== suite, :target_iterations]
+            @error "Kernel $(first(df[:target])) of $(first(df[:benchmark])) not executed identically across suites"
+        end
+    end
     grouped = vcat(grouped,
                    by(grouped_kernels, [:suite, :benchmark],
                       dt->DataFrame(target = "#device",
@@ -33,7 +38,6 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
                   target_iterations = get_suite(:target_iterations),
                   benchmark_iterations = get_suite(:benchmark_iterations))
     end
-    println(analysis)
 
     # calculate ratio grand totals
     geomean(x) = prod(x)^(1/length(x))  # ratios are normalized, so use geomean
