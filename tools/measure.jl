@@ -136,6 +136,37 @@ function process_data(raw_data, suite, benchmark)
                      target = kernel_data[:Name],
                      time = kernel_data[:Duration])
 
+    # extract additional host-side compilation time measurements from compiles.dat:
+    # -    main(ARGS)
+    # +    open("compiles.dat", "w") do io
+    # +        ccall(:jl_dump_compiles, Nothing, (Ptr{Cvoid},), io.handle)
+    # +        main(ARGS)
+    # +        ccall(:jl_dump_compiles, Nothing, (Ptr{Cvoid},), C_NULL)
+    # +    end
+    if suite == "julia_cuda"
+        compiles = joinpath(root, suite, benchmark, "compiles.dat")
+        # measure everything that's defined in Main (modules can be precompiled)
+        # except for kernels (already contained in the CUDAnative timings)
+        kernels = filter(target->!startswith(target, '#'), unique(data[:target]))
+        measurements = 0
+        open(compiles) do io
+            for line in eachline(io)
+                if occursin(r"\bMain\.", line) &&
+                   !any(occursin(Regex("\\b$kernel\\b"), line) for kernel in kernels)
+                    duration = parse(Int, first(split(line)))
+                    push!(data, [suite, benchmark, "#julia", duration/1000])
+                    measurements += 1
+                end
+            end
+        end
+
+        # if we don't have any measurement (eg. all functions interpreted),
+        # add a dummy timing
+        if measurements == 0
+            push!(data, [suite, benchmark, "#julia", 0])
+        end
+    end
+
     # pull apart iterations of irregular kernels
     if haskey(irregular_kernels, benchmark)
         counters = Dict{String,Int64}()

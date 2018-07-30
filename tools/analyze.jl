@@ -76,22 +76,24 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
         # (easier for PGF to plot)
         analysis = DataFrame(
             benchmark            = unique(analysis[:benchmark]),
-            cuda_host            = analysis[analysis[:target] .== "#host",        :reference],
-            cuda_device          = analysis[analysis[:target] .== "#device",      :reference],
-            julia_host           = analysis[analysis[:target] .== "#host",        :time],
-            julia_device         = analysis[analysis[:target] .== "#device",      :time],
-            julia_compilation    = analysis[analysis[:target] .== "#compilation", :time],
-            julia_kernels        = analysis[analysis[:target] .== "#compilation", :target_iterations]
+            kernels              = analysis[analysis[:target] .== "#cudanative", :target_iterations],
+            cuda_host            = analysis[analysis[:target] .== "#host",       :reference],
+            cuda_device          = analysis[analysis[:target] .== "#device",     :reference],
+            julia_host           = analysis[analysis[:target] .== "#host",       :time],
+            julia_device         = analysis[analysis[:target] .== "#device",     :time],
+            jit_julia            = analysis[analysis[:target] .== "#julia",      :time],
+            jit_cudanative       = analysis[analysis[:target] .== "#cudanative", :time],
         )
         sort!(analysis, cols=:julia_host)
         if dst != nothing
             CSV.write(joinpath(dst, "perf.csv"), decompose(analysis); header=true)
         end
 
-        analysis[:julia_compilation] = analysis[:julia_compilation] ./ 1000
+        analysis[:jit_julia] = analysis[:jit_julia] ./ 1000
+        analysis[:jit_cudanative] = analysis[:jit_cudanative] ./ 1000
         @info("JIT compilation",
-              data=analysis[[:benchmark, :julia_compilation, :julia_kernels]],
-              mean=mean(analysis[:julia_compilation]))
+              data=analysis[[:benchmark, :kernels, :jit_julia, :jit_cudanative]],
+              julia=mean(analysis[:jit_julia]), cudanative=mean(analysis[:jit_cudanative]))
     end
 
     # per-benchmark kernel timings
