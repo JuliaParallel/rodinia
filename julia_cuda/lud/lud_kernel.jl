@@ -37,6 +37,7 @@ function lud_diagonal(matrix, offset)
     for i = 2:BLOCK_SIZE
         @inbounds matrix[offset + tx, offset + i] = shadow[tx, i]
     end
+    return
 end
 
 function lud_perimeter(matrix, offset)
@@ -96,6 +97,7 @@ function lud_perimeter(matrix, offset)
             @inbounds matrix[offset + index, offset + blockIdx().x * BLOCK_SIZE + i] = peri_col[index, i]
         end
     end
+    return
 end
 
 function lud_internal(matrix, offset)
@@ -118,6 +120,7 @@ function lud_internal(matrix, offset)
         @inbounds sum += peri_col[i, ty] * peri_row[tx, i]
     end
     @inbounds matrix[global_col_id + tx, global_row_id + ty] -= sum
+    return
 end
 
 function lud_cuda(matrix, matrix_dim)

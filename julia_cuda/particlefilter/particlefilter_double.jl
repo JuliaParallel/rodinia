@@ -230,6 +230,7 @@ function find_index_kernel(arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)
         yj[i] = arrayY[index]
     end
     sync_threads()
+    return
 end
 
 function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, seed)
@@ -266,6 +267,7 @@ function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, see
         u1 = shared[u1_i]
         u[i] = u1 + i / Nparticles
     end
+    return
 end
 
 function sum_kernel(partial_sums, Nparticles)
@@ -280,6 +282,7 @@ function sum_kernel(partial_sums, Nparticles)
         end
         partial_sums[1] = sum
     end
+    return
 end
 
 function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
@@ -336,6 +339,7 @@ function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
         partial_sums[blockIdx().x] = buffer[1]
     end
     sync_threads()
+    return
 end
 
 function getneighbors(se::Array{Int}, num_ones, neighbors::Array{Int}, radius)
@@ -439,7 +443,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     if OUTPUT
         outf = open("output.txt", "w")
     else
-        outf = STDOUT
+        outf = stdout
     end
     println(outf,"XE: $xe")
     println(outf,"YE: $ye")

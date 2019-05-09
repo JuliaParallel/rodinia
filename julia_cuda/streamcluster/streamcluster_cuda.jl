@@ -55,6 +55,7 @@ function kernel_compute_cost(num, dim, x, p_w, p_a, p_c, K, stride, coord_d,
                 p_c[tid + 1] - x_cost
         end
     end
+    return
 end
 
 const g_coord_h = Ref{Vector{Float32}}()

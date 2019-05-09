@@ -33,6 +33,7 @@ function euclid(d_locations, d_distances, numRecords, lat, lng)
             CUDAnative.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
                             (lng - latLong.lng) * (lng - latLong.lng))
     end
+    return
 end
 
 # This program finds the k-nearest neighbors.
