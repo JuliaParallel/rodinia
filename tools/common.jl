@@ -1,5 +1,5 @@
 using DataFrames, CSV
-using Measurements
+using Measurements, Statistics
 
 const suites = ["cuda", "julia_cuda"]   # which benchmark suites to process
 const baseline = "cuda"
