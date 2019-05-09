@@ -36,7 +36,7 @@ function run_benchmark(dir)
 
     # read all data
     if !cmd_success
-        println(readstring(out))
+        println(read(out, String))
         error("benchmark did not succeed")
     else
         # when precompiling, an additional process will be spawned,
@@ -60,8 +60,8 @@ function run_benchmark(dir)
 end
 
 function read_data(output_path)
-    output = readlines(output_path; chomp=false)
-    any(line->contains(line, "No kernels were profiled."), output) && return nothing
+    output = readlines(output_path; keep=true)
+    any(line -> occursin("No kernels were profiled.", line), output) && return nothing
 
     # skip nvprof comments
     comments = findlast(line->occursin(r"^==\d+==", line), output)

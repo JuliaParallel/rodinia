@@ -38,6 +38,7 @@ function Kernel2(g_graph_mask, g_updating_graph_mask, g_graph_visited,
         g_over[1] = true
         g_updating_graph_mask[tid] = false
     end
+    return
 end
 
 function read_file(input_f)

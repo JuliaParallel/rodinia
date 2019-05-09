@@ -80,6 +80,7 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_
     else
       @cuprintf("invalid blockid,threadid = %d,%d\n",blockIdx().x,threadIdx().x)
     end
+    return
 end
 
 
@@ -156,6 +157,7 @@ function dilate_kernel(img_dev, c_strel, dilated_out)
     end
     # Store the maximum value found
     @inbounds dilated_out[i+1,j+1] = max
+    return
 end
 
 

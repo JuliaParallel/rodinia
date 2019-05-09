@@ -111,6 +111,7 @@ function dynproc_kernel(iteration,
     if computed
         gpu_result[xidx] = result[tx]
     end
+    return
 end
 
 """compute N time steps"""

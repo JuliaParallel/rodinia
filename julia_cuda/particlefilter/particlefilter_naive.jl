@@ -388,6 +388,7 @@ function kernel_kernel(arrayX, arrayY, CDF, u, xj, yj, Nparticles)
         xj[i] = arrayX[index]
         yj[i] = arrayY[index]
     end
+    return
 end
 
 # Main
