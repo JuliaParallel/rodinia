@@ -59,9 +59,9 @@ function analyze(host=gethostname(), dst=nothing, suite="julia_cuda")
         df = copy(df)
         for column in names(df)
             if eltype(df[column]) <: Union{Measurement, Union{Missing,<:Measurement}}
-                df[Symbol("$(column)_val")] = map(datum->ismissing(datum)?missing:datum.val,
+                df[Symbol("$(column)_val")] = map(datum->ismissing(datum) ? missing : datum.val,
                                                         df[column])
-                df[Symbol("$(column)_err")] = map(datum->ismissing(datum)?missing:datum.err,
+                df[Symbol("$(column)_err")] = map(datum->ismissing(datum) ? missing : datum.err,
                                                         df[column])
                 delete!(df, column)
             end
