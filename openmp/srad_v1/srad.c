@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
 
     image_ori = (fp *)malloc(sizeof(fp) * image_ori_elem);
 
-    read_graphics("../../../data/srad/image.pgm", image_ori, image_ori_rows,
+    read_graphics("../../data/srad/image.pgm", image_ori, image_ori_rows,
                   image_ori_cols, 1);
 
     time3 = get_time();
@@ -247,9 +247,16 @@ int main(int argc, char *argv[]) {
         q0sqr = varROI / (meanROI * meanROI); // gets standard deviation of ROI
 
 // directional derivatives, ICOV, diffusion coefficent
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map (to: image[:Ne], c[:Ne], iN[:Nr], iS[:Nr], jW[:Nc],\
+            jE[:Nc], dN[:Ne], dS[:Ne],dW[:Ne], dE[:Ne])
+#pragma omp target  teams distribute parallel for private(i, j, k, Jc, G2, L,  \
+            num, den, qsqr, D, cS, cN, cW, cE)
+#else
 #pragma omp parallel for shared(image, dN, dS, dW, dE, c, Nr, Nc, iN, iS, jW,  \
                                 jE) private(i, j, k, Jc, G2, L, num, den,      \
                                             qsqr)
+#endif
         for (j = 0; j < Nc; j++) { // do for the range of columns in IMAGE
 
             for (i = 0; i < Nr; i++) { // do for the range of rows in IMAGE
@@ -302,8 +309,13 @@ int main(int argc, char *argv[]) {
         }
 
 // divergence & image update
+#ifdef OMP_OFFLOAD
+#pragma omp target teams distribute parallel for shared(image, c, Nr, Nc,      \
+                                lambda) private(i, j, k, D, cS, cN, cW, cE)
+#else
 #pragma omp parallel for shared(image, c, Nr, Nc,                              \
                                 lambda) private(i, j, k, D, cS, cN, cW, cE)
+#endif
         for (j = 0; j < Nc; j++) { // do for the range of columns in IMAGE
 
             // printf("NUMBER OF THREADS: %d\n", omp_get_num_threads());
@@ -329,6 +341,9 @@ int main(int argc, char *argv[]) {
                                                          // and divergence)
             }
         }
+#ifdef OMP_OFFLOAD
+#pragma omp target exit data map (from: image[:Ne], c[:Ne], iN[:Nr], iS[:Nr], jW[:Nc], jE[:Nc], dN[:Ne], dS[:Ne],dW[:Ne], dE[:Ne])
+#endif
     }
 
     // printf("\n");
@@ -350,7 +365,10 @@ int main(int argc, char *argv[]) {
     // 	WRITE IMAGE AFTER PROCESSING
     //================================================================================80
 
-    write_graphics("image_out.pgm", image, Nr, Nc, 1, 255);
+    // dump results
+    if (getenv("OUTPUT")) {
+        write_graphics("image_out.pgm", image, Nr, Nc, 1, 255);
+    }
 
     time9 = get_time();
 

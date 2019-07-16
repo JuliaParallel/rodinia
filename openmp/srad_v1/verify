@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -ue
+
+OUTPUT=1 ./run
+diff image_out.pgm ../../results/srad_v1/image_out.pgm
