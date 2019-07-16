@@ -102,8 +102,14 @@ void kernel_cpu(par_str par, dim_str dim, box_str *box, FOUR_VECTOR *rv, fp *qv,
 //	PROCESS INTERACTIONS
 //======================================================================================================================================================150
 
+#ifdef OMP_OFFLOAD
+#pragma omp target teams map (tofrom: box[:dim.number_boxes], rv[:dim.space_mem/sizeof(FOUR_VECTOR)], qv[:dim.space_mem2/sizeof(fp)], fv[:dim.space_mem/sizeof(FOUR_VECTOR)])
+#pragma omp distribute parallel for private(i, j, k) private(first_i, rA, fA) private(    \
+    pointer, first_j, rB, qB) private(r2, u2, fs, vij, fxij, fyij, fzij, d)
+#else
 #pragma omp parallel for private(i, j, k) private(first_i, rA, fA) private(    \
     pointer, first_j, rB, qB) private(r2, u2, fs, vij, fxij, fyij, fzij, d)
+#endif
     for (l = 0; l < dim.number_boxes; l = l + 1) {
 
         //------------------------------------------------------------------------------------------100
