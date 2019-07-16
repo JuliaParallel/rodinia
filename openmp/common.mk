@@ -1,6 +1,12 @@
 OPENMP_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 include $(OPENMP_DIR)/../common.mk
 
-CFLAGS   += -fopenmp
-CXXFLAGS += -fopenmp
-LDLIBS   += -fopenmp
+OMPFLAGS = -fopenmp
+
+CFLAGS   += $(OMPFLAGS)
+CXXFLAGS += $(OMPFLAGS)
+LDLIBS   += $(OMPFLAGS)
+
+ifdef OFFLOAD
+CXXFLAGS += -DOMP_OFFLOAD
+endif
