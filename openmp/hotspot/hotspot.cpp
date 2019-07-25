@@ -180,10 +180,6 @@ void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row,
  */
 void compute_tran_temp(FLOAT *result, int num_iterations, FLOAT *temp,
                        FLOAT *power, int row, int col) {
-#ifdef VERBOSE
-    int i = 0;
-#endif
-
     FLOAT grid_height = chip_height / row;
     FLOAT grid_width = chip_width / col;
 
@@ -216,7 +212,7 @@ void compute_tran_temp(FLOAT *result, int num_iterations, FLOAT *temp,
         FLOAT *t = temp;
         for (int i = 0; i < num_iterations; i++) {
 #ifdef VERBOSE
-            fprintf(stdout, "iteration %d\n", i++);
+            fprintf(stdout, "iteration %d\n", i);
 #endif
             single_iteration(r, t, power, row, col, Cap_1, Rx_1, Ry_1, Rz_1,
                              step);
@@ -225,9 +221,6 @@ void compute_tran_temp(FLOAT *result, int num_iterations, FLOAT *temp,
             r = tmp;
         }
     }
-#ifdef VERBOSE
-    fprintf(stdout, "iteration %d\n", i++);
-#endif
 }
 
 void fatal(char *s) {
@@ -335,7 +328,7 @@ int main(int argc, char **argv) {
 
     /* output results   */
     if (getenv("OUTPUT")) {
-        FILE *file = fopen("output.txt", "w+");
+        FILE *file = fopen(ofile, "w+");
         for (i = 0; i < grid_rows * grid_cols; i++)
             fprintf(file, "%d\t%g\n", i, temp[i]);
         fclose(file);
