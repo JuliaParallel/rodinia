@@ -19,7 +19,7 @@ endef
 # CUDA detection
 #
 
-CUDA_ROOT ?= /usr
+CUDA_ROOT ?= /usr/local/cuda
 
 MACHINE := $(shell uname -m)
 ifeq ($(MACHINE), x86_64)
@@ -58,7 +58,7 @@ endif
 	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) $(NVCC_LDLIBS) -o $@ $^
 
 %.o: %.cu
-	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $<
+	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) -fPIC -c -o $@ $<
 
 %.ptx: %.cu
 	$(NVCC) $(CPPFLAGS) $(NVCCFLAGS) -ptx -o $@ $<
