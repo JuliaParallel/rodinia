@@ -430,8 +430,14 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
         long long error = get_time();
         printf("TIME TO SET ERROR TOOK: %f\n", elapsed_time(set_arrays, error));
 // particle filter likelihood
+#if OMP_OFFLOAD
+#pragma omp target map(tofrom: arrayX[:Nparticles], arrayY[:Nparticles], objxy[:countOnes*2], likelihood[:Nparticles],I[:max_size], ind[:countOnes*Nparticles])
+#pragma omp teams distribute parallel for shared(likelihood, I, arrayX, arrayY, objxy, \
+                                ind) private(x, y, indX, indY)
+#else
 #pragma omp parallel for shared(likelihood, I, arrayX, arrayY, objxy,          \
                                 ind) private(x, y, indX, indY)
+#endif
         for (x = 0; x < Nparticles; x++) {
             // compute the likelihood: remember our assumption is that you know
             // foreground and the background image intensity distribution.
@@ -533,7 +539,7 @@ void particleFilter(int *I, int IszX, int IszY, int Nfr, int *seed,
         printf("TIME TO CALC NEW ARRAY X AND Y TOOK: %f\n",
                elapsed_time(u_time, xyj_time));
 
-        //#pragma omp parallel for shared(weights, Nparticles) private(x)
+#pragma omp parallel for shared(weights, Nparticles) private(x)
         for (x = 0; x < Nparticles; x++) {
             // reassign arrayX and arrayY
             arrayX[x] = xj[x];
