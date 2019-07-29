@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -ue
 
-./nn filelist.txt 5 30 90
+./nn ../../data/nn/list640k_64.txt 5 30 90
