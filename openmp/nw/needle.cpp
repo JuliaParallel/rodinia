@@ -166,12 +166,28 @@ void runTest(int argc, char **argv) {
     // Compute top-left matrix
     printf("Num of threads: %d\n", omp_num_threads);
     printf("Processing top-left matrix\n");
+    // Move print forward for offloading
+    printf("Processing bottom-right matrix\n");
 
-    for (int i = 0; i < max_cols - 2; i++) {
 #ifdef OPENMP
         omp_set_num_threads(omp_num_threads);
+#endif
+
+    int i;
+    int array_size = max_cols*max_rows;
+#ifdef OMP_OFFLOAD
+#pragma omp target data map(tofrom:input_itemsets[:array_size], referrence[:array_size])
+    {
+#endif
+    for (i = 0; i < max_cols - 2; i++) {
+#ifdef OMP_OFFLOAD
+#pragma omp target teams distribute parallel for shared(input_itemsets)               \
+    firstprivate(i, max_cols, penalty) private(index, idx)
+#else
+#ifdef OPENMP
 #pragma omp parallel for shared(input_itemsets)                                \
     firstprivate(i, max_cols, penalty) private(idx, index)
+#endif
 #endif
         for (idx = 0; idx <= i; idx++) {
             index = (idx + 1) * max_cols + (i + 1 - idx);
@@ -181,13 +197,17 @@ void runTest(int argc, char **argv) {
                 input_itemsets[index - max_cols] - penalty);
         }
     }
-    printf("Processing bottom-right matrix\n");
+    //printf("Processing bottom-right matrix\n");
     // Compute bottom-right matrix
     for (int i = max_cols - 4; i >= 0; i--) {
+#ifdef OMP_OFFLOAD
+#pragma omp target teams distribute parallel for shared(input_itemsets)               \
+    firstprivate(i, max_cols, penalty) private(index, idx)
+#else
 #ifdef OPENMP
-        omp_set_num_threads(omp_num_threads);
 #pragma omp parallel for shared(input_itemsets)                                \
     firstprivate(i, max_cols, penalty) private(idx, index)
+#endif
 #endif
         for (idx = 0; idx <= i; idx++) {
             index = (max_cols - idx - 2) * max_cols + idx + max_cols - i - 2;
@@ -197,6 +217,10 @@ void runTest(int argc, char **argv) {
                 input_itemsets[index - max_cols] - penalty);
         }
     }
+#ifdef OMP_OFFLOAD
+    // end of target data
+    }
+#endif
 
 //#define TRACEBACK
 //#ifdef TRACEBACK
