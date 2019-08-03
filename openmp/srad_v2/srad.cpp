@@ -1,7 +1,4 @@
 // srad.cpp : Defines the entry point for the console application.
-//
-
-//#define OUTPUT
 
 
 #define OPEN
@@ -184,29 +181,25 @@ int main(int argc, char *argv[]) {
 
                 // image update (equ 61)
                 J[k] = J[k] + 0.25 * lambda * D;
-#ifdef OUTPUT
-// printf("%.5f ", J[k]);
-#endif // output
             }
-#ifdef OUTPUT
-// printf("\n");
-#endif // output
         }
 
 #ifdef ITERATION
     }
 #endif
 
+    if (getenv("OUTPUT")) {
+        puts("Printing Output.");
+        FILE *fp = fopen("output.txt", "w");
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
 
-#ifdef OUTPUT
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-
-            printf("%.5f ", J[i * cols + j]);
+                fprintf(fp, "%.5f ", J[i * cols + j]);
+            }
+            fprintf(fp, "\n");
         }
-        printf("\n");
+        fclose(fp);
     }
-#endif
 
     printf("Computation Done\n");
 
@@ -233,12 +226,6 @@ void random_matrix(float *I, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             I[i * cols + j] = rand() / (float)RAND_MAX;
-#ifdef OUTPUT
-// printf("%g ", I[i * cols + j]);
-#endif
         }
-#ifdef OUTPUT
-// printf("\n");
-#endif
     }
 }
