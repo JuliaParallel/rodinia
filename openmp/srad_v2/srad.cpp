@@ -102,9 +102,17 @@ int main(int argc, char *argv[]) {
 
     printf("Start the SRAD main loop\n");
 
+
+
+#ifdef OMP_OFFLOAD
+#pragma omp  target data map(to: J[:size_I], dN[:size_I], dS[:size_I], dW[:size_I], dE[:size_I], c[:size_I], iN[:rows], iS[:rows], jW[:cols], jE[:cols])
+    {
+#endif
+
 #ifdef ITERATION
     for (iter = 0; iter < niter; iter++) {
 #endif
+
         sum = 0;
         sum2 = 0;
         for (i = r1; i <= r2; i++) {
@@ -118,12 +126,19 @@ int main(int argc, char *argv[]) {
         varROI = (sum2 / size_R) - meanROI * meanROI;
         q0sqr = varROI / (meanROI * meanROI);
 
-
 #ifdef OPEN
+#ifdef OMP_OFFLOAD
+#pragma omp target data map (always from:J[:size_I])
+        {
+#pragma omp target teams distribute parallel for shared(J, dN, dS, dW, dE, c, rows,   \
+                                cols, iN, iS, jW, jE) private(i, j, k, Jc, G2, \
+                                L, num, den, qsqr)
+#else
         omp_set_num_threads(nthreads);
 #pragma omp parallel for shared(J, dN, dS, dW, dE, c, rows, cols, iN, iS, jW,  \
                                 jE) private(i, j, k, Jc, G2, L, num, den,      \
                                             qsqr)
+#endif
 #endif
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
@@ -159,11 +174,17 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
+
 #ifdef OPEN
+#ifdef OMP_OFFLOAD
+#pragma omp target teams distribute parallel for shared(J, c, rows, cols, lambda) private(i, j, k, D, cS, cN, cW, cE)
+#else
         omp_set_num_threads(nthreads);
 #pragma omp parallel for shared(J, c, rows, cols,                              \
                                 lambda) private(i, j, k, D, cS, cN, cW, cE)
 #endif
+#endif
+
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
 
@@ -183,8 +204,15 @@ int main(int argc, char *argv[]) {
                 J[k] = J[k] + 0.25 * lambda * D;
             }
         }
+#ifdef OMP_OFFLOAD
+        }
+#endif
+
 
 #ifdef ITERATION
+    }
+#endif
+#ifdef OMP_OFFLOAD
     }
 #endif
 
