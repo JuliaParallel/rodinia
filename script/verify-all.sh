@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-origin=`pwd`
 script_dir=`dirname $(realpath $0)`
 
-offload=0
+offload=1
 
 if [[ $offload -eq 1 ]]
 then
@@ -27,10 +26,22 @@ do
 
     cd $d
 
-    make clean &> /dev/null
+    #if [[ ! "$d" == "srad_v2" ]]
+    #then
+    #    continue
+    #fi
 
     # print project name
     #printf "%-20s" $d
+
+    if [[ ! -f "verify" ]]
+    then
+        echo "Not support"
+        continue
+    fi
+
+    make clean &> /dev/null
+
 
     if [[ $offload -eq 0 ]]
     then
@@ -48,7 +59,19 @@ do
         make OFFLOAD=1 &> /dev/null
     fi
 
-    timeout 10s ./verify &> /dev/null
+
+    # measure time and check timeout
+    timeout 20s ./run &> /dev/null
+    ret=$?
+
+    if [[ ! $ret -eq 0 ]]
+    then
+        echo "Fail"
+        make clean &> /dev/null
+        continue
+    fi
+
+    ./verify &> /dev/null
     ret=$?
 
     if [[ $ret -eq 0 ]]
@@ -62,8 +85,3 @@ do
 
     make clean &> /dev/null
 done
-
-
-
-
-cd $origin
