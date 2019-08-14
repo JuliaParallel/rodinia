@@ -60,10 +60,10 @@ void single_iteration(FLOAT *result, FLOAT *temp, FLOAT *power, int row,
     int chunks_in_col = row / BLOCK_SIZE_R;
 
 #ifdef OPEN
-#ifndef __MIC__
+#ifndef OMP_OFFLOAD
     omp_set_num_threads(num_omp_threads);
 #endif
-#pragma omp parallel for shared(power, temp, result) private(                  \
+#pragma omp target teams distribute parallel for shared(power, temp, result) private(                  \
     chunk, r, c, delta)                                                        \
         firstprivate(row, col, num_chunk, chunks_in_row) schedule(static)
 #endif
@@ -223,7 +223,7 @@ void compute_tran_temp(FLOAT *result, int num_iterations, FLOAT *temp,
     }
 }
 
-void fatal(char *s) {
+void fatal(const char *s) {
     fprintf(stderr, "error: %s\n", s);
     exit(1);
 }
