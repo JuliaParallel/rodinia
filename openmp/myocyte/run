@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -ue
 
-./myocyte.out 100 1 0 4
+./myocyte 100 1 0 4
 
