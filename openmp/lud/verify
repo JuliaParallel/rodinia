@@ -2,4 +2,4 @@
 set -ue
 
 # ./omp/lud_omp -n 4 -i ../../data/lud/512.dat 
-./lud -s 256
+./lud -s 256 -v
