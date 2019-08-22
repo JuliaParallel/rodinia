@@ -137,18 +137,25 @@ void computeTempOMP(float *pIn, float *tIn, float *tOut, int nx, int ny, int nz,
     cc = 1.0 - (2.0 * ce + 2.0 * cn + 3.0 * ct);
 
 
-#pragma omp parallel
+#ifdef OMP_OFFLOAD
+    int size = nx * ny * nz;
+#pragma omp target data map(tIn[:size], tOut[:size], pIn[:size])
+#endif
     {
         int count = 0;
         float *tIn_t = tIn;
         float *tOut_t = tOut;
 
-#pragma omp master
-        printf("%d threads running\n", omp_get_num_threads());
+//#pragma omp master
+//        printf("%d threads running\n", omp_get_num_threads());
 
         do {
             int z;
-#pragma omp for
+#ifdef OMP_OFFLOAD
+#pragma omp target teams distribute parallel for
+#else
+#pragma omp parallel for
+#endif
             for (z = 0; z < nz; z++) {
                 int y;
                 for (y = 0; y < ny; y++) {
