@@ -74,7 +74,7 @@ void dump(float *variables, int nel, int nelr) {
 
     {
         std::ofstream file("density");
-        file << nel << " " << nelr << std::endl;
+        file << nel << std::endl;
         for (int i = 0; i < nel; i++)
             file << variables[i + VAR_DENSITY * nelr] << std::endl;
     }
@@ -82,7 +82,7 @@ void dump(float *variables, int nel, int nelr) {
 
     {
         std::ofstream file("momentum");
-        file << nel << " " << nelr << std::endl;
+        file << nel << std::endl;
         for (int i = 0; i < nel; i++) {
             for (int j = 0; j != NDIM; j++)
                 file << variables[i + (VAR_MOMENTUM + j) * nelr] << " ";
@@ -92,7 +92,7 @@ void dump(float *variables, int nel, int nelr) {
 
     {
         std::ofstream file("density_energy");
-        file << nel << " " << nelr << std::endl;
+        file << nel << std::endl;
         for (int i = 0; i < nel; i++)
             file << variables[i + VAR_DENSITY_ENERGY * nelr] << std::endl;
     }
