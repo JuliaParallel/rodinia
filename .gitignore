@@ -3,4 +3,5 @@ profile_*.csv
 *.nvvp
 nvprof.csv.*
 Manifest.toml
-
+*.o
+tags
