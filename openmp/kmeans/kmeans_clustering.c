@@ -179,6 +179,8 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
 
     do {
         delta = 0.0;
+
+#ifndef OMP_OFFLOAD
 #pragma omp parallel shared(feature, clusters, membership,                     \
                             partial_new_centers, partial_new_centers_len)
         {
@@ -203,6 +205,65 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
                     partial_new_centers[tid][index][j] += feature[i][j];
             }
         }
+#else
+#pragma omp target enter data map(to: feature[:npoints], clusters[:nclusters], membership[:npoints], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
+#pragma omp target enter data map(to: feature[0][:nfeatures*npoints])
+        for (i = 0; i < nclusters; i++) {
+#pragma omp target enter data map(to: clusters[i][:nfeatures])
+        }
+        for (i = 0; i < nthreads; i++) {
+#pragma omp target enter data map(to: partial_new_centers[i][:nclusters], partial_new_centers_len[i][:nclusters])
+            for (j = 0; j < nclusters; j++) {
+#pragma omp target enter data map(to: partial_new_centers[i][j][:nfeatures])
+            }
+        }
+
+        {
+            int tid = 0;
+            //int tid = omp_get_thread_num();
+//#pragma omp for private(i, j, index) firstprivate(                             \
+    npoints, nclusters, nfeatures) schedule(static) reduction(+ : delta)
+#pragma omp target teams distribute parallel for private(i,j,index) reduction(+ : delta)
+/*#pragma omp target teams distribute parallel for
+            for (int i = 0; i < npoints; i++) {
+                feature[0][i*nfeatures] = i;
+            //for (int i = 0; i < nclusters; i++) {
+            }
+            */
+            for (i = 0; i < npoints; i++) {
+                /* find the index of nestest cluster centers */
+                index = find_nearest_point(feature[0]+i*nfeatures, nfeatures, clusters,
+                                           nclusters);
+                /* if membership changes, increase delta by 1 */
+                if (membership[i] != index)
+                    delta += 1.0;
+/*#pragma omp atomic
+                    *deltaptr += 1.0;
+                    */
+
+                /* assign the membership to object i */
+                membership[i] = index;
+
+                /* update new cluster centers : sum of all objects located
+                       within */
+#pragma omp atomic
+                partial_new_centers_len[tid][index]++;
+                for (j = 0; j < nfeatures; j++)
+#pragma omp atomic
+                    partial_new_centers[tid][index][j] += feature[0][i*nfeatures+j];
+            }
+        }
+#pragma omp target exit data map(from: clusters[:nclusters], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
+        for (i = 0; i < nclusters; i++) {
+#pragma omp target exit data map(from: clusters[i][:nfeatures])
+        }
+        for (i = 0; i < nthreads; i++) {
+#pragma omp target exit data map(from: partial_new_centers[i][:nclusters], partial_new_centers_len[i][:nclusters])
+            for (j = 0; j < nclusters; j++) {
+#pragma omp target exit data map(from: partial_new_centers[i][j][:nfeatures])
+            }
+        }
+#endif
 
         /* let the main thread perform the array reduction */
         for (i = 0; i < nclusters; i++) {
