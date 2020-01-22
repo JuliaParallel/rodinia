@@ -2,6 +2,9 @@ SHELL=/bin/sh -ue
 
 CC = clang
 CXX = clang++
+#CXX = nvcc
+#CC = gcc
+#CXX = g++
 
 CFLAGS   += -O2
 CXXFLAGS += -O2

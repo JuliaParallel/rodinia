@@ -39,7 +39,7 @@ void lud_omp(float *a, int size) {
         }
 #ifdef OMP_OFFLOAD
         }
-    }
 #endif
+    }
     }
 }

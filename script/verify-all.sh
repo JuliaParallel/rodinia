@@ -2,7 +2,8 @@
 
 script_dir=`dirname $(realpath $0)`
 
-offload=1
+#offload=1
+offload=0
 
 if [[ $offload -eq 1 ]]
 then
@@ -36,7 +37,7 @@ do
 
     if [[ ! -f "verify" ]]
     then
-        echo "Not support"
+        echo "No verify"
         continue
     fi
 
@@ -53,10 +54,18 @@ do
 
         if [[ $ret -ne 0 ]]
         then
-            echo "Not support"
+            echo "No offload"
             continue
         fi
         make OFFLOAD=1 &> /dev/null
+    fi
+    ret=$?
+
+    if [[ ! $ret -eq 0 ]]
+    then
+        echo "Compile fail"
+        make clean &> /dev/null
+        continue
     fi
 
 
