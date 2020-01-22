@@ -53,7 +53,7 @@ void write_data(char *filename, int frameNo, int frames_processed,
     fprintf(fid, "epiPoints: %d", epiPoints);
     for (j = 0; j < frames_processed; j++) {
         fprintf(fid, "\n---Frame %d---", j);
-        fprintf(fid, "\n--endo--\n", j);
+        fprintf(fid, "\n--endo--\n");
         for (i = 0; i < endoPoints; i++) {
             fprintf(fid, "%d\t", input_a[j + i * frameNo]);
         }
@@ -62,7 +62,7 @@ void write_data(char *filename, int frameNo, int frames_processed,
             // if(input_b[j*size+i] > 2000) input_b[j*size+i]=0;
             fprintf(fid, "%d\t", input_b[j + i * frameNo]);
         }
-        fprintf(fid, "\n--epi--\n", j);
+        fprintf(fid, "\n--epi--\n");
         for (i = 0; i < epiPoints; i++) {
             // if(input_2a[j*size_2+i] > 2000) input_2a[j*size_2+i]=0;
             fprintf(fid, "%d\t", input_2a[j + i * frameNo]);
@@ -737,6 +737,47 @@ int main(int argc, char *argv[]) {
     //	KERNEL
     //======================================================================================================================================================
 
+#ifdef OMP_OFFLOAD
+    {
+//        printf("\n\n%p:[%lu] %p:[%d] %p\n\n", &public, sizeof(public), public.d_frames, public.frames, &public.frames);
+      int endo_size = public.d_endo_mem/sizeof(int);
+      int endo_loc_size = public.d_endo_mem*public.frames/sizeof(int);
+      int epi_size = public.d_epi_mem/sizeof(int);
+      int epi_loc_size = public.d_epi_mem*public.frames/sizeof(int);
+      int endoT_size = public.in_mod_mem * public.endoPoints / sizeof(fp);
+      int epiT_size = public.in_mod_mem * public.epiPoints / sizeof(fp);
+#pragma omp target enter data map(to: public)
+#pragma omp target enter data map(to: public.d_frames[:public.frames], public.d_frame[:public.frame_no], public.d_endoRow[:endo_size], public.d_endoCol[:endo_size], public.d_tEndoRowLoc[:endo_loc_size], public.d_tEndoColLoc[:endo_loc_size], public.d_endoT[:endoT_size], public.d_epiRow[:epi_size], public.d_epiCol[:epi_size], public.d_tEpiRowLoc[:epi_loc_size], public.d_tEpiColLoc[:epi_loc_size], public.d_epiT[:epiT_size])
+
+#pragma omp target enter data map(to: private[:public.allPoints])
+      int size1 = public.in2_mem/sizeof(fp);
+      int size2 = public.in_mod_mem/sizeof(fp);
+        for (i = 0; i < public.allPoints; i++) {
+//#pragma omp target enter data map(to: private[i])
+#pragma omp target enter data map(to: private[i].in_partial_sum[:2*public.tSize+1])
+#pragma omp target enter data map(to: private[i].in_sqr_partial_sum[:2*public.tSize+1])
+#pragma omp target enter data map(to: private[i].par_max_val[:2*public.tSize + 2 * public.sSize +1])
+#pragma omp target enter data map(to: private[i].par_max_coo[:2*public.tSize+2*public.sSize+1])
+#pragma omp target enter data map(to: private[i].d_in2[:size1])
+#pragma omp target enter data map(to: private[i].d_in2_sqr[:size1])
+#pragma omp target enter data map(to: private[i].d_in_mod[:size2])
+#pragma omp target enter data map(to: private[i].d_in_sqr[:size2])
+#pragma omp target enter data map(to: private[i].d_conv[public.conv_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_in2_pad[:public.in2_pad_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_in2_sub[:public.in2_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_in2_sub2_sqr[:public.in2_sub2_sqr_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_tMask[:public.tMask_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_mask_conv[:public.mask_conv_mem/sizeof(fp)])
+#pragma omp target enter data map(to: private[i].d_Row[0])
+#pragma omp target enter data map(to: private[i].d_Col[0])
+#pragma omp target enter data map(to: private[i].d_tRowLoc[0])
+#pragma omp target enter data map(to: private[i].d_tColLoc[0])
+#pragma omp target enter data map(to: private[i].d_T[0])
+        }
+    }
+
+#endif
+
     for (public.frame_no = 0; public.frame_no < frames_processed;
          public.frame_no++) {
 
@@ -758,15 +799,25 @@ int main(int argc, char *argv[]) {
 //====================================================================================================
 
 
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(to: public.d_frame[:AVI_video_width(public.d_frames)*AVI_video_height(public.d_frames)])
+#pragma omp target teams distribute parallel for
+        for (i = 0; i < public.allPoints; i++) {
+            kernel(public, private[i]);
+        }
+        printf("Kernel ");
+#else
 #pragma omp parallel for
         for (i = 0; i < public.allPoints; i++) {
             kernel(public, private[i]);
         }
+#endif
 
         //====================================================================================================
         //	FREE MEMORY FOR FRAME
         //====================================================================================================
 
+#pragma omp target exit data map(delete: public.d_frame[:AVI_video_width(public.d_frames)*AVI_video_height(public.d_frames)])
         // free frame after each loop iteration, since AVI library allocates
         // memory for every frame fetched
         free(public.d_frame);
@@ -774,8 +825,11 @@ int main(int argc, char *argv[]) {
         //====================================================================================================
         //	PRINT FRAME PROGRESS
         //====================================================================================================
-
+#pragma omp target exit data map(from: public.d_tEndoRowLoc[0])
+#pragma omp target exit data map(from: public.d_tEndoColLoc[0])
         printf("%d ", public.frame_no);
+        printf("%d ", public.d_tEndoRowLoc[0]);
+        printf("%d ", public.d_tEndoColLoc[0]);
         fflush(NULL);
     }
 
@@ -793,6 +847,19 @@ int main(int argc, char *argv[]) {
     //==================================================50
     //	DUMP DATA TO FILE
     //==================================================50
+#ifdef OMP_OFFLOAD
+    {
+      int endo_size = public.d_endo_mem/sizeof(int);
+      int endo_loc_size = public.d_endo_mem*public.frames/sizeof(int);
+      int epi_size = public.d_epi_mem/sizeof(int);
+      int epi_loc_size = public.d_epi_mem*public.frames/sizeof(int);
+      int endoT_size = public.in_mod_mem * public.endoPoints / sizeof(fp);
+      int epiT_size = public.in_mod_mem * public.epiPoints / sizeof(fp);
+#pragma omp target exit data map(from: public.d_frames[:public.frames], public.d_frame[:public.frame_no], public.d_endoRow[:endo_size], public.d_endoCol[:endo_size], public.d_tEndoRowLoc[:endo_loc_size], public.d_tEndoColLoc[:endo_loc_size], public.d_endoT[:endoT_size], public.d_epiRow[:epi_size], public.d_epiCol[:epi_size], public.d_tEpiRowLoc[:epi_loc_size], public.d_tEpiColLoc[:epi_loc_size], public.d_epiT[:epiT_size])
+#pragma omp target exit data map(from: public)
+    }
+#endif
+
     if (getenv("OUTPUT")) {
         write_data("output.txt", public.frames, frames_processed,
                    public.endoPoints, public.d_tEndoRowLoc,
