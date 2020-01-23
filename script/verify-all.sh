@@ -2,13 +2,35 @@
 
 script_dir=`dirname $(realpath $0)`
 
-#offload=1
-offload=0
+# Reset
+Color_Off='\033[0m'       # Text Reset
+
+# Regular Colors
+Black='\033[0;30m'        # Black
+Red='\033[0;31m'          # Red
+Green='\033[0;32m'        # Green
+Yellow='\033[0;33m'       # Yellow
+Blue='\033[0;34m'         # Blue
+Purple='\033[0;35m'       # Purple
+Cyan='\033[0;36m'         # Cyan
+White='\033[0;37m'        # White
+
+offload=1
+#offload=0
+
+bulk=1
 
 if [[ $offload -eq 1 ]]
 then
-    echo "OFFLOAD mode"
+    printf "${Red}OFFLOAD ${Color_Off}Enabled\n"
 fi
+
+if [[ $bulk -eq 1 ]]
+then
+    printf "${Yellow}BULK ${Color_Off}Enabled\n"
+fi
+
+printf "$Color_Off"
 
 cd $script_dir
 
@@ -63,9 +85,7 @@ do
 
     if [[ ! $ret -eq 0 ]]
     then
-        echo "Compile fail"
-        make clean &> /dev/null
-        continue
+        echo -n "[cf] "
     fi
 
 
@@ -80,7 +100,13 @@ do
         continue
     fi
 
-    ./verify &> /dev/null
+    if [[ $bulk -eq 1 ]]
+    then
+        OMP_BULK=1 ./verify &> /dev/null
+    else
+        ./verify &> /dev/null
+    fi
+
     ret=$?
 
     if [[ $ret -eq 0 ]]
