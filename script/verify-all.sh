@@ -85,26 +85,27 @@ do
 
     if [[ ! $ret -eq 0 ]]
     then
-        echo -n "[cf] "
+        echo -n "[ce] "
     fi
 
 
     # measure time and check timeout
-    timeout 20s ./run &> /dev/null
-    ret=$?
+    #timeout 360s ./run &> /dev/null
+    #ret=$?
 
-    if [[ ! $ret -eq 0 ]]
-    then
-        echo "Fail"
-        make clean &> /dev/null
-        continue
-    fi
+    #if [[ ! $ret -eq 0 ]]
+    #then
+    #    echo "Fail"
+    #    make clean &> /dev/null
+    #    continue
+    #fi
 
     if [[ $bulk -eq 1 ]]
     then
-        OMP_BULK=1 ./verify &> /dev/null
+        OMP_BULK=1 timeout 1000s ./verify &> /dev/null
+        #OMP_BULK=1 timeout 360s ./verify > /dev/null
     else
-        ./verify &> /dev/null
+        timeout 360s ./verify &> /dev/null
     fi
 
     ret=$?
