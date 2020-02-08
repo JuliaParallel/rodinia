@@ -179,7 +179,6 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
                 (float *)calloc(nfeatures, sizeof(float));
     }
 
-    //double tt = 0,t0 = 0, t1 = 0,t2 = 0 ,t3 = 0;
 #ifdef OMP_OFFLOAD
 #pragma omp target enter data map(to: feature[:npoints], clusters[:nclusters], membership[:npoints], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
 #pragma omp target enter data map(to: feature[0][:nfeatures*npoints])
