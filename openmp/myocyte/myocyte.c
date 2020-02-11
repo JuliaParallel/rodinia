@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
 
         xmax = atoi(argv[1]);
         if (xmax < 0) {
-            printf("ERROR: %d is the incorrect end of simulation interval, use "
+            printf("ERROR: %ld is the incorrect end of simulation interval, use "
                    "numbers > 0\n",
                    xmax);
             return 0;
@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
 
         workload = atoi(argv[2]);
         if (workload < 0) {
-            printf("ERROR: %d is the incorrect number of instances of "
+            printf("ERROR: %ld is the incorrect number of instances of "
                    "simulation, use numbers > 0\n",
                    workload);
             return 0;
@@ -411,19 +411,19 @@ int main(int argc, char *argv[]) {
     //================================================================================80
 
     printf("Time spent in different stages of the application:\n");
-    printf("%.12f s, %.12f % : SETUP VARIABLES, READ COMMAND LINE ARGUMENTS\n",
+    printf("%.12f s, %.12f %% : SETUP VARIABLES, READ COMMAND LINE ARGUMENTS\n",
            (float)(time1 - time0) / 1000000,
            (float)(time1 - time0) / (float)(time5 - time0) * 100);
-    printf("%.12f s, %.12f % : ALLOCATE MEMORY\n",
+    printf("%.12f s, %.12f %% : ALLOCATE MEMORY\n",
            (float)(time2 - time1) / 1000000,
            (float)(time2 - time1) / (float)(time5 - time0) * 100);
-    printf("%.12f s, %.12f % : READ DATA FROM FILES\n",
+    printf("%.12f s, %.12f %% : READ DATA FROM FILES\n",
            (float)(time3 - time2) / 1000000,
            (float)(time3 - time2) / (float)(time5 - time0) * 100);
-    printf("%.12f s, %.12f % : RUN COMPUTATION\n",
+    printf("%.12f s, %.12f %% : RUN COMPUTATION\n",
            (float)(time4 - time3) / 1000000,
            (float)(time4 - time3) / (float)(time5 - time0) * 100);
-    printf("%.12f s, %.12f % : FREE MEMORY\n", (float)(time5 - time4) / 1000000,
+    printf("%.12f s, %.12f %% : FREE MEMORY\n", (float)(time5 - time4) / 1000000,
            (float)(time5 - time4) / (float)(time5 - time0) * 100);
     printf("Total time:\n");
     printf("%.12f s\n", (float)(time5 - time0) / 1000000);
