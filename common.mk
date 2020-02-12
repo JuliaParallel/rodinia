@@ -1,17 +1,14 @@
 SHELL=/bin/sh -ue
 
-CC = clang
-CXX = clang++
-#CXX = nvcc
-#CC = gcc
-#CXX = g++
+CC       = clang
+CXX      = clang++
 
 CFLAGS   += -O2
 CXXFLAGS += -O2
 
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT
-CFLAGS += -DOUTPUT
+CFLAGS   += -DOUTPUT
 endif
 
 ifdef DEBUG
