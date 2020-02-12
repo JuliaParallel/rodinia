@@ -347,21 +347,23 @@ int main(int argc, char *argv[]) {
 
             status = solver(y[i], x[i], xmax, params[i], mode);
 
-            // if(status !=0){
-            // printf("STATUS: %d\n", status);
-            // }
+            if (status != 0) {
+                printf("STATUS: %d\n", status);
+                return status;
+            }
         }
 
     } else {
 
-#pragma omp parallel for private(i, status) shared(y, x, xmax, params, mode)
+#pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
         for (i = 0; i < workload; i++) {
 
-            status = solver(y[i], x[i], xmax, params[i], mode);
+            status += solver(y[i], x[i], xmax, params[i], mode);
 
-            // if(status !=0){
-            // printf("STATUS: %d\n", status);
-            // }
+        }
+        if (status != 0) {
+            printf("STATUS: %d\n", status);
+            return status;
         }
     }
 
