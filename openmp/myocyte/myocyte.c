@@ -354,6 +354,7 @@ int main(int argc, char *argv[]) {
         }
 
     } else {
+        status = 0;
 
 #pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
         for (i = 0; i < workload; i++) {

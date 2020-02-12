@@ -58,6 +58,7 @@ void master(fp timeinst, fp *initvalu, fp *parameter, fp *finavalu, int mode) {
 // run pieces of work in parallel
 #pragma omp parallel private(th_id)
         {
+            th_id = omp_get_thread_num();
 
             if (th_id == th_count[0]) {
 
