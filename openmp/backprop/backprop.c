@@ -227,9 +227,18 @@ int n1, n2;
 
     /*** Set up thresholding unit ***/
     l1[0] = 1.0;
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(to: l1[:n1+1], l2[:n2+1], conn[:n1+1])
+    for (j = 0; j <= n1; j++) {
+#pragma omp target enter data map(to: conn[j][:n2+1])
+    }
+#pragma omp target teams distribute private(k,j, sum)
+    // sum no need to reduction
+#else
     omp_set_num_threads(NUM_THREAD);
 #pragma omp parallel for shared(conn, n1, n2, l1) private(k, j) reduction(     \
     + : sum) schedule(static)
+#endif
     /*** For each unit in second layer ***/
     for (j = 1; j <= n2; j++) {
 
@@ -240,6 +249,12 @@ int n1, n2;
         }
         l2[j] = squash(sum);
     }
+#ifdef OMP_OFFLOAD
+#pragma omp target exit data map(from: l1[:n1+1], l2[:n2+1], conn[:n1+1])
+    for (j = 0; j <= n1; j++) {
+#pragma omp target exit data map(from: conn[j][:n2+1])
+    }
+#endif
 }
 
 // extern "C"
@@ -292,9 +307,17 @@ int ndelta, nly;
     // eta = 0.3;
     // momentum = 0.3;
 
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(to: oldw[:nly+1], w[:nly+1], delta[:ndelta+1], ly[:nly+1])
+    for (int k = 0; k <= nly; k++) {
+#pragma omp target enter data map(to: oldw[k][:ndelta+1], w[k][:ndelta+1])
+    }
+#pragma omp target teams distribute private(j, k, new_dw), firstprivate(ndelta, nly)
+#else
     omp_set_num_threads(NUM_THREAD);
 #pragma omp parallel for shared(oldw, w, delta) private(                       \
     j, k, new_dw) firstprivate(ndelta, nly)
+#endif
     for (j = 1; j <= ndelta; j++) {
         for (k = 0; k <= nly; k++) {
             new_dw = ((ETA * delta[j] * ly[k]) + (MOMENTUM * oldw[k][j]));
@@ -302,6 +325,13 @@ int ndelta, nly;
             oldw[k][j] = new_dw;
         }
     }
+
+#ifdef OMP_OFFLOAD
+#pragma omp target exit data map(from: delta[:ndelta+1], ly[:nly+1])
+    for (int k = 0; k <= nly; k++) {
+#pragma omp target exit data map(from: oldw[k][:ndelta+1], w[k][:ndelta+1])
+    }
+#endif
 }
 
 
