@@ -82,7 +82,13 @@
 //======================================================================================================================================================
 //======================================================================================================================================================
 
+int solver_mem(fp **y, fp *x, int xmax, fp *params, int mode, fp* mem);
+
 int solver(fp **y, fp *x, int xmax, fp *params, int mode) {
+    return solver_mem(y, x, xmax, params, mode, NULL);
+}
+
+int solver_mem(fp **y, fp *x, int xmax, fp *params, int mode, fp* mem) {
 
     //========================================================================================================================
     //	VARIABLES
@@ -101,9 +107,18 @@ int solver(fp **y, fp *x, int xmax, fp *params, int mode) {
     // memory
     fp scale_min;
     fp scale_fina;
-    fp *err = (fp *)malloc(EQUATIONS * sizeof(fp));
-    fp *scale = (fp *)malloc(EQUATIONS * sizeof(fp));
-    fp *yy = (fp *)malloc(EQUATIONS * sizeof(fp));
+    fp *err, *scale, *yy;
+    if (mode == 2) {
+        err = mem;
+        scale = mem + EQUATIONS;
+        yy = mem + 2 * EQUATIONS;
+    } else {
+#ifndef OMP_OFFLOAD
+        err = (fp *)malloc(EQUATIONS * sizeof(fp));
+        scale = (fp *)malloc(EQUATIONS * sizeof(fp));
+        yy = (fp *)malloc(EQUATIONS * sizeof(fp));
+#endif
+    }
 
     // counters
     int i, j, k;
@@ -274,9 +289,13 @@ int solver(fp **y, fp *x, int xmax, fp *params, int mode) {
     //		FREE MEMORY
     //========================================================================================================================
 
-    free(err);
-    free(scale);
-    free(yy);
+    if (mode != 2) {
+#ifndef OMP_OFFLOAD
+        free(err);
+        free(scale);
+        free(yy);
+#endif
+    }
 
     //========================================================================================================================
     //		FINAL RETURN

@@ -7,5 +7,7 @@ set -ue
 #./myocyte 100 1 0 4
 
 # parallel outter loop
-./myocyte 100 1 1 4
+#./myocyte 100 1 1 4
 
+# for omp offloading
+./myocyte 100 1 2 4

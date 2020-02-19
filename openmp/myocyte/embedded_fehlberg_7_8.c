@@ -198,8 +198,6 @@ static void embedded_fehlberg_7_8(fp timeinst, fp h, fp *initvalu, fp *finavalu,
     fp h2_7 = a2 * h;
 
     fp timeinst_temp;
-    fp *initvalu_temp;
-    fp **finavalu_temp;
 
     int i;
 
@@ -207,12 +205,34 @@ static void embedded_fehlberg_7_8(fp timeinst, fp h, fp *initvalu, fp *finavalu,
     //		TEMPORARY STORAGE ALLOCATION
     //======================================================================================================================================================
 
+#ifdef OMP_OFFLOAD
+    fp initvalu_temp[EQUATIONS];
+    fp* finavalu_temp[13];
+#define FINAVAL(i) fp finavalu_temp##i [EQUATIONS]; finavalu_temp[i] = finavalu_temp##i;
+    FINAVAL(0);
+    FINAVAL(1);
+    FINAVAL(2);
+    FINAVAL(3);
+    FINAVAL(4);
+    FINAVAL(5);
+    FINAVAL(6);
+    FINAVAL(7);
+    FINAVAL(8);
+    FINAVAL(9);
+    FINAVAL(10);
+    FINAVAL(11);
+    FINAVAL(12);
+#else
+    fp *initvalu_temp;
+    fp **finavalu_temp;
+
     initvalu_temp = (fp *)malloc(EQUATIONS * sizeof(fp));
 
     finavalu_temp = (fp **)malloc(13 * sizeof(fp *));
     for (i = 0; i < 13; i++) {
         finavalu_temp[i] = (fp *)malloc(EQUATIONS * sizeof(fp));
     }
+#endif
 
     //======================================================================================================================================================
     //		EVALUATIONS
@@ -490,6 +510,8 @@ static void embedded_fehlberg_7_8(fp timeinst, fp h, fp *initvalu, fp *finavalu,
     //		DEALLOCATION
     //======================================================================================================================================================
 
+#ifndef OMP_OFFLOAD
     free(initvalu_temp);
     free(finavalu_temp);
+#endif
 }
