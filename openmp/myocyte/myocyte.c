@@ -148,6 +148,7 @@
 #include "master.c"
 #include "embedded_fehlberg_7_8.c"
 #include "solver.c"
+#include "solver2.c"
 
 #include "file.c"
 #include "timer.c"
@@ -259,9 +260,9 @@ int main(int argc, char *argv[]) {
 
         mode = 0;
         mode = atoi(argv[3]);
-        if (mode != 0 && mode != 1) {
+        if (mode != 0 && mode != 1 && mode != 2) {
             printf("ERROR: %d is the incorrect mode, it should be omitted or "
-                   "equal to 0 or 1\n",
+                   "equal to 0, 1 or 2\n",
                    mode);
             return 0;
         }
@@ -327,12 +328,12 @@ int main(int argc, char *argv[]) {
 
     // y
     for (i = 0; i < workload; i++) {
-        read("../../data/myocyte/y.txt", y[i][0], 91, 1, 0);
+        myread("../../data/myocyte/y.txt", y[i][0], 91, 1, 0);
     }
 
     // params
     for (i = 0; i < workload; i++) {
-        read("../../data/myocyte/params.txt", params[i], 16, 1, 0);
+        myread("../../data/myocyte/params.txt", params[i], 16, 1, 0);
     }
 
     time3 = get_time();
@@ -353,7 +354,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-    } else {
+    } else if (mode == 1) {
         status = 0;
 
 #pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
@@ -362,6 +363,33 @@ int main(int argc, char *argv[]) {
             status += solver(y[i], x[i], xmax, params[i], mode);
 
         }
+        if (status != 0) {
+            printf("STATUS: %d\n", status);
+            return status;
+        }
+    } else {
+        // mode == 2 for openmp offloading
+
+        status = 0;
+        int mem_size = workload * 3 * EQUATIONS;
+        fp *mem = (fp*) malloc (mem_size * sizeof(fp));
+
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(to: mem[:mem_size], x[:workload], y[:workload], params[:workload])
+        for (int i = 0; i < workload; i++) {
+#pragma omp target enter data map(to: x[i][:(1+xmax)], y[i][:(1+xmax)], params[i][:PARAMETERS])
+            for (int j = 0; j < 1 + xmax; j++) {
+#pragma omp target enter data map(to: y[i][j][:EQUATIONS])
+            }
+        }
+#pragma omp target teams distribute parallel for private(i) reduction(+: status)
+#else
+#pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
+#endif
+        for (i = 0; i < workload; i++) {
+            status += solver_mem(y[i], x[i], xmax, params[i], mode, mem + i * 3* EQUATIONS);
+        }
+        free(mem);
         if (status != 0) {
             printf("STATUS: %d\n", status);
             return status;
