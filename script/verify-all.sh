@@ -85,7 +85,7 @@ do
 
     if [[ ! $ret -eq 0 ]]
     then
-        echo -n "[ce] "
+        echo -n "[CE] "
     fi
 
 
@@ -102,13 +102,17 @@ do
 
     if [[ $bulk -eq 1 ]]
     then
-        OMP_BULK=1 timeout 1000s ./verify &> /dev/null
-        #OMP_BULK=1 timeout 360s ./verify > /dev/null
+        OMP_BULK=1 timeout 3000s ./verify &> /dev/null
+        ret=$?
+        if [[ ! $ret -eq 0 ]]
+        then
+            echo -n "[TL]"
+        fi
     else
         timeout 360s ./verify &> /dev/null
+        ret=$?
     fi
 
-    ret=$?
 
     if [[ $ret -eq 0 ]]
     then
