@@ -148,7 +148,6 @@
 #include "master.c"
 #include "embedded_fehlberg_7_8.c"
 #include "solver.c"
-#include "solver2.c"
 
 #include "file.c"
 #include "timer.c"
