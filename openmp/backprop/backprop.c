@@ -15,6 +15,7 @@
 #include "backprop.h"
 #include <math.h>
 
+
 #define ABS(x) (((x) > 0.0) ? (x) : (-(x)))
 
 #define fastcopy(to, from, len)                                                \
@@ -228,11 +229,11 @@ int n1, n2;
     /*** Set up thresholding unit ***/
     l1[0] = 1.0;
 #ifdef OMP_OFFLOAD
-#pragma omp target enter data map(to: l1[:n1+1], l2[:n2+1], conn[:n1+1])
+#pragma omp target enter data map(always, to: l1[:n1+1], l2[:n2+1], conn[:n1+1])
     for (j = 0; j <= n1; j++) {
-#pragma omp target enter data map(to: conn[j][:n2+1])
+#pragma omp target enter data map(always, to: conn[j][:n2+1])
     }
-#pragma omp target teams distribute private(k,j, sum)
+#pragma omp target teams distribute private(k,j)
     // sum no need to reduction
 #else
     omp_set_num_threads(NUM_THREAD);
@@ -243,17 +244,14 @@ int n1, n2;
     for (j = 1; j <= n2; j++) {
 
         /*** Compute weighted sum of its inputs ***/
-        sum = 0.0;
+        float sum = 0.0;
         for (k = 0; k <= n1; k++) {
             sum += conn[k][j] * l1[k];
         }
         l2[j] = squash(sum);
     }
 #ifdef OMP_OFFLOAD
-#pragma omp target exit data map(from: l1[:n1+1], l2[:n2+1], conn[:n1+1])
-    for (j = 0; j <= n1; j++) {
-#pragma omp target exit data map(from: conn[j][:n2+1])
-    }
+#pragma omp target exit data map(always, from: l2[:n2+1])
 #endif
 }
 
@@ -308,9 +306,9 @@ int ndelta, nly;
     // momentum = 0.3;
 
 #ifdef OMP_OFFLOAD
-#pragma omp target enter data map(to: oldw[:nly+1], w[:nly+1], delta[:ndelta+1], ly[:nly+1])
+#pragma omp target enter data map(always, to: oldw[:nly+1], w[:nly+1], delta[:ndelta+1], ly[:nly+1])
     for (int k = 0; k <= nly; k++) {
-#pragma omp target enter data map(to: oldw[k][:ndelta+1], w[k][:ndelta+1])
+#pragma omp target enter data map(always, to: oldw[k][:ndelta+1], w[k][:ndelta+1])
     }
 #pragma omp target teams distribute private(j, k, new_dw), firstprivate(ndelta, nly)
 #else
@@ -327,9 +325,9 @@ int ndelta, nly;
     }
 
 #ifdef OMP_OFFLOAD
-#pragma omp target exit data map(from: delta[:ndelta+1], ly[:nly+1])
+#pragma omp target exit data map(always, from: delta[:ndelta+1], ly[:nly+1])
     for (int k = 0; k <= nly; k++) {
-#pragma omp target exit data map(from: oldw[k][:ndelta+1], w[k][:ndelta+1])
+#pragma omp target exit data map(always, from: oldw[k][:ndelta+1], w[k][:ndelta+1])
     }
 #endif
 }

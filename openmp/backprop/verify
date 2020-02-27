@@ -7,7 +7,4 @@ set -ue
 
 # For omp offloading
 OUTPUT=1 ./run
-cp output.dat /tmp/output.dat
-
-OUTPUT=1 OMP_OFFLOAD=1 ./run
-diff output.dat /tmp/output.dat
+diff output.dat ../../results/backprop/output-8192.dat
