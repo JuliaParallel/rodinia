@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -ue
+
+#./pathfinder 100000 100
+#./pathfinder 100000 10000
+./pathfinder 150000 10000

@@ -1,6 +1,6 @@
 include ../common.mk
 
-EXE  = pathfinder
+EXE  = pathfinder pathfinder1d
 
 .PHONY: all
 all: $(EXE)
