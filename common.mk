@@ -3,8 +3,13 @@ SHELL=/bin/sh -ue
 CC       = clang
 CXX      = clang++
 
+ifdef O0
+CFLAGS   += -O0
+CXXFLAGS += -O0
+else
 CFLAGS   += -O2
 CXXFLAGS += -O2
+endif
 
 ifdef OUTPUT
 CPPFLAGS += -DOUTPUT
