@@ -5,3 +5,5 @@ nvprof.csv.*
 Manifest.toml
 *.o
 tags
+.time
+__pycache__
