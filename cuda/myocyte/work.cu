@@ -145,6 +145,7 @@ int work(int xmax, int workload) {
 
         if (status != 0) {
             printf("STATUS: %d\n", status);
+            exit(-1);
         }
     }
 
