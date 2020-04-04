@@ -9,9 +9,9 @@ if [[ -z "${OFFLOAD}" ]]; then
 
 # parallel outter loop
 #./myocyte 100 1 1 4
-./myocyte 100 5000 1 4
+exit 1
 
 else
 # for omp offloading
-./myocyte 100 5000 2 4
+./myocyte1d 100 5000 2 4
 fi

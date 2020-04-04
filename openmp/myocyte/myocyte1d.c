@@ -147,7 +147,7 @@
 #include "fin.c"
 #include "master.c"
 #include "embedded_fehlberg_7_8.c"
-#include "solver.c"
+#include "solver1d.c"
 
 #include "file.c"
 #include "timer.c"
@@ -198,9 +198,9 @@ int main(int argc, char *argv[]) {
     //		DATA
     //============================================================60
 
-    fp ***y;
-    fp **x;
-    fp **params;
+    fp *y;
+    fp *x;
+    fp *params;
 
     //============================================================60
     //		OPENMP
@@ -301,23 +301,12 @@ int main(int argc, char *argv[]) {
     // 	ALLOCATE ARRAYS
     //============================================================60
 
-    y = (fp ***)malloc(workload * sizeof(fp **));
-    for (i = 0; i < workload; i++) {
-        y[i] = (fp **)malloc((1 + xmax) * sizeof(fp *));
-        for (j = 0; j < (1 + xmax); j++) {
-            y[i][j] = (fp *)malloc(EQUATIONS * sizeof(fp));
-        }
-    }
 
-    x = (fp **)malloc(workload * sizeof(fp *));
-    for (i = 0; i < workload; i++) {
-        x[i] = (fp *)malloc((1 + xmax) * sizeof(fp));
-    }
+    y = (fp *)malloc(workload * sizeof(fp) * (1 + xmax) * EQUATIONS);
 
-    params = (fp **)malloc(workload * sizeof(fp *));
-    for (i = 0; i < workload; i++) {
-        params[i] = (fp *)malloc(PARAMETERS * sizeof(fp));
-    }
+    x = (fp *)malloc(workload * sizeof(fp) * (1+xmax));
+
+    params = (fp *)malloc(workload * sizeof(fp) * PARAMETERS);
 
     time2 = get_time();
 
@@ -327,12 +316,12 @@ int main(int argc, char *argv[]) {
 
     // y
     for (i = 0; i < workload; i++) {
-        myread("../../data/myocyte/y.txt", y[i][0], 91, 1, 0);
+        myread("../../data/myocyte/y.txt", &y[i * (1 + xmax) * EQUATIONS], 91, 1, 0);
     }
 
     // params
     for (i = 0; i < workload; i++) {
-        myread("../../data/myocyte/params.txt", params[i], 16, 1, 0);
+        myread("../../data/myocyte/params.txt", &params[i*PARAMETERS], 16, 1, 0);
     }
 
     time3 = get_time();
@@ -341,6 +330,7 @@ int main(int argc, char *argv[]) {
     //	EXECUTION
     //================================================================================80
 
+    /*
     if (mode == 0) {
 
         for (i = 0; i < workload; i++) {
@@ -366,6 +356,9 @@ int main(int argc, char *argv[]) {
             printf("STATUS: %d\n", status);
             return status;
         }
+        */
+    if (mode < 2) {
+        return -1;
     } else {
         // mode == 2 for openmp offloading
 
@@ -374,29 +367,22 @@ int main(int argc, char *argv[]) {
         fp *mem = (fp*) malloc (mem_size * sizeof(fp));
 
 #ifdef OMP_OFFLOAD
-#pragma omp target enter data map(to: mem[:mem_size], x[:workload], y[:workload], params[:workload])
-        for (int i = 0; i < workload; i++) {
-#pragma omp target enter data map(to: x[i][:(1+xmax)], y[i][:(1+xmax)], params[i][:PARAMETERS])
-            for (int j = 0; j < 1 + xmax; j++) {
-#pragma omp target enter data map(to: y[i][j][:EQUATIONS])
-            }
-        }
+#pragma omp target enter data map(to: mem[:mem_size], x[:workload*(1+xmax)], y[:workload*(1+xmax)*EQUATIONS], params[:workload*PARAMETERS])
 #pragma omp target teams distribute parallel for private(i) reduction(+: status)
 #else
 #pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
 #endif
         for (i = 0; i < workload; i++) {
-            status += solver_mem(y[i], x[i], xmax, params[i], mode, mem + i * 3* EQUATIONS);
+            status += solver_mem(y+i*(1+xmax)*EQUATIONS, x+(1+xmax)*i, xmax, params+i*PARAMETERS, mode, mem + i * 3* EQUATIONS);
         }
         free(mem);
         if (status != 0) {
             printf("STATUS: %d\n", status);
             return status;
         }
-#pragma omp target exit data map(always, from: y[workload-1][xmax][:EQUATIONS])
+#pragma omp target exit data map(always, from: y[:workload*(1+xmax)*EQUATIONS])
     }
 
-    /* TODO put this as verify
     // // print results
     // int k;
     // for(i=0; i<workload; i++){
@@ -408,6 +394,16 @@ int main(int argc, char *argv[]) {
     // }
     // }
     // }
+    /* TODO put this as verify
+    {
+        int i = workload-1;
+        int j = xmax;
+        for(int k=0; k<EQUATIONS; k++){
+            printf("%13.10f ", y[i][j][k]);
+        }
+        printf("\n");
+     }
+     */
 
     time4 = get_time();
 
@@ -416,24 +412,12 @@ int main(int argc, char *argv[]) {
     //================================================================================80
 
     // y values
-    for (i = 0; i < workload; i++) {
-        for (j = 0; j < (1 + xmax); j++) {
-            free(y[i][j]);
-        }
-        free(y[i]);
-    }
     free(y);
 
     // x values
-    for (i = 0; i < workload; i++) {
-        free(x[i]);
-    }
     free(x);
 
     // parameters
-    for (i = 0; i < workload; i++) {
-        free(params[i]);
-    }
     free(params);
 
     time5 = get_time();

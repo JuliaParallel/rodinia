@@ -1,6 +1,6 @@
 include ../common.mk
 
-EXE  = myocyte
+EXE  = myocyte myocyte1d
 
 .PHONY: all
 all: $(EXE)
