@@ -7,4 +7,6 @@ Manifest.toml
 tags
 .time
 __pycache__
-*.swp
+
+.*
+!/.gitignore
