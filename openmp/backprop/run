@@ -3,5 +3,4 @@ set -ue
 
 # Origin
 #./backprop 65536
-
-./backprop 8192
+./backprop 262144

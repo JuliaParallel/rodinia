@@ -2,9 +2,5 @@
 set -ue
 
 # Origin one
-#OUTPUT=1 ./run
-#diff output.dat ../../results/backprop/output.dat
-
-# For omp offloading
-OUTPUT=1 ./run1d
-diff output.dat ../../results/backprop/output-8192.dat
+OUTPUT=1 ./run
+diff output.dat ../../results/backprop/output.dat
