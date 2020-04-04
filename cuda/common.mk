@@ -35,6 +35,11 @@ NVCC=$(CUDA_ROOT)/bin/nvcc
 
 LDLIBS   += -lcudart -lnvToolsExt
 
+# Add for omp
+OMPFLAGS = -fopenmp -I/home/pschen/llvm/thesis/build-Debug/include
+CFLAGS   += $(OMPFLAGS) -fPIC
+CXXFLAGS   += $(OMPFLAGS) -fPIC
+LDLIBS   += $(OMPFLAGS) -L/home/pschen/llvm/thesis/build-Debug/lib/
 
 #
 # NVCC compilation
