@@ -1,72 +1,85 @@
-#!/usr/bin/env python3
+class dataTy:
+    def __init__(self):
+        self.Name = ""
+        self.Count = 0
+        self.val = 0
+    def __init__(self, name, count, val):
+        self.Name = name
+        self.Count = count
+        self.Value = val
 
-import pickle
-import sys
-import numpy as np
-import matplotlib.pyplot as plt
+# Per config, per proj
+class Output:
+    def __init__(self):
+        self.CE = False
+        self.RE = False
+        self.TL = False
+        self.Failed=False
+        # Perf self.times = []
+        # dataTy dir
+        self.data = {}
+        # stderr of profiling mode
+        self.log = ""
+        #self.break_down = {}
+        self.prof_time = 0
+        self.is_large = False
 
-from dataTy import dataTy
-from dataTy import Output
-
-
-class Printer:
-    def __init__(self, result):
+class ResultHelper:
+    def getProjs(result):
+        if len(result) < 1:
+            print("No result")
+            return []
         for config in result:
+            ret = []
             output_of_proj = result[config]
             for proj in output_of_proj:
-                output = output_of_proj[proj]
-                # Config-proj
-                print("{0}-{1}, {2}".format(config, proj, output.times), end=' ')
-                if output.CE:
-                    print("CE")
-                    continue
-                if output.RE:
-                    print("RE")
-                    continue
-                if output.TL:
-                    print("TL")
-                    continue
-                if output.Failed:
-                    print("WA")
-                else:
-                    print("Pass")
-                print("Profiling Times: " + str(output.prof_time))
-                for name in output.data:
-                    d = output.data[name]
-                    print("  {0:20}| {1:10}| {2}".format(name, d.Count, d.Value))
-                    continue
+                ret.append(proj)
+            return ret
+    def getConfigs(result):
+        if len(result) < 1:
+            print("No result")
+            return []
+        ret = []
+        for config in result:
+            ret.append(config)
+        return ret
+    def getAvg(str_list):
+        if len(str_list) < 1:
+            return 0
+        n = 0
+        sum = 0
+        for s in str_list:
+            f = float(s)
+            sum += f
+            n += 1
+        return sum/n
+    def preprocessing(result):
+        # Substract runtime with others
+        for config in result:
+            proj_out = result[config]
+            for proj in proj_out:
+                data = proj_out[proj].data
+                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr"]
+                sumup = float(data["Runtime"].Value)
+                for m in member:
+                    sumup -= float(data[m].Value)
+                if sumup < 0:
+                    sumup = 0
+                data["Runtime"].Value = str(sumup)
+        # Gen other
+        for config in result:
+            proj_out = result[config]
+            for proj in proj_out:
+                data = proj_out[proj].data
+                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr", "Runtime"]
+                sumup = 0
+                for m in member:
+                    sumup += float(data[m].Value)
+                if sumup < 0:
+                    sumup = 0
+                d = dataTy("Other", 1, str(sumup))
+                data["Other"] = d
 
-class config:
-    width = 0.35
 
-class StackChartPrinter:
-    def plot(self, name):
-        N = 5
-        menMeans = [1, 2, 3, 4, 5]
-        womenMeans = menMeans
-        #womenMeans = (25, 32, 34, 20, 25)
-        ind = np.arange(N)    # the x locations for the groups
-        width = 0.35       # the width of the bars: can also be len(x) sequence
 
-        p1 = plt.bar(ind, menMeans, config.width+0.1)
-        p2 = plt.bar(ind, womenMeans, config.width, bottom=menMeans)
 
-        plt.ylabel('Execution Time(sec)')
-        plt.title('Breakdown')
-        plt.xticks(ind, ('G1', 'G2', 'G3', 'G4', 'G5'))
-        plt.yticks(np.arange(0, 81, 10))
-        plt.legend((p1[0], p2[0]), ('Men', 'Women'))
-
-        plt.show()
-
-if __name__ == "__main__":
-    # Read from pickle
-    # FIXME
-    pfile = "./results/result.p"
-    if len(sys.argv) > 1:
-        # first arg is filename
-        pfile = sys.argv[1]
-    result = pickle.load(open(pfile, "rb"))
-    print("Open " + pfile)
-    Printer(result)
-    StackChartPrinter().plot("NN")
