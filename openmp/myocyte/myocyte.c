@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
 #pragma omp target exit data map(always, from: y[workload-1][xmax][:EQUATIONS])
     }
 
-    /* TODO put this as verify
+    /* TODO put this as verify*/
     // // print results
     // int k;
     // for(i=0; i<workload; i++){
