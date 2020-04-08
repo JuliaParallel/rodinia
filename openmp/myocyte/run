@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ -z "${OFFLOAD}" ]]; then
-# ./myocyte SPAN WORKLOAD MODE THREADS
-
 # Parallel  inner work
 #./myocyte 100 1 0 4
 
 # parallel outter loop
 #./myocyte 100 1 1 4
-./myocyte 100 5000 1 4
 
-else
+EXE="myocyte"
+# ./myocyte SPAN WORKLOAD MODE THREADS
+EXE_ARG="100 1 1 4"
+
+EXE_1D="myocyte1d"
+EXE_LARGE_ARG="100 5000 1 4"
+
 # for omp offloading
-./myocyte 100 5000 2 4
-fi
+EXE_OFFLOAD_ARG="100 1 2 4"
+EXE_LARGE_OFFLOAD_ARG="100 5000 2 4"
+source ../common.sh

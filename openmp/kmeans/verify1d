@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-OUTPUT=1 ./run1d
-#diff output.txt ../../results/kmeans/output.txt
-numdiff -r 1e-2 output.txt ../../results/kmeans/output.txt
-

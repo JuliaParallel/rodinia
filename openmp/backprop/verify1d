@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-# Origin one
-OUTPUT=1 ./run
-diff output.dat ../../results/backprop/output.dat

@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-./kmeans1d -i ../../data/kmeans/kdd_cup

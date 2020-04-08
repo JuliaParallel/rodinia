@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-#./pathfinder1d 100000 100
-./pathfinder1d 150000 10000

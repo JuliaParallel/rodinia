@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-set -ue
+set -e
 
 # Origin
 #./backprop 65536
-./backprop 262144
+
+EXE=backprop
+EXE_ARG="65536"
+
+EXE_1D=backprop1d
+EXE_LARGE_ARG="262144"
+
+source ../common.sh

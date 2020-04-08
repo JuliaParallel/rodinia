@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -ue
-
-# Origin
-#./backprop1d 65536
-./backprop1d 262144

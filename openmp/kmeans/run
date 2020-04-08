@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
-set -ue
+set -e
 
-./kmeans -i ../../data/kmeans/kdd_cup
+#./kmeans -i ../../data/kmeans/kdd_cup
+
+EXE="kmeans"
+EXE_ARG="-i ../../data/kmeans/kdd_cup"
+
+EXE_1D=kmeans1d
+
+source ../common.sh
