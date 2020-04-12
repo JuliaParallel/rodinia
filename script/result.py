@@ -1,85 +1,279 @@
-class dataTy:
-    def __init__(self):
-        self.Name = ""
-        self.Count = 0
-        self.val = 0
-    def __init__(self, name, count, val):
-        self.Name = name
-        self.Count = count
-        self.Value = val
-
-# Per config, per proj
-class Output:
-    def __init__(self):
-        self.CE = False
-        self.RE = False
-        self.TL = False
-        self.Failed=False
-        # Perf self.times = []
-        # dataTy dir
-        self.data = {}
-        # stderr of profiling mode
-        self.log = ""
-        #self.break_down = {}
-        self.prof_time = 0
-        self.is_large = False
-
-class ResultHelper:
-    def getProjs(result):
-        if len(result) < 1:
-            print("No result")
-            return []
-        for config in result:
-            ret = []
-            output_of_proj = result[config]
-            for proj in output_of_proj:
-                ret.append(proj)
-            return ret
-    def getConfigs(result):
-        if len(result) < 1:
-            print("No result")
-            return []
-        ret = []
-        for config in result:
-            ret.append(config)
-        return ret
-    def getAvg(str_list):
-        if len(str_list) < 1:
-            return 0
-        n = 0
-        sum = 0
-        for s in str_list:
-            f = float(s)
-            sum += f
-            n += 1
-        return sum/n
-    def preprocessing(result):
-        # Substract runtime with others
-        for config in result:
-            proj_out = result[config]
-            for proj in proj_out:
-                data = proj_out[proj].data
-                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr"]
-                sumup = float(data["Runtime"].Value)
-                for m in member:
-                    sumup -= float(data[m].Value)
-                if sumup < 0:
-                    sumup = 0
-                data["Runtime"].Value = str(sumup)
-        # Gen other
-        for config in result:
-            proj_out = result[config]
-            for proj in proj_out:
-                data = proj_out[proj].data
-                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr", "Runtime"]
-                sumup = 0
-                for m in member:
-                    sumup += float(data[m].Value)
-                if sumup < 0:
-                    sumup = 0
-                d = dataTy("Other", 1, str(sumup))
-                data["Other"] = d
-
-
-
-
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Open ./results/result.p\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<Figure size 432x288 with 0 Axes>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "#!/usr/bin/env python3\n",
+    "\n",
+    "import pickle\n",
+    "import sys\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from operator import add\n",
+    "\n",
+    "from dataTy import dataTy\n",
+    "from dataTy import Output\n",
+    "from dataTy import ResultHelper\n",
+    "\n",
+    "class Printer:\n",
+    "    def __init__(self, result, the_config = None, the_proj = None):\n",
+    "        \n",
+    "        if the_config == None :\n",
+    "             configs = result.keys()\n",
+    "        else:\n",
+    "            configs = [the_config]\n",
+    "            \n",
+    "        for config in configs:\n",
+    "            output_of_proj = result[config]\n",
+    "            if the_proj == None:\n",
+    "                projs = output_of_proj.keys()\n",
+    "            else:\n",
+    "                projs = [the_proj]\n",
+    "                    \n",
+    "            for proj in projs:\n",
+    "                output = output_of_proj[proj]\n",
+    "                # Config-proj\n",
+    "                print(\"{0}-{1}, {2}\".format(config, proj, output.times), end=' ')\n",
+    "                if output.CE:\n",
+    "                    print(\"CE\")\n",
+    "                    continue\n",
+    "                if output.RE:\n",
+    "                    print(\"RE\")\n",
+    "                    continue\n",
+    "                if output.TL:\n",
+    "                    print(\"TL\")\n",
+    "                    continue\n",
+    "                if output.Failed:\n",
+    "                    print(\"WA\")\n",
+    "                else:\n",
+    "                    print(\"Pass\")\n",
+    "                print(\"Profiling Times: \" + str(output.prof_time))\n",
+    "                for name in output.data:\n",
+    "                    d = output.data[name]\n",
+    "                    print(\"  {0:20}| {1:10}| {2}\".format(name, d.Count, d.Value))\n",
+    "                    continue\n",
+    "\n",
+    "class config:\n",
+    "    width = 1\n",
+    "    margin = 1\n",
+    "    left_margin = 1\n",
+    "    def rename_config(config):\n",
+    "        renametable = {\"omp-offload\" : \"clang\", \"omp-offload-1d\" : \"1D\", \"omp-offload-bulk\": \"bulk\", \"omp-offload-at\": \"bulk+at\"}\n",
+    "        ret = renametable.get(config)\n",
+    "        if ret == None:\n",
+    "            print(config + \"is not found in renametable\")\n",
+    "            return config\n",
+    "        else:\n",
+    "            return ret\n",
+    "\n",
+    "class PlotPrinter:\n",
+    "    def save(name):\n",
+    "        plt.tight_layout()\n",
+    "        #plt.show()\n",
+    "        plt.savefig(\"plot/\" + name + \".png\", format='png',dpi=300, edgecolor='k')\n",
+    "        plt.clf()\n",
+    "\n",
+    "class ColumnChartPrinter:\n",
+    "    def plot(result):\n",
+    "        # Get projs\n",
+    "        projs = ResultHelper.getProjs(result)\n",
+    "        configs = ResultHelper.getConfigs(result)\n",
+    "        proj_count = len(projs)\n",
+    "        config_count = len(configs)\n",
+    "        if config_count == 0:\n",
+    "            return\n",
+    "        if proj_count == 0:\n",
+    "            return\n",
+    "        #config.width = 1/(1+config_count)\n",
+    "        n = 0\n",
+    "        xpos_base = np.arange(0, proj_count * (config_count + 1), config_count + 1)\n",
+    "        last_col = xpos_base[-1]\n",
+    "\n",
+    "        for c in configs:\n",
+    "            # prepare data\n",
+    "            height = []\n",
+    "            xpos = [x + config.width * n for x in xpos_base]\n",
+    "            for p in projs:\n",
+    "                time = ResultHelper.getAvg(result[c][p].times)\n",
+    "                height.append(time)\n",
+    "            plt.bar(xpos, height, width=config.width, label=c)\n",
+    "            last_col = xpos[-1]\n",
+    "            n += 1\n",
+    "        plt.ylabel('Execution Time(sec)', fontweight='bold')\n",
+    "        plt.xlabel('Benchmarks', fontweight='bold')\n",
+    "        plt.title('Overview', fontweight='bold')\n",
+    "        # Insert in the center\n",
+    "        xticks = [x + config_count / 2 * config.width for x in xpos_base]\n",
+    "        plt.xticks(xticks, projs)\n",
+    "        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)\n",
+    "        plt.xlim(xpos_base[0] - config.left_margin, last_col + config.margin)\n",
+    "        PlotPrinter.save(\"all\")\n",
+    "\n",
+    "class StackChartPrinter:\n",
+    "    def plotStackChar(result, configs, proj, ind, metrics):\n",
+    "        N = len(configs)\n",
+    "        btn = [0] * N\n",
+    "        plist = []\n",
+    "        for m in metrics:\n",
+    "            time = []\n",
+    "            for c in configs:\n",
+    "                time.append(float(result[c][proj].data[m].Value))\n",
+    "            p = plt.bar(ind, time, config.width, bottom=btn)\n",
+    "            plist.append(p)\n",
+    "            # Increase btn\n",
+    "            btn = list(map(add, btn, time))\n",
+    "        return plist\n",
+    "\n",
+    "    def plot(result, proj):\n",
+    "        configs = ResultHelper.getConfigs(result)\n",
+    "        #metrics = [\"Other\", \"Runtime\", \"Kernel\", \"H2DTransfer\", \"D2HTransfer\", \"UpdatePtr\"]\n",
+    "        metrics = [\"Runtime\", \"Kernel\", \"H2DTransfer\", \"D2HTransfer\", \"UpdatePtr\"]\n",
+    "        config_count = len(configs)\n",
+    "        ind = np.arange(0, config_count * (config.width + 1),  config.width + 1)\n",
+    "        #ind = np.arange(N)    # the x locations for the groups\n",
+    "\n",
+    "        plist = StackChartPrinter.plotStackChar(result, configs, proj, ind, metrics)\n",
+    "\n",
+    "        plt.ylabel('Execution Time(sec)', fontweight='bold')\n",
+    "        plt.xlabel('Configs', fontweight='bold')\n",
+    "        plt.title('[Breakdown] ' + proj, fontweight='bold')\n",
+    "        plt.xticks(ind, [config.rename_config(x) for x in configs]) #plt.yticks(np.arange(0, 81, 10))\n",
+    "        plt.legend(plist, metrics, loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=3)\n",
+    "        plt.xlim(ind[0]- config.left_margin, ind[-1] + config.margin)\n",
+    "        PlotPrinter.save(proj)\n",
+    "\n",
+    "class OffloadVS1DNormPrinter:\n",
+    "    # Like stackChart\n",
+    "    def plot(result):\n",
+    "        projs = ResultHelper.getProjs(result)\n",
+    "        configs = [\"omp-offload\", \"omp-offload-1d\"]\n",
+    "        metrics = [\"Runtime\", \"Kernel\", \"H2DTransfer\", \"D2HTransfer\", \"UpdatePtr\"]\n",
+    "        for c in configs:\n",
+    "            if result.get(c) == None:\n",
+    "                print(c + \" key not found\")\n",
+    "                return\n",
+    "        # Gen xpos and xticks\n",
+    "        xpos = []\n",
+    "        xticks = []\n",
+    "        ind = np.arange(0, 2 * (config.width + 0.5), config.width + 0.5).tolist() # the x locations for the groups\n",
+    "        for proj in projs:\n",
+    "            xpos = xpos + ind\n",
+    "            xticks += [proj, proj+\"1d\"]\n",
+    "            ind = [x + 2 * config.width + 2.5 * config.width for x in ind]\n",
+    "\n",
+    "        btn = [0] * len(projs) * 2\n",
+    "        plist = []\n",
+    "        # calculate the factor\n",
+    "        factors = {}\n",
+    "        for proj in projs:\n",
+    "            sum = 0\n",
+    "            for m in metrics:\n",
+    "                sum += float(result[\"omp-offload\"][proj].data[m].Value)\n",
+    "            factors[proj] = 100/sum\n",
+    "                \n",
+    "        for m in metrics:\n",
+    "            time = []\n",
+    "            for proj in projs:\n",
+    "                f = factors[proj]\n",
+    "                for c in configs:\n",
+    "                    time.append(f*float(result[c][proj].data[m].Value))\n",
+    "                    \n",
+    "            plist.append(plt.bar(xpos, time, config.width, bottom=btn))\n",
+    "            btn = list(map(add, btn, time))\n",
+    "        plt.ylabel('Execution Time(%)', fontweight='bold')\n",
+    "        #plt.xlabel('Configs', fontweight='bold')\n",
+    "        plt.title(\"Direct Offload vs 1D Refactor Comparison\", fontweight='bold')\n",
+    "        # shift because of rotation\n",
+    "        plt.xticks([x - config.width/2 for x in xpos], xticks, rotation=40)\n",
+    "        plt.legend(plist, metrics, loc='upper center', bbox_to_anchor=(0.5, -0.4), ncol=3)\n",
+    "        plt.xlim(xpos[0] - config.left_margin, xpos[-1] + config.margin)\n",
+    "        PlotPrinter.save(\"Offloadvs1DCompare\")\n",
+    "        \n",
+    "        #plt.savefig(\"Direct Offload vs 1D Refactor Comparison\", dpi=300, bbox_inches='tight')\n",
+    "\n",
+    "def main():\n",
+    "    #plt.style.use('ggplot')\n",
+    "    plt.style.use('seaborn-deep')\n",
+    "    # choose style https://matplotlib.org/3.1.0/gallery/style_sheets/style_sheets_reference.html\n",
+    "    # Read from pickle\n",
+    "    pfile = \"./results/result.p\"\n",
+    "    # TODO preprocess data\n",
+    "    #if len(sys.argv) > 1:\n",
+    "        # first arg is filename\n",
+    "    #    pfile = sys.argv[1]\n",
+    "    result = pickle.load(open(pfile, \"rb\"))\n",
+    "    print(\"Open \" + pfile)\n",
+    "    #Printer(result)\n",
+    "    #Printer(result, the_proj=\"backprop\", the_config=\"omp-offload\")\n",
+    "    \n",
+    "    ResultHelper.preprocessing(result)\n",
+    "    #StackChartPrinter.plot(result, \"backprop\")\n",
+    "    OffloadVS1DNormPrinter.plot(result) \n",
+    "    ColumnChartPrinter.plot(result)\n",
+    "    projs = ResultHelper.getProjs(result)\n",
+    "    for p in projs:\n",
+    "        StackChartPrinter.plot(result, p)\n",
+    "\n",
+    "\n",
+    "if __name__ == \"__main__\":\n",
+    "    main()\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

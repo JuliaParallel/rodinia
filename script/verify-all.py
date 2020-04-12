@@ -7,10 +7,15 @@ import time
 import datetime
 import sys
 import pickle
+import copy
+
 import nvprof_parser
 import libtarget_parser
 from dataTy import dataTy
 from dataTy import Output
+
+class Config:
+    dry_run = False
 
 class Opt:
     # Not working need to wrap to command
@@ -18,7 +23,7 @@ class Opt:
     test_count = 3
     prof = True
     def __init__(self):
-        self.env = os.environ
+        self.env = copy.deepcopy(os.environ)
         self.offload = False
         self.bulk = False
         self.at = False
@@ -26,26 +31,25 @@ class Opt:
         self.clean_cmd = "make clean".split()
         self.make_cmd = "make".split()
         self.reg_run_cmd = "./run".split()
-        self.large_run_cmd = "./run-large".split()
         self.verify_cmd = "./verify".split()
         self.timer_prefix = "/usr/bin/time -o .time -f %e".split()
         self.nvprof_prefix = "nvprof --profile-child-processes".split()
         self.cuda = False
-        self.has_large = False
 
 class Test:
     def __init__(self, name, path, opt):
         self.name = name
         self.root = path
         self.opt = opt
-        # check if there is large-run
     def run (self, projs):
-        #fprint(self.name)
+        print(self.name)
+
         # init result
         self.result = {}
         Result[self.name] = self.result
         for proj in projs:
             os.chdir(self.root)
+            print(proj)
             # Real run
             output = self.runOnProj(proj)
 
@@ -53,33 +57,11 @@ class Test:
 
             # Print output
             proj_name = proj
-            """
-            if self.opt.has_large == True:
-                proj_name += "L"
-            fprint(proj_name, end=',')
-            if output.CE:
-                fprint("CE", end=',')
-            elif output.RE:
-                fprint("RE", end=',')
-            elif output.TL:
-                fprint("TL", end=',')
-            else:
-                fprint("Pass", end=',')
-            for t in output.times:
-                fprint(str(t), end=',')
-            fprint("")
-            """
-
-            # print break down to file
 
     def runOnProj(self, proj):
         output = Output()
         os.chdir(proj)
-        if (os.path.exists("run-large")):
-            self.opt.has_large = True
-            self.opt.run_cmd = self.opt.large_run_cmd
-        else:
-            self.opt.run_cmd = self.opt.reg_run_cmd
+        self.opt.run_cmd = self.opt.reg_run_cmd
 
         #  TODO test verify
 
@@ -98,7 +80,7 @@ class Test:
         for i in range(self.opt.test_count):
             ret = self.runWithTimer(output)
             if ret != 0:
-                print("error ret")
+                print("(!) Error occured")
                 return output
 
         if self.opt.prof:
@@ -113,6 +95,9 @@ class Test:
     def runWithTimer(self, output):
         time.sleep(1)
         time_cmd = self.opt.timer_prefix + self.opt.run_cmd
+        if Config.dry_run:
+            print(time_cmd)
+            return 0
         try:
             CP = subprocess.run(time_cmd, capture_output=True, timeout=self.opt.timeout, env=self.opt.env)
         except subprocess.TimeoutExpired:
@@ -129,6 +114,9 @@ class Test:
         else:
             env = self.opt.env
             env["Perf"] = "1"
+        if Config.dry_run:
+            print(prof_cmd)
+            return 0
         try:
             CP = subprocess.run(prof_cmd, capture_output=True, timeout=self.opt.timeout, env=env)
         except subprocess.TimeoutExpired:
@@ -140,12 +128,16 @@ class Test:
 
         # Process result
         result = CP.stderr.decode("utf-8")
+        # todo abstract cuda opt
         if self.opt.cuda:
             nvprof_parser.parse(output, result)
         else:
             libtarget_parser.parse(output, result)
         return 0
     def checkRet(self, CP, output, getTime=False, isProf=False):
+        # Store result
+        output.stdouts += CP.stdout.decode("utf-8")
+        output.stderrs += CP.stderr.decode("utf-8")
         if CP.returncode != 0 :
             output.RE = True
             return -1
@@ -198,8 +190,7 @@ def run_cuda():
 def run_1d():
     opt6 = Opt()
     opt6.env["OFFLOAD"] = "1"
-    opt6.env["RUN1D"] = "1"
-    opt6.reg_run_cmd = "./run1d".split()
+    opt6.env["RUN_1D"] = "1"
     T6 = Test("omp-offload-1d", os.path.join(rodinia_root, "openmp"), opt6)
     T6.run(projects)
 
@@ -209,13 +200,17 @@ os.chdir(rodinia_root)
 
 projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
 #projects = ["backprop", "kmeans",  "pathfinder"]
+#projects = ["myocyte"]
+#projects = ["pathfinder"]
 #projects = ["backprop"]
+
+#Config.dry_run = True
+#Opt.prof = False
+os.environ["RUN_LARGE"] = "1"
 
 # Final result
 Result = {}
-#FIXME run-large is not imle
 Opt.test_count = 1
-#Opt.prof = False
 #run_cpu()
 #run_cuda()
 run_omp()

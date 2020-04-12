@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 class dataTy:
     def __init__(self):
         self.Name = ""
@@ -15,9 +16,11 @@ class Output:
         self.RE = False
         self.TL = False
         self.Failed=False
+        # output
+        self.stdouts=""
+        self.stderrs=""
         # Perf
         self.times = []
-
         # dataTy dir
         self.data = {}
         # stderr of profiling mode
@@ -55,6 +58,48 @@ class ResultHelper:
             sum += f
             n += 1
         return sum/n
+    def hasError(output):
+        if output.CE:
+            return True
+        if output.RE:
+            return True
+        if output.TL:
+            return True
+        if output.Failed:
+            return True
+        return False
 
-
-
+    def preprocessing(result):
+        # Remove data if the result is error
+        for config in result:
+            proj_out = result[config]
+            for proj in proj_out:
+                if ResultHelper.hasError(proj_out[proj]) == True:
+                    del proj_out[proj]
+                    print(config + "-" + proj + " has error, removed")
+        # Substract runtime with others
+        for config in result:
+            proj_out = result[config]
+            for proj in proj_out:
+                data = proj_out[proj].data
+                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr"]
+                get = data.get("Runtime")
+                sumup = float(get.Value)
+                for m in member:
+                    sumup -= float(data[m].Value)
+                if sumup < 0:
+                    sumup = 0
+                data["Runtime"].Value = str(sumup)
+        # Gen other
+        for config in result:
+            proj_out = result[config]
+            for proj in proj_out:
+                data = proj_out[proj].data
+                member = ["Kernel", "H2DTransfer", "D2HTransfer", "UpdatePtr", "Runtime"]
+                sumup = proj_out[proj].prof_time
+                for m in member:
+                    sumup -= float(data[m].Value)
+                if sumup < 0:
+                    sumup = 0
+                d = dataTy("Other", 1, str(sumup))
+                data["Other"] = d
