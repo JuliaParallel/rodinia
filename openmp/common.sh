@@ -6,18 +6,19 @@ else
     exe=$EXE_1D
 fi
 
-if [ -z "${OMP_OFFLOAD}" ]; then
-    if [ -z "${RUN_LARGE}" ]; then
-        args=$EXE_ARG
-    else
-        args=$EXE_LARGE_ARG
-    fi
-else
-    # Run omp
-    if [ -z "${RUN_LARGE}" ]; then
-        args=$EXE_OFFLOAD_ARG
-    else
-        args=$EXE_LARGE_OFFLOAD_ARG
+# FIXME seperate enable var and arg var
+# FIXME I donot understand previous line
+args=$EXE_ARG
+
+if [ ! -z "${OFFLOAD}" ]; then
+    if [ ! -z "${EXE_OFFLOAD_ARG}" ]; then args=$EXE_OFFLOAD_ARG; fi
+fi
+
+if [ ! -z "${RUN_LARGE}" ]; then
+    if [ ! -z "${EXE_LARGE_ARG}" ]; then args=$EXE_LARGE_ARG; fi
+
+    if [ ! -z "${OFFLOAD}" ]; then
+        if [ ! -z "${EXE_LARGE_OFFLOAD_ARG}" ]; then args=$EXE_LARGE_OFFLOAD_ARG; fi
     fi
 fi
 
