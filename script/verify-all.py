@@ -21,7 +21,7 @@ class Opt:
     # Not working need to wrap to command
     #timer_suffix = "&> /dev/null".split()
     test_count = 3
-    prof = True
+    enalbeProfile = True
     def __init__(self):
         self.env = copy.deepcopy(os.environ)
         self.offload = False
@@ -83,10 +83,11 @@ class Test:
                 print("(!) Error occured")
                 return output
 
-        if self.opt.prof:
-            ret = self.runWithProfiler(output)
-            if ret != 0:
-                return output
+        for i in range(self.opt.test_count):
+            if self.opt.enalbeProfile:
+                ret = self.runWithProfiler(output)
+                if ret != 0:
+                    return output
 
         # make clean
         subprocess.run(self.opt.clean_cmd, capture_output=True)
@@ -113,7 +114,7 @@ class Test:
             prof_cmd = self.opt.nvprof_prefix + self.opt.run_cmd
         else:
             env = self.opt.env
-            env["Perf"] = "1"
+            env["PERF"] = "1"
         if Config.dry_run:
             print(prof_cmd)
             return 0
@@ -146,7 +147,7 @@ class Test:
                 f = open(".time", "r")
                 f = float(f.read())
                 if isProf:
-                    output.prof_time = f
+                    output.prof_times.append(f)
                 else:
                     output.times.append(f)
                 os.remove(".time")
@@ -166,11 +167,27 @@ def run_omp():
     T2 = Test("omp-offload", os.path.join(rodinia_root, "openmp"), opt2)
     T2.run(projects)
 
+def run_dce():
+    opt_dce = Opt()
+    opt_dce.env["OFFLOAD"] = "1"
+    # Compile DCE with DC
+    opt_dce.env["DC"] = "1"
+    T = Test("omp-dce", os.path.join(rodinia_root, "openmp"), opt_dce)
+    T.run(projects)
+
 def run_bulk():
     opt3 = Opt()
     opt3.env["OFFLOAD"] = "1"
     opt3.env["OMP_BULK"] = "1"
     T3 = Test("omp-offload-bulk", os.path.join(rodinia_root, "openmp"), opt3)
+    T3.run(projects)
+
+def run_dce_bulk():
+    opt3 = Opt()
+    opt3.env["OFFLOAD"] = "1"
+    opt3.env["OMP_BULK"] = "1"
+    opt3.env["DC"] = "1"
+    T3 = Test("dce-bulk", os.path.join(rodinia_root, "openmp"), opt3)
     T3.run(projects)
 
 def run_at():
@@ -179,6 +196,15 @@ def run_at():
     opt4.env["OMP_BULK"] = "1"
     opt4.env["OMP_AT"] = "1"
     T4 = Test("omp-offload-at", os.path.join(rodinia_root, "openmp"), opt4)
+    T4.run(projects)
+
+def run_dce_at():
+    opt4 = Opt()
+    opt4.env["OFFLOAD"] = "1"
+    opt4.env["OMP_BULK"] = "1"
+    opt4.env["OMP_AT"] = "1"
+    opt4.env["DC"] = "1"
+    T4 = Test("dce-at", os.path.join(rodinia_root, "openmp"), opt4)
     T4.run(projects)
 
 def run_cuda():
@@ -198,26 +224,31 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 rodinia_root = os.path.dirname(script_dir)
 os.chdir(rodinia_root)
 
-projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
+#projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
+projects = ["backprop", "pathfinder"]
 #projects = ["backprop", "kmeans",  "pathfinder"]
 #projects = ["myocyte"]
 #projects = ["pathfinder"]
 #projects = ["backprop"]
 
 #Config.dry_run = True
-#Opt.prof = False
-os.environ["RUN_LARGE"] = "1"
+#Opt.enalbeProfile = False
+#os.environ["RUN_LARGE"] = "1"
 
 # Final result
 Result = {}
 Opt.test_count = 1
+print("Start running test with test count: {0}".format(Opt.test_count))
+print("Projects: {0}".format(', '.join(projects)))
 #run_cpu()
 #run_cuda()
-run_omp()
-run_1d()
-run_bulk()
-run_at()
-
+#run_omp()
+#run_1d()
+#run_bulk()
+#run_at()
+#run_dce()
+run_dce_bulk()
+run_dce_at()
 
 # save result to pickle
 os.chdir(script_dir)
