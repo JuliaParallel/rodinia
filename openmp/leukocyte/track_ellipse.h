@@ -6,8 +6,9 @@
 
 extern void ellipsetrack(avi_t *video, double *xc0, double *yc0,
                          int num_centers, int R, int Np, int Nf);
-extern MAT *MGVF(MAT *I, double vx, double vy);
+extern MAT *MGVF(MAT *I, double vx, double vy, MAT *IT);
 extern void heaviside(MAT *H, MAT *z, double v, double e);
+extern void heaviside_single(Real *H, Real z, double v, double e);
 extern void ellipseevolve(MAT *f, double *xc0, double *yc0, double *r0,
                           double *t, int Np, double Er, double Ey);
 extern double sum_m(MAT *matrix);

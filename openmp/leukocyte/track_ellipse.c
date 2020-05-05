@@ -62,6 +62,7 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
 
     // Process each frame
     int frame_num, cell_num;
+    // Temporary image
     for (frame_num = 1; frame_num <= Nf; frame_num++) {
         printf("\rProcessing frame %d / %d", frame_num, Nf);
         fflush(stdout);
@@ -70,6 +71,7 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
         MAT *I = get_frame(video, frame_num, 0, 1);
         int Ih = I->m;
         int Iw = I->n;
+        //MAT *IMGVF = m_get(Ih, Iw);
 
         // Set the current positions equal to the previous positions
         for (i = 0; i < Nc; i++) {
@@ -79,6 +81,7 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
                 r[i][j][frame_num] = r[i][j][frame_num - 1];
             }
         }
+        //MAT *IMGVF = m_get(Ih, Iw);
 
 // Split the work among multiple threads, if OPEN is defined
 #ifdef OPEN
@@ -135,7 +138,8 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
 
             // Compute the motion gradient vector flow (MGVF) edgemaps
             long long MGVF_start_time = get_time();
-            MAT *IMGVF = MGVF(IE, 1, 1);
+            MAT *IMGVF = m_get(Isub->m, Isub->n);
+            MGVF(IE, 1, 1, IMGVF);
             MGVF_time += get_time() - MGVF_start_time;
 
             // Determine the position of the cell in the subimage
@@ -167,8 +171,8 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
             // printf("%d,%f,%f\n", cell_num, xci[cell_num], yci[cell_num]);
 
             // Free temporary memory
-            m_free(IMGVF);
             free(ri);
+            m_free(IMGVF);
         }
 
 #ifdef OUTPUT
@@ -189,6 +193,7 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
         // Output a new line to visually distinguish the output from different
         // frames
         // printf("\n");
+        //m_free(IMGVF);
     }
 
     // Free temporary memory
@@ -209,7 +214,7 @@ void ellipsetrack(avi_t *video, double *xc0, double *yc0, int Nc, int R, int Np,
 }
 
 
-MAT *MGVF(MAT *I, double vx, double vy) {
+MAT *MGVF(MAT *I, double vx, double vy, MAT *IMGVF) {
     /*
     % MGVF calculate the motion gradient vector flow (MGVF)
     %  for the image 'I'
@@ -268,7 +273,6 @@ MAT *MGVF(MAT *I, double vx, double vy) {
     }
 
     // Initialize the output matrix IMGVF with values from I
-    MAT *IMGVF = m_get(m, n);
     for (i = 0; i < m; i++) {
         for (j = 0; j < n; j++) {
             m_set_val(IMGVF, i, j, m_get_val(I, i, j));
@@ -311,6 +315,8 @@ MAT *MGVF(MAT *I, double vx, double vy) {
     // Compute the MGVF
     int iter = 0;
     double mean_diff = 1.0;
+
+#ifndef OMP_OFFLOAD
     while ((iter < iterations) && (mean_diff > converge)) {
 
         // Compute the difference between each pixel and its eight neighbors
@@ -379,9 +385,116 @@ MAT *MGVF(MAT *I, double vx, double vy) {
         // Compute the mean absolute difference between this iteration
         //  and the previous one to check for convergence
         mean_diff = total_diff / (double)(m * n);
-
         iter++;
     }
+#else
+    // FIXME there is a cpu parallel on cell loop
+    /*
+#pragma omp target enter data (always, to: IMGVF.me[:m][:n],\
+        U[:m][:n], D[:m][:n], L[:m][:n], R[:m][:n],\
+        UR[:m][:n], DR[:m][:n], UL[:m][:n], DL[:m][:n],\
+        rowU[:m], rowD[:m], colL[:n], colR, UHe, DHe, LHe, RHe, URHe, DRHe, ULHe, DLHe)
+        */
+    MAT *IMGVF_tmp = m_get(m,n);
+#pragma omp target enter data map(always, to: IMGVF[:1], I[:1], IMGVF_tmp[:1])
+#pragma omp target enter data map(always, to: IMGVF->me[:m], I->me[:m], IMGVF_tmp->me[:m])
+    for (int i = 0; i < m; i++) {
+#pragma omp target enter data map (always, to: IMGVF->me[i][:n] \
+        ,I->me[i][:n], IMGVF_tmp->me[i][:n])
+    }
+    double total_diff = 0.0;
+    long limit = (m) * (n);
+    while ((iter < iterations) && (mean_diff > converge)) {
+        total_diff = 0;
+#pragma omp target teams distribute parallel for map(always, tofrom:total_diff) map(always, to: iter)
+        for (long idx = 0; idx < limit; idx++) {
+            // swap array with iter
+            MAT *MATsrc, *MATdst;
+            if (iter & 1) {
+                MATsrc = IMGVF_tmp;
+                MATdst = IMGVF;
+            } else {
+                MATsrc = IMGVF;
+                MATdst = IMGVF_tmp;
+            }
+
+            int i = idx / n;
+            int j = idx % n;
+
+            // Compute the difference between each pixel and its eight neighbors
+            double subtrahend = m_get_val(MATsrc, i, j);
+            int rowU = (i == 0) ? 0 : i - 1;
+            int rowD = (i == m - 1) ? m - 1 : i + 1;
+            int colL = (j == 0) ? 0 : j - 1;
+            int colR = (j == n - 1) ? n - 1 : j + 1;
+            // row could be less
+            Real U = m_get_val(MATsrc, rowU, j) - subtrahend;
+            Real D = m_get_val(MATsrc, rowD, j) - subtrahend;
+            Real L = m_get_val(MATsrc, i, colL) - subtrahend;
+            Real R = m_get_val(MATsrc, i, colR) - subtrahend;
+            Real UR = m_get_val(MATsrc, rowU, colR) - subtrahend;
+            Real DR = m_get_val(MATsrc, rowD, colR) - subtrahend;
+            Real UL = m_get_val(MATsrc, rowU, colL) - subtrahend;
+            Real DL = m_get_val(MATsrc, rowD, colL) - subtrahend;
+
+            // Compute the regularized heaviside version of the matrices above
+
+            Real UHe, DHe, LHe, RHe, URHe, DRHe, ULHe, DLHe;
+            heaviside_single(&UHe, U, -vy, epsilon);
+            heaviside_single(&DHe, D, vy, epsilon);
+            heaviside_single(&LHe, L, -vx, epsilon);
+            heaviside_single(&RHe, R, vx, epsilon);
+            heaviside_single(&URHe, UR, vx - vy, epsilon);
+            heaviside_single(&DRHe, DR, vx + vy, epsilon);
+            heaviside_single(&ULHe, UL, -vx - vy, epsilon);
+            heaviside_single(&DLHe, DL, vy - vx, epsilon);
+
+            // Update the IMGVF matrix
+            // Store the old value so we can compute the difference later
+            double old_val = m_get_val(MATsrc, i, j);
+
+            // Compute IMGVF += (mu / lambda)(UHe .*U  + DHe .*D  + LHe .*L
+            // + RHe .*R +
+            //                                URHe.*UR + DRHe.*DR + ULHe.*UL
+            //                                + DLHe.*DL);
+            double vU = UHe * U;
+            double vD = DHe * D;
+            double vL = LHe * L;
+            double vR = RHe * R;
+            double vUR = URHe * UR;
+            double vDR = DRHe * DR;
+            double vUL = ULHe * UL;
+            double vDL = DLHe * DL;
+            double vHe = old_val +
+                         mu_over_lambda *
+                             (vU + vD + vL + vR + vUR + vDR + vUL + vDL);
+
+            // Compute IMGVF -= (1 / lambda)(I .* (IMGVF - I))
+            double vI = m_get_val(I, i, j);
+            double new_val = vHe - (one_over_lambda * vI * (vHe - vI));
+
+            // Keep track of the absolute value of the differences
+            //  between this iteration and the previous one
+            double diff;
+            if (new_val > old_val) {
+                diff = new_val - old_val;
+            } else {
+                diff = old_val - new_val;
+            }
+#pragma omp atomic
+            total_diff += diff;
+            m_set_val(MATdst, i, j, new_val);
+        }
+        // Compute the mean absolute difference between this iteration
+        //  and the previous one to check for convergence
+        mean_diff = total_diff / (double)(m * n);
+        iter++;
+    }
+    for (int i = 0; i < m; i++) {
+#pragma omp target exit data map (always, from: IMGVF->me[i][:n] \
+        ,I->me[i][:n], IMGVF_tmp->me[i][:n])
+    }
+#endif
 
     // Free memory
     free(rowU);
@@ -408,6 +521,18 @@ MAT *MGVF(MAT *I, double vx, double vy) {
     return IMGVF;
 }
 
+#pragma omp declare target
+void heaviside_single(Real *H, Real z, double v, double e) {
+    // Precompute constants to avoid division in the for loops below
+    double one_over_pi = 1.0 / PI;
+    double one_over_e = 1.0 / e;
+
+    // Compute H = (1 / pi) * atan((z * v) / e) + 0.5
+    double z_val = z * v;
+    double H_val = one_over_pi * atan(z_val * one_over_e) + 0.5;
+    *H = H_val;
+}
+#pragma omp end declare target
 
 // Regularized version of the Heaviside step function,
 //  parameterized by a small positive number 'e'
