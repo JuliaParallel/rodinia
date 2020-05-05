@@ -4,9 +4,9 @@ set -e
 #./pathfinder 100000 100
 
 # define var
-EXE=pathfinder
+EXE="pathfinder"
 EXE_ARG="100000 100"
-EXE_1D=pathfinder1d
+EXE_1D="pathfinder1d"
 EXE_LARGE_ARG="150000 10000"
 
 source ../common.sh
