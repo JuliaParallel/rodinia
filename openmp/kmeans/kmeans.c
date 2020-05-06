@@ -89,8 +89,6 @@
 
 #include "kmeans.h"
 
-extern double wtime(void);
-
 /*---< usage() >------------------------------------------------------------*/
 void usage(char *argv0) {
     char *help =

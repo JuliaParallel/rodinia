@@ -81,8 +81,6 @@
 #define FLT_MAX 3.40282347e+38
 #endif
 
-extern double wtime(void);
-
 int find_nearest_point(float *pt,                  /* [nfeatures] */
                        int nfeatures, float *pts, /* [npts*nfeatures] */
                        int npts) {
