@@ -1285,6 +1285,7 @@ int main(int argc, char **argv) {
 
     delete stream;
 
+#ifdef PROFILE
     printf("time pgain = %lf\n", time_gain);
     printf("time pgain_dist = %lf\n", time_gain_dist);
     printf("time pgain_init = %lf\n", time_gain_init);
@@ -1292,6 +1293,7 @@ int main(int argc, char **argv) {
     printf("time pspeedy = %lf\n", time_speedy);
     printf("time pshuffle = %lf\n", time_shuffle);
     printf("time localSearch = %lf\n", time_local_search);
+#endif
     printf("loops=%d\n", d);
 #ifdef ENABLE_PARSEC_HOOKS
     __parsec_bench_end();
