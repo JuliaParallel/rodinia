@@ -1,6 +1,7 @@
 #!/usr/bin/env/env bash
 
 if [ -z "${RUN_1D}" ]; then
+    echo "Runing 1D version"
     exe=$EXE
 else
     exe=$EXE_1D

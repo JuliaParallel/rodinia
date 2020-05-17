@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-set -ue
+set -e
 
-./streamcluster 10 20 256 65536 65536 1000 none output.txt 4
+EXE=streamcluster
+EXE_ARG="10 20 256 65536 65536 1000 none output.txt 4"
+
+EXE_1D=streamcluster1d
+
+source ../common.sh

@@ -1,6 +1,6 @@
 include ../common.mk
 
-EXE  = streamcluster
+EXE  = streamcluster streamcluster1d
 
 .PHONY: all
 all: $(EXE)
