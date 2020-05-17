@@ -453,7 +453,12 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid,
 
 // OpenMP parallelization
 //	#pragma omp parallel for
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(always, to: switch_membership[k1:(k2-k1)], work_mem[:stride * (nproc + 1)], center_table[k1:k2-k1])
+#pragma omp target teams distribute parallel for reduction(+ : cost_of_opening_x)
+#else
 #pragma omp parallel for reduction(+ : cost_of_opening_x)
+#endif
     for (i = k1; i < k2; i++) {
         float x_cost =
             dist(points->p[i], points->p[x], points->dim) * points->p[i].weight;
@@ -476,9 +481,15 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid,
             // would save z by closing; now we have to subtract from the savings
             // the extra cost of reassigning that median and its members
             int assign = points->p[i].assign;
+#ifdef OMP_OFFLOAD
+#pragma omp atomic
+#endif
             lower[center_table[assign]] += current_cost - x_cost;
         }
     }
+#ifdef OMP_OFFLOAD
+#pragma omp target exit data map(always, from: work_mem[:stride * (nproc + 1)])
+#endif
 
 #ifdef ENABLE_THREADS
     pthread_barrier_wait(barrier);
@@ -541,7 +552,12 @@ double pgain(long x, Points *points, double z, long int *numcenters, int pid,
 
     if (gl_cost_of_opening_x < 0) {
 //  we'd save money by opening x; we'll do it
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(always, to: work_mem[:stride * ( nproc + 1)])
+#pragma omp target teams distribute parallel for
+#else
 #pragma omp parallel for
+#endif
         for (int i = k1; i < k2; i++) {
             bool close_center = gl_lower[center_table[points->p[i].assign]] > 0;
             if (switch_membership[i] || close_center) {
@@ -849,6 +865,16 @@ float pkmedian(Points *points, long kmin, long kmax, long *kfinal, int pid,
     pthread_barrier_wait(barrier);
 #endif
 
+#ifdef OMP_OFFLOAD
+#pragma omp target enter data map(always, to: points[:1])
+#pragma omp target enter data map(always, to: points->p[:points->num])
+    for (int i = 0; i < points->num; i++) {
+#pragma omp target enter data map(always, to: points->p[i].coord[:points->dim])
+    }
+// TODO Map the bulk
+//#pragma omp target enter data map(to: points->p[0].coord[:points->num*points->dim])
+//#pragma omp target enter data map(to: points->p[i].coord[:1])
+#endif
     while (1) {
         d++;
 #ifdef PRINTINFO
@@ -904,6 +930,9 @@ float pkmedian(Points *points, long kmin, long kmax, long *kfinal, int pid,
         pthread_barrier_wait(barrier);
 #endif
     }
+#ifdef OMP_OFFLOAD
+#pragma omp target exit data map(always, from: points->p[:points->num])
+#endif
 
     // clean up...
     if (pid == 0) {
