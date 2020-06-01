@@ -14,49 +14,56 @@ import libtarget_parser
 from dataTy import dataTy
 from dataTy import Output
 
+# global config
 class Config:
     dry_run = False
-
-class Opt:
-    # Not working need to wrap to command
-    #timer_suffix = "&> /dev/null".split()
-    test_count = 3
+    verifying = False
     enalbeProfile = True
+    test_count = 3
+    test_delay = 0.5
+    _run_cmd = "./run".split()
+    _verify_cmd = "./verify".split()
+    _clean_cmd = "make clean".split()
+    _make_cmd = "make".split()
+
+# Indivial option
+class Opt:
     def __init__(self):
         self.env = copy.deepcopy(os.environ)
-        self.offload = False
-        self.bulk = False
-        self.at = False
-        self.timeout = 1000
-        self.clean_cmd = "make clean".split()
-        self.make_cmd = "make".split()
-        self.reg_run_cmd = "./run".split()
-        self.verify_cmd = "./verify".split()
-        self.timer_prefix = "/usr/bin/time -o .time -f %e".split()
-        self.nvprof_prefix = "nvprof --profile-child-processes".split()
+        self.timeout = 1000 # (s) ??
+        self.reg_run_cmd = Config._run_cmd
+        self.verify_cmd = Config._verify_cmd
+        self.make_cmd = Config._make_cmd
+        self.clean_cmd = Config._clean_cmd
+
+        self.timer_out = ".time_out"
+        # %p is the pid
+        self.nvprof_out_prefix = ".nvprof_out"
+        self.nvprof_out = self.nvprof_out_prefix + "%p"
+
+        self.timer_prefix = ("/usr/bin/time -o " + self.timer_out + " -f %e").split()
+        self.nvprof_prefix = ("nvprof -u s --log-file " + self.nvprof_out + " --profile-child-processes").split()
+
         self.cuda = False
 
 class Test:
     def __init__(self, name, path, opt):
-        self.name = name
+        self.name = name  # config name
         self.root = path
         self.opt = opt
-    def run (self, projs):
+    def run (self, projs, Result):
         print(self.name)
 
         # init result
         self.result = {}
-        Result[self.name] = self.result
         for proj in projs:
             os.chdir(self.root)
-            print(proj)
             # Real run
             output = self.runOnProj(proj)
-
+            print("* {0} {1}".format(proj, "Failed" if output.HasError() else ""))
             self.result[proj] = output
 
-            # Print output
-            proj_name = proj
+        Result[self.name] = self.result
 
     def runOnProj(self, proj):
         output = Output()
@@ -77,24 +84,25 @@ class Test:
 
         # Run/verify w/ timeout
         # Profiling and Get data
-        for i in range(self.opt.test_count):
+        for i in range(Config.test_count):
             ret = self.runWithTimer(output)
-            if ret != 0:
-                print("(!) Error occured")
+            if output.HasError(ret):
                 return output
-
-        for i in range(self.opt.test_count):
-            if self.opt.enalbeProfile:
+            pass
+        if Config.enalbeProfile == True:
+            for i in range(Config.test_count):
                 ret = self.runWithProfiler(output)
-                if ret != 0:
+                if output.HasError(ret):
                     return output
-
+                ret = self.runWithNvprof(output)
+                if output.HasError(ret):
+                    return output
         # make clean
         subprocess.run(self.opt.clean_cmd, capture_output=True)
         return output
 
     def runWithTimer(self, output):
-        time.sleep(1)
+        time.sleep(Config.test_delay)
         time_cmd = self.opt.timer_prefix + self.opt.run_cmd
         if Config.dry_run:
             print(time_cmd)
@@ -104,17 +112,44 @@ class Test:
         except subprocess.TimeoutExpired:
             output.TL = True
             return -1
-        if self.checkRet(CP, output, True) != 0:
+        ret, timing = self.checkRet(CP, output, True)
+        if ret != 0:
             return -1
+        output.times.append(timing)
         return 0
+    def runWithNvprof(self, output):
+        time.sleep(Config.test_delay)
+        cmd = self.opt.nvprof_prefix + self.opt.run_cmd
+        if Config.dry_run:
+            print(cmd)
+            return 0
+        try:
+            CP = subprocess.run(cmd, capture_output=True, timeout=self.opt.timeout, env=self.opt.env)
+        except subprocess.TimeoutExpired:
+            output.TL = True
+            return -1
+        ret = self.checkRet(CP, output, False)
+        if ret != 0:
+            return -1
+        # Process output in multiple self.opt.nvprof_out
+        out_files = [ f for f in os.listdir(os.getcwd()) if self.opt.nvprof_out_prefix in f]
+        for f in out_files:
+            with open(f, 'r') as out:
+                nvprof_result = out.read()
+                ret = nvprof_parser.parse(output, nvprof_result)
+                if ret == 0:
+                    for f in out_files:
+                        os.remove(f)
+                    return 0
+        for f in out_files:
+            os.remove(f)
+        return -1
+
     def runWithProfiler(self, output):
-        time.sleep(1)
+        time.sleep(Config.test_delay)
         prof_cmd = self.opt.timer_prefix + self.opt.run_cmd
-        if self.opt.cuda:
-            prof_cmd = self.opt.nvprof_prefix + self.opt.run_cmd
-        else:
-            env = self.opt.env
-            env["PERF"] = "1"
+        env = copy.deepcopy(self.opt.env)
+        env["PERF"] = "1"
         if Config.dry_run:
             print(prof_cmd)
             return 0
@@ -123,80 +158,66 @@ class Test:
         except subprocess.TimeoutExpired:
             output.TL = True
             return -1
-
-        if self.checkRet(CP, output, True, True) != 0:
+        ret, timing = self.checkRet(CP, output, True)
+        if ret != 0:
             return -1
-
-        # Process result
-        result = CP.stderr.decode("utf-8")
-        # todo abstract cuda opt
-        if self.opt.cuda:
-            nvprof_parser.parse(output, result)
-        else:
-            libtarget_parser.parse(output, result)
+        output.prof_times.append(timing)
+        # Process output
+        libtarget_parser.parse(output, CP.stderr.decode("utf-8"))
         return 0
-    def checkRet(self, CP, output, getTime=False, isProf=False):
-        # Store result
+    def checkRet(self, CP, output, getTime=False):
+        # Store output
         output.stdouts += CP.stdout.decode("utf-8")
         output.stderrs += CP.stderr.decode("utf-8")
         if CP.returncode != 0 :
             output.RE = True
+            print(CP.returncode)
+            print(CP.stdout.decode("utf-8"))
+            print(CP.stderr.decode("utf-8"))
             return -1
         if getTime:
-            if os.path.exists(".time"):
-                f = open(".time", "r")
-                f = float(f.read())
-                if isProf:
-                    output.prof_times.append(f)
-                else:
-                    output.times.append(f)
-                os.remove(".time")
-                return 0
-            else:
-                print("No .time gen")
-                return -1
+            with open(self.opt.timer_out, 'r') as out:
+                timing = float(out.read())
+                os.remove(self.opt.timer_out)
+                return 0, timing
+            return -1, 0
+        return 0
 
 def run_cpu():
     opt1 = Opt()
-    T1 = Test("omp", os.path.join(rodinia_root, "openmp"), opt1)
-    T1.run(projects)
+    return Test("omp", os.path.join(rodinia_root, "openmp"), opt1)
 
 def run_omp():
     opt2 = Opt()
     opt2.env["OFFLOAD"] = "1"
-    T2 = Test("omp-offload", os.path.join(rodinia_root, "openmp"), opt2)
-    T2.run(projects)
+    return Test("omp-offload", os.path.join(rodinia_root, "openmp"), opt2)
 
 def run_dce():
     opt_dce = Opt()
     opt_dce.env["OFFLOAD"] = "1"
     # Compile DCE with DC
     opt_dce.env["DC"] = "1"
-    T = Test("omp-dce", os.path.join(rodinia_root, "openmp"), opt_dce)
-    T.run(projects)
+    return Test("omp-dce", os.path.join(rodinia_root, "openmp"), opt_dce)
 
 def run_bulk():
     opt3 = Opt()
     opt3.env["OFFLOAD"] = "1"
     opt3.env["OMP_BULK"] = "1"
-    T3 = Test("omp-offload-bulk", os.path.join(rodinia_root, "openmp"), opt3)
-    T3.run(projects)
+    return Test("omp-offload-bulk", os.path.join(rodinia_root, "openmp"), opt3)
 
 def run_dce_bulk():
     opt3 = Opt()
     opt3.env["OFFLOAD"] = "1"
     opt3.env["OMP_BULK"] = "1"
     opt3.env["DC"] = "1"
-    T3 = Test("dce-bulk", os.path.join(rodinia_root, "openmp"), opt3)
-    T3.run(projects)
+    return Test("dce-bulk", os.path.join(rodinia_root, "openmp"), opt3)
 
 def run_at():
     opt4 = Opt()
     opt4.env["OFFLOAD"] = "1"
     opt4.env["OMP_BULK"] = "1"
     opt4.env["OMP_AT"] = "1"
-    T4 = Test("omp-offload-at", os.path.join(rodinia_root, "openmp"), opt4)
-    T4.run(projects)
+    return Test("omp-offload-at", os.path.join(rodinia_root, "openmp"), opt4)
 
 def run_dce_at():
     opt4 = Opt()
@@ -204,60 +225,83 @@ def run_dce_at():
     opt4.env["OMP_BULK"] = "1"
     opt4.env["OMP_AT"] = "1"
     opt4.env["DC"] = "1"
-    T4 = Test("dce-at", os.path.join(rodinia_root, "openmp"), opt4)
-    T4.run(projects)
+    return Test("dce-at", os.path.join(rodinia_root, "openmp"), opt4)
 
 def run_cuda():
     opt5 = Opt()
     opt5.cuda = True
-    T5 = Test("cuda", os.path.join(rodinia_root, "cuda"), opt5)
-    T5.run(projects)
+    return Test("cuda", os.path.join(rodinia_root, "cuda"), opt5)
 
 def run_1d():
     opt6 = Opt()
     opt6.env["OFFLOAD"] = "1"
     opt6.env["RUN_1D"] = "1"
-    T6 = Test("omp-offload-1d", os.path.join(rodinia_root, "openmp"), opt6)
-    T6.run(projects)
+    return Test("omp-offload-1d", os.path.join(rodinia_root, "openmp"), opt6)
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-rodinia_root = os.path.dirname(script_dir)
-os.chdir(rodinia_root)
+def Setup():
+    Tests = []
+    # Options
+    #Config.dry_run = True
+    #Config.verifying = 1
 
-#projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
-projects = ["backprop", "pathfinder"]
-#projects = ["backprop", "kmeans",  "pathfinder"]
-#projects = ["myocyte"]
-#projects = ["pathfinder"]
-#projects = ["backprop"]
+    projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
+    #projects = ["backprop", "myocyte", "pathfinder"]
+    #projects = ["backprop", "pathfinder"]
+    #projects = ["kmeans", "myocyte"]
+    #projects = ["backprop", "kmeans",  "pathfinder"]
+    #projects = ["myocyte"]
+    #projects = ["pathfinder"]
+    #projects = ["backprop"]
 
-#Config.dry_run = True
-#Opt.enalbeProfile = False
-#os.environ["RUN_LARGE"] = "1"
+    # Final result
+    Config.test_count = 1
+    #Tests.append(run_cpu)
+    #Tests.append(run_cuda)
+    Tests.append(run_omp)
+    Tests.append(run_1d)
+    Tests.append(run_bulk)
+    Tests.append(run_at)
+    #Tests.append(run_dce)
+    #Tests.append(run_dce_bulk)
+    #Tests.append(run_dce_at)
+    return Tests , projects
 
-# Final result
-Result = {}
-Opt.test_count = 1
-print("Start running test with test count: {0}".format(Opt.test_count))
-print("Projects: {0}".format(', '.join(projects)))
-#run_cpu()
-#run_cuda()
-#run_omp()
-#run_1d()
-#run_bulk()
-#run_at()
-#run_dce()
-run_dce_bulk()
-run_dce_at()
+def Pickle(Result):
+    # save result to pickle
+    os.chdir(script_dir)
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%d%m_%H%M")
+    pickle_file = "./results/result_" + timestamp + ".p"
+    with open(pickle_file, "wb") as f:
+        pickle.dump(Result, f)
+    # save as last result
+    pickle_file = "./results/result.p"
+    with open(pickle_file, "wb") as f:
+        pickle.dump(Result, f)
 
-# save result to pickle
-os.chdir(script_dir)
-now = datetime.datetime.now()
-timestamp = now.strftime("%d%m_%H%M")
-pickle_file = "./results/result_" + timestamp + ".p"
-with open(pickle_file, "wb") as f:
-    pickle.dump(Result, f)
-# save as last result
-pickle_file = "./results/result.p"
-with open(pickle_file, "wb") as f:
-    pickle.dump(Result, f)
+if __name__ == "__main__":
+    # Moving
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    rodinia_root = os.path.dirname(script_dir)
+    os.chdir(rodinia_root)
+
+    TestGens, projects = Setup()
+    if Config.verifying == True:
+        Config.enalbeProfile = False
+        Config.test_count = 1
+        Config._run_cmd = Config._verify_cmd
+    else:
+        os.environ["RUN_LARGE"] = "1"
+
+    # print info
+    if Config.dry_run == True:
+        print("Dry-run, no data produced")
+    if Config.enalbeProfile == False:
+        print("Start in verify mode")
+    print("Start running test with test count: {0}".format(Config.test_count))
+    print("Projects: {0}".format(', '.join(projects)))
+    Result = {}
+    for TG in TestGens:
+        test = TG()
+        test.run(projects, Result)
+    Pickle(Result)

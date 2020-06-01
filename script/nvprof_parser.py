@@ -1,51 +1,80 @@
 #!/usr/bin/env python3
-
+# TODO Add unify memory
+import math
 import re
+from dataTy import dataTy
 
-def parse(output, result):
-    state=0
+def parse(outputs, result):
+    output = do_parse(result)
+    if len(output) > 0:
+        outputs.logs.append(result)
+        #print("Valid nvprof")
+        outputs.nvprof_datas.append(output)
+        # FIXME add to list
+        return 0
+    #print("Invalid nvprof")
+    return -1
+
+def do_parse(result):
+    state = ""
     kernelIdx=1
+    out = {}
     for line in result.splitlines():
         first = False
-        offset = 0
-        # result.data -> dict
-        if state == 0:
-            # Get "GPU activities:"
-            if line.find("GPU activities:") != -1:
-                state = 1
-                first = True
-        if state == 1:
-            tokens=re.split(" +", line)
-            if first:
-                offset = 2
-            # Get API calls
-            if line.find("API calls") != -1:
-                state = 2
-                first = True
-            elif line.find("CUDA memcpy HtoD") != -1:
-                output.data["H2D.count"] = tokens[3 + offset]
-                output.data["H2D.total"] = tokens[2 + offset]
-            elif line.find("CUDA memcpy DtoH") != -1:
-                output.data["D2H.count"] = tokens[3 + offset]
-                output.data["D2H.total"] = tokens[2 + offset]
-            elif line.find("CUDA memcpy DtoH") != -1:
-                output.data["D2H.count"] = tokens[3 + offset]
-                output.data["D2H.total"] = tokens[2 + offset]
-            elif line.find("(") != -1:
-                output.data["kernel" + str(kernelIdx) + ".count"] = tokens[3 + offset]
-                output.data["kernel" + str(kernelIdx) + ".total"] = tokens[2 + offset]
-                kernelIdx += kernelIdx
-        if state == 2:
-            tokens=re.split(" +", line)
-            if first:
-                offset = 2
-            # list of cared API
-            APIs = ["cudaMalloc", "cudaMemcpy", "cudaFree", "cudaThreadSynchronize"]
-            for API in APIs:
-                if line.find(API) != -1:
-                    output.data[API + ".count"] = tokens[3 + offset]
-                    output.data[API + ".total"] = tokens[2 + offset]
-                    break
-    #for item in output.data:
-    #    print(item, end=' ')
-    #    print(output.data[item])
+        state, line = getState(line, state)
+        tokens=re.split(" +", line)
+        if state == "GPU":
+            if line.find("[CUDA memcpy HtoD]") != -1:
+                name = "GPU-H2D"
+            elif line.find("[CUDA memcpy DtoH]") != -1:
+                name = "GPU-D2H"
+            else: # kernel
+                kernel_name = tokens[7]
+                name = "kernel-" + kernel_name
+            d = dataTy(name, int(tokens[3]), toSec(tokens[2]), toSec(tokens[4]), toSec(tokens[5]), toSec(tokens[6]))
+            out[name] = d
+        elif state == "API":
+            API_name = tokens[7]
+            if API_name[0:2] != "cu":
+                print("Error unknown cuda API: " + API_name)
+            name = "API-" + API_name
+            d = dataTy(name, int(tokens[3]), toSec(tokens[2]), toSec(tokens[4]), toSec(tokens[5]), toSec(tokens[6]))
+            out[name] = d
+    return out
+
+def getState(line, state):
+    section_list = {}
+    section_list["GPU activities:"] = "GPU"
+    section_list["API calls:"] = "API"
+    # TODO unify
+
+    for section in section_list:
+        pos = line.find(section)
+        if pos != -1:
+            #print("Get section \"" + section + "\"")
+            line = line[pos + len(section):]
+            state = section_list[section]
+            return state, line
+    # if not found
+    if line[1] != ' ' or line[2] != ' ':
+        #print("Ignore section \"" + line + "\"")
+        state = ""
+    return state, line
+
+def toSec(string):
+    factor = 1
+    number_end = len(string)
+    if string.find("ms") != -1:
+        number_end = string.find("ms")
+        factor = math.pow(0.1,3)
+    elif string.find("us") != -1:
+        number_end = string.find("us")
+        factor = math.pow(0.1,6)
+    elif string.find("ns") != -1:
+        number_end = string.find("ns")
+        factor = math.pow(0.1,9)
+    elif string.find("s") != -1:
+        number_end = string.find("s")
+        factor = 1
+    t = float(string[0:number_end])
+    return t
