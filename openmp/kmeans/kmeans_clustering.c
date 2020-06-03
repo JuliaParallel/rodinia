@@ -179,7 +179,10 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
 #ifdef OMP_DC
 #pragma omp target enter data map(to: clusters[:nclusters], membership[:npoints], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
     // TODO compare two method
-//#pragma omp target enter data map(to: feature[0][:nfeatures*npoints])
+#if 1
+#pragma omp target enter data map(to: feature[:npoints])
+#pragma omp target enter data map(to: feature[0][:nfeatures*npoints])
+#endif
 #pragma omp target enter data map(to: feature[:npoints][:nfeatures])
 #else
 #pragma omp target enter data map(to: feature[:npoints], clusters[:nclusters], membership[:npoints], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
@@ -194,9 +197,9 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
         delta = 0.0;
 
 #ifdef OMP_OFFLOAD
-#ifdef  OMP_DC
+#ifdef OMP_DC
 #pragma omp target enter data map(to: clusters[:nclusters][:nfeatures],\
-        partial_new_centers[:nthreads][:nclusters][nfeatures],\
+        partial_new_centers[:nthreads][:nclusters][:nfeatures],\
         partial_new_centers_len[:nthreads][:nclusters])
 #else
         for (i = 0; i < nclusters; i++) {
@@ -243,12 +246,11 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
         }
 
 #ifdef OMP_OFFLOAD
-#ifdef  OMP_DC
+#ifdef OMP_DC
 #pragma omp target exit data map(from: clusters[:nclusters][:nfeatures], \
-        partial_new_centers[:nthreads][:nclusters][nfeatures],\
+        partial_new_centers[:nthreads][:nclusters][:nfeatures],\
         partial_new_centers_len[:nthreads][:nclusters])
 #else
-#pragma omp target exit data map(from: clusters[:nclusters], partial_new_centers[:nthreads], partial_new_centers_len[:nthreads])
         for (i = 0; i < nclusters; i++) {
 #pragma omp target exit data map(from: clusters[i][:nfeatures])
         }
@@ -259,7 +261,6 @@ float **kmeans_clustering(float **feature, /* in: [npoints][nfeatures] */
             }
         }
 #endif
-//#pragma omp target exit data map(from: delta)
 #endif
 
         /* let the main thread perform the array reduction */
