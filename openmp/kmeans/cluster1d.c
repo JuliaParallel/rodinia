@@ -83,7 +83,7 @@
 
 
 /*---< cluster() >-----------------------------------------------------------*/
-int cluster1d(int numObjects,     /* number of input objects */
+int cluster(int numObjects,     /* number of input objects */
             int numAttributes,  /* size of attribute of each object */
             float *attributes, /* [numObjects][numAttributes] */
             int nclusters, float threshold, /* in:   */
@@ -98,7 +98,7 @@ int cluster1d(int numObjects,     /* number of input objects */
     srand(7);
     /* perform regular Kmeans */
     tmp_cluster_centres =
-        kmeans_clustering1d(attributes, numAttributes, numObjects, nclusters,
+        kmeans_clustering(attributes, numAttributes, numObjects, nclusters,
                           threshold, membership);
 
     if (*cluster_centres) {

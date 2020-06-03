@@ -112,7 +112,7 @@ __inline float euclid_dist_2(float *pt1, float *pt2, int numdims) {
 }
 
 /*----< kmeans_clustering() >---------------------------------------------*/
-float *kmeans_clustering1d(float *feature, /* in: [npoints*nfeatures] */
+float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
                           int nfeatures, int npoints, int nclusters,
                           float threshold, int *membership) /* out: [npoints] */
 {

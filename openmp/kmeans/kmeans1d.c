@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < nloops; i++) {
 
         cluster_centres = NULL;
-        cluster1d(numObjects, numAttributes,
+        cluster(numObjects, numAttributes,
                 attributes, /* [numObjects][numAttributes] */
                 nclusters, threshold, &cluster_centres);
     }
