@@ -23,14 +23,10 @@ typedef struct {
 
     float *target; /* storage for target vector */
 
-    //float **input_weights;  /* weights from input to hidden layer */
-    //float **hidden_weights; /* weights from hidden to output layer */
     float *input_weights;  /* weights from input to hidden layer */
     float *hidden_weights; /* weights from hidden to output layer */
 
     /*** The next two are for momentum ***/
-    //float **input_prev_weights;  /* previous change on input to hidden wgt */
-    //float **hidden_prev_weights; /* previous change on hidden to output wgt */
     float *input_prev_weights;  /* previous change on input to hidden wgt */
     float *hidden_prev_weights; /* previous change on hidden to output wgt */
 } BPNN;

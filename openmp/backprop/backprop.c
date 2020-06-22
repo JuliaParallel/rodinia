@@ -229,10 +229,15 @@ int n1, n2;
     /*** Set up thresholding unit ***/
     l1[0] = 1.0;
 #ifdef OMP_OFFLOAD
+#ifdef OMP_DC
+#pragma omp target enter data map(always, to: l1[:n1+1], l2[:n2+1],\
+        conn[:n1+1][:n2+1])
+#else
 #pragma omp target enter data map(always, to: l1[:n1+1], l2[:n2+1], conn[:n1+1])
     for (j = 0; j <= n1; j++) {
 #pragma omp target enter data map(always, to: conn[j][:n2+1])
     }
+#endif
 #pragma omp target teams distribute private(k,j)
     // sum no need to reduction
 #else
@@ -306,10 +311,15 @@ int ndelta, nly;
     // momentum = 0.3;
 
 #ifdef OMP_OFFLOAD
+#ifdef OMP_DC
+#pragma omp target enter data map(always, to: delta[:ndelta+1], ly[:nly+1],\
+       oldw[:nly+1][:ndelta+1], w[:nly+1][:ndelta+1])
+#else
 #pragma omp target enter data map(always, to: oldw[:nly+1], w[:nly+1], delta[:ndelta+1], ly[:nly+1])
     for (int k = 0; k <= nly; k++) {
 #pragma omp target enter data map(always, to: oldw[k][:ndelta+1], w[k][:ndelta+1])
     }
+#endif
 #pragma omp target teams distribute private(j, k, new_dw), firstprivate(ndelta, nly)
 #else
     omp_set_num_threads(NUM_THREAD);
@@ -325,10 +335,16 @@ int ndelta, nly;
     }
 
 #ifdef OMP_OFFLOAD
+#ifdef OMP_DC
+#pragma omp target exit data map(always, from: delta[:ndelta+1], ly[:nly+1])
+#pragma omp target exit data map(always, from: w[:nly+1][:ndelta+1])
+#else
 #pragma omp target exit data map(always, from: delta[:ndelta+1], ly[:nly+1])
     for (int k = 0; k <= nly; k++) {
-#pragma omp target exit data map(always, from: oldw[k][:ndelta+1], w[k][:ndelta+1])
+#pragma omp target exit data map(always, from: w[k][:ndelta+1])
+        // oldw is not used later
     }
+#endif
 #endif
 }
 
