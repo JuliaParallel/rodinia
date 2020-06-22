@@ -1,0 +1,70 @@
+diff --git a/openmp/backprop/backprop.c b/openmp/backprop/backprop.c
+index eafa771..803991b 100644
+--- a/openmp/backprop/backprop.c
++++ b/openmp/backprop/backprop.c
+@@ -15,6 +15,7 @@
+#include "backprop.h"
+#include <math.h>
+
+
+#define ABS(x) (((x) > 0.0) ? (x) : (-(x)))
+
+#define fastcopy(to, from, len)                                                \
+@@ -227,19 +228,29 @@ int n1, n2;
+
+    /*** Set up thresholding unit ***/
+    l1[0] = 1.0;
+{+#ifdef OMP_OFFLOAD+}
+{+#pragma omp target enter data map(always, to: l1[:n1+1], l2[:n2+1],\+}
+{+        conn[:n1+1][:n2+1])+}
+{+#pragma omp target teams distribute private(k,j)+}
+{+    // sum no need to reduction+}
+{+#else+}
+    omp_set_num_threads(NUM_THREAD);
+#pragma omp parallel for shared(conn, n1, n2, l1) private(k, j) reduction(     \
+    + : sum) schedule(static)
+{+#endif+}
+    /*** For each unit in second layer ***/
+    for (j = 1; j <= n2; j++) {
+
+        /*** Compute weighted sum of its inputs ***/
+        {+float+} sum = 0.0;
+        for (k = 0; k <= n1; k++) {
+            sum += conn[k][j] * l1[k];
+        }
+        l2[j] = squash(sum);
+    }
+{+#ifdef OMP_OFFLOAD+}
+{+#pragma omp target exit data map(always, from: l2[:n2+1])+}
+{+#endif+}
+}
+
+// extern "C"
+@@ -292,9 +303,15 @@ int ndelta, nly;
+    // eta = 0.3;
+    // momentum = 0.3;
+
+{+#ifdef OMP_OFFLOAD+}
+{+#pragma omp target enter data map(always, to: delta[:ndelta+1], ly[:nly+1],\+}
+{+       oldw[:nly+1][:ndelta+1], w[:nly+1][:ndelta+1])+}
+{+#pragma omp target teams distribute private(j, k, new_dw), firstprivate(ndelta, nly)+}
+{+#else+}
+    omp_set_num_threads(NUM_THREAD);
+#pragma omp parallel for shared(oldw, w, delta) private(                       \
+    j, k, new_dw) firstprivate(ndelta, nly)
+{+#endif+}
+    for (j = 1; j <= ndelta; j++) {
+        for (k = 0; k <= nly; k++) {
+            new_dw = ((ETA * delta[j] * ly[k]) + (MOMENTUM * oldw[k][j]));
+@@ -302,6 +319,11 @@ int ndelta, nly;
+            oldw[k][j] = new_dw;
+        }
+    }
+
+{+#ifdef OMP_OFFLOAD+}
+{+#pragma omp target exit data map(always, from: delta[:ndelta+1], ly[:nly+1])+}
+{+#pragma omp target exit data map(always, from: w[:nly+1][:ndelta+1])+}
+{+#endif+}
+}
+
+

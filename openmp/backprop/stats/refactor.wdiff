@@ -1,0 +1,95 @@
+ "backprop1d.h" 
+ *w; 
+ w[i*(n+1)+j] 
+ *w; 
+ w[i*(n+1)+j] 
+ alloc_1d_dbl((n_in 
+ 1)*(n_hidden 
+ 1)); 
+ alloc_1d_dbl((n_hidden 
+ 1)*(n_out 
+ 1)); 
+ alloc_1d_dbl((n_in 
+ 1)*(n_hidden 
+ 1)); 
+ alloc_1d_dbl((n_hidden 
+ 1)*( 
+ 1)); 
+ *conn; 
+ //#pragma 
+ // 
+ conn[k*(n2+1)+j] 
+ *who, 
+ who[j*(no+1)+k]; 
+ *w, *oldw; 
+ oldw[:(nly+1)*(ndelta+1)], w[:(nly+1)*(ndelta+1)], 
+ // 
+ //#pragma 
+ // 
+ oldw[k*(ndelta+1)+j] 
+ //#pragma 
+ oldw[:(nly+1)*(ndelta+1)], w[:(nly+1)*(ndelta+1)], 
+ // 
+ //#pragma 
+ oldw[k][:ndelta+1], 
+ *w; 
+ w[i*(n2+1)+j]; 
+ w[i*(n3+1)+j]; 
+ fastcopy(&(new->input_weights[i*(n2+1)+j]), 
+ fastcopy(&(new->hidden_weights[i*(n2+1)+j]), 
+ "backprop.h" 
+ **conn, 
+ **who, 
+ **w, 
+ **oldw); 
+ *input_weights; 
+ *hidden_weights; 
+ *input_prev_weights; 
+ *hidden_prev_weights; 
+ "backprop.h" 
+ **w; 
+ w[i][j] 
+ **w; 
+ w[i][j] 
+ alloc_2d_dbl(n_in 
+ 1, n_hidden 
+ 1); 
+ alloc_2d_dbl(n_hidden 
+ 1, n_out 
+ 1); 
+ alloc_2d_dbl(n_in 
+ 1, n_hidden 
+ 1); 
+ alloc_2d_dbl(n_hidden 
+ 1, 
+ 1); 
+ **conn; 
+ conn[:n1+1]) 
+ #pragma 
+ #endif 
+ conn[k][j] 
+ **who, 
+ who[j][k]; 
+ **w, **oldw; 
+ #ifdef OMP_DC 
+ #pragma 
+ #endif 
+ oldw[k][j] 
+ #pragma 
+ oldw is not used later 
+ #endif 
+ **w; 
+ w[i][j]; 
+ w[i][j]; 
+ fastcopy(&(new->input_weights[i][j]), 
+ fastcopy(&(new->hidden_weights[i][j]), 
+ "backprop1d.h" 
+ *conn, 
+ *who, 
+ *w, 
+ *oldw); 
+ **input_weights; 
+ **hidden_weights; 
+ **input_prev_weights; 
+ **hidden_prev_weights; 
+

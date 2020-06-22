@@ -1,0 +1,29 @@
+ #ifdef OMP_OFFLOAD 
+ #pragma omp target enter data map(always, to: l1[:n1+1], l2[:n2+1], conn[:n1+1]) 
+     for (j = 0; j <= n1; j++)  }
+ #pragma omp target enter data map(always, to: conn[j][:n2+1]) 
+     } 
+ #pragma omp target teams distribute private(k,j) 
+     // sum no need to reduction 
+ #else 
+ #endif 
+ float 
+ #ifdef OMP_OFFLOAD 
+ #pragma omp target exit data map(always, from: l2[:n2+1]) 
+ #endif 
+ #ifdef OMP_OFFLOAD 
+ #pragma omp target enter data map(always, to: oldw[:nly+1], w[:nly+1], delta[:ndelta+1], ly[:nly+1]) 
+     for (int k = 0; k <= nly; k++)  }
+ #pragma omp target enter data map(always, to: oldw[k][:ndelta+1], w[k][:ndelta+1]) 
+     } 
+ #pragma omp target teams distribute private(j, k, new_dw), firstprivate(ndelta, nly) 
+ #else 
+ #endif 
+ #ifdef OMP_OFFLOAD 
+ #pragma omp target exit data map(always, from: delta[:ndelta+1], ly[:nly+1]) 
+     for (int k = 0; k <= nly; k++)  }
+ #pragma omp target exit data map(always, from: w[k][:ndelta+1]) 
+         // oldw is not used later 
+     } 
+ #endif 
+

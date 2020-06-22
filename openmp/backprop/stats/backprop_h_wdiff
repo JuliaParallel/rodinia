@@ -1,0 +1,9 @@
+ *input_weights; 
+ *hidden_weights; 
+ *input_prev_weights; 
+ *hidden_prev_weights; 
+ **input_weights; 
+ **hidden_weights; 
+ **input_prev_weights; 
+ **hidden_prev_weights; 
+
