@@ -374,6 +374,9 @@ int main(int argc, char *argv[]) {
         fp *mem = (fp*) malloc (mem_size * sizeof(fp));
 
 #ifdef OMP_OFFLOAD
+#ifdef OMP_DC
+#pragma omp target enter data map(to: mem[:mem_size], x[:workload][:(1+xmax)], y[:workload][:(1+xmax)][:EQUATIONS], params[:workload][:PARAMETERS])
+#else
 #pragma omp target enter data map(to: mem[:mem_size], x[:workload], y[:workload], params[:workload])
         for (int i = 0; i < workload; i++) {
 #pragma omp target enter data map(to: x[i][:(1+xmax)], y[i][:(1+xmax)], params[i][:PARAMETERS])
@@ -381,6 +384,7 @@ int main(int argc, char *argv[]) {
 #pragma omp target enter data map(to: y[i][j][:EQUATIONS])
             }
         }
+#endif
 #pragma omp target teams distribute parallel for private(i) reduction(+: status)
 #else
 #pragma omp parallel for private(i) shared(y, x, xmax, params, mode, status)
