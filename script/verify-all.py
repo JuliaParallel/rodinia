@@ -227,6 +227,14 @@ def run_dce_at():
     opt4.env["DC"] = "1"
     return Test("dce-at", os.path.join(rodinia_root, "openmp"), opt4)
 
+def run_naive_at():
+    opt = Opt()
+    opt.env["OFFLOAD"] = "1"
+    opt.env["OMP_BULK"] = "1"
+    opt.env["OMP_NAIVE_AT"] = "1"
+    opt.env["OMP_AT"] = "1"
+    return Test("omp-offload-at-naive", os.path.join(rodinia_root, "openmp"), opt)
+
 def run_cuda():
     opt5 = Opt()
     opt5.cuda = True
@@ -241,25 +249,21 @@ def run_1d():
 def Setup():
     Tests = []
     # Options
-    #Config.dry_run = True
-    #Config.verifying = 1
+    # Config.dry_run = True
+    # Config.verifying = 1
 
-    projects = ["backprop", "kmeans", "myocyte", "pathfinder"]
-    #projects = ["backprop", "myocyte", "pathfinder"]
-    #projects = ["backprop", "pathfinder"]
-    #projects = ["kmeans", "myocyte"]
-    #projects = ["backprop", "kmeans",  "pathfinder"]
-    #projects = ["myocyte"]
-    #projects = ["pathfinder"]
-    #projects = ["backprop"]
+    projects = ["backprop", "kmeans", "myocyte", "pathfinder", "streamcluster"]
+    #projects = ["kmeans", "myocyte", "pathfinder"]
+    #projects = ["streamcluster"]
 
     # Final result
     Config.test_count = 1
     #Tests.append(run_cpu)
     #Tests.append(run_cuda)
-    Tests.append(run_omp)
-    Tests.append(run_1d)
-    Tests.append(run_bulk)
+    #Tests.append(run_omp)
+    #Tests.append(run_1d)
+    #Tests.append(run_bulk)
+    #Tests.append(run_naive_at)
     Tests.append(run_at)
     #Tests.append(run_dce)
     #Tests.append(run_dce_bulk)

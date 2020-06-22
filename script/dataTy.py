@@ -32,6 +32,7 @@ class Output:
         self.stderrs=""
         # list of execution time
         self.times = []
+        self.time = 0 # avg
         # list of profiling result(dataTy for omp) dict
         self.nvprof_datas = []
         self.nvprof_times = []
@@ -107,6 +108,11 @@ class ResultHelper:
                 if ResultHelper.hasError(proj_out[proj]) == True:
                     #del proj_out[proj]
                     print(config + "-" + proj + " has error, removed??")
+        # vg times
+        for config in result:
+            for proj in result[config]:
+                output = result[config][proj]
+                output.time = sum(output.times)/ len(output.times)
         # Avg all profiling result
         for config in result:
             proj_out = result[config]
