@@ -7,6 +7,6 @@ set -e
 EXE="pathfinder"
 EXE_ARG="100000 100"
 EXE_1D="pathfinder1d"
-EXE_LARGE_ARG="150000 10000"
+EXE_LARGE_ARG="150000 1000"
 
 source ../common.sh

@@ -79,10 +79,15 @@ void run(int argc, char **argv) {
 
     pin_stats_reset();
 #ifdef OMP_OFFLOAD
+#ifdef OMP_DC
+    #pragma omp target enter data map(to: wall[:rows][:cols])
+    #pragma omp target enter data map (to: src[:cols], dst[:cols])
+#else
 #pragma omp target enter data map (to: src[:cols], wall[:rows], dst[:cols])
     for (int i = 0; i < rows; i++) {
       #pragma omp target enter data map(to: wall[i][:cols])
     }
+#endif
 #endif
     for (int t = 0; t < rows - 1; t++) {
         temp = src;

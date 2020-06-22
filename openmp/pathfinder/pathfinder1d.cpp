@@ -5,10 +5,6 @@
 
 #include "timer.h"
 
-#ifdef OMP_AT
-#include "fake_at_runtime.h"
-#endif
-
 void run(int argc, char **argv);
 
 /* define timer macros */
@@ -17,7 +13,6 @@ void run(int argc, char **argv);
 #define pin_stats_dump(cycles) printf("timer: %Lu\n", cycles)
 
 int rows, cols;
-//int *data;
 int *wall;
 int *result;
 
@@ -30,9 +25,6 @@ void init(int argc, char **argv) {
         exit(0);
     }
     wall = new int[rows * cols];
-    //wall = new int *[rows];
-    //for (int n = 0; n < rows; n++)
-    //    wall[n] = data + cols * n;
     result = new int[cols];
 
     srand(7);
@@ -84,19 +76,12 @@ void run(int argc, char **argv) {
     pin_stats_reset();
 #ifdef OMP_OFFLOAD
 #pragma omp target enter data map (to: src[:cols], wall[:rows*cols], dst[:cols])
-    /*for (int i = 0; i < rows; i++) {
-      #pragma omp target enter data map(to: wall[i][:cols])
-    }*/
 #endif
-    printf("Rows: %d\n", rows);
     for (int t = 0; t < rows - 1; t++) {
         temp = src;
         src = dst;
         dst = temp;
 #ifdef OMP_OFFLOAD
-#ifdef OMP_AT
-        FAKE_AT_RUNTIME_PRE_KERNEL;
-#endif
 #pragma omp target teams distribute parallel for private(min)
 #else
 #pragma omp parallel for private(min)
@@ -107,19 +92,13 @@ void run(int argc, char **argv) {
                 min = MIN(min, src[n - 1]);
             if (n < cols - 1)
                 min = MIN(min, src[n + 1]);
-#ifdef OMP_AT
-//            dst[n] = AT(wall[t + 1])[n] + min;
-#else
             dst[n] = wall[(t + 1)*rows+n] + min;
-#endif
         }
     }
 #ifdef OMP_OFFLOAD
     // retrieve data
 #pragma omp target exit data map (from: dst[:cols])
 #endif
-
- //   printf("dst[0]: %d\n", dst[0]);
 
     pin_stats_pause(cycles);
     pin_stats_dump(cycles);
@@ -140,7 +119,6 @@ void run(int argc, char **argv) {
         fclose(file);
     }
 
-    //delete[] data;
     delete[] wall;
     delete[] dst;
     delete[] src;
