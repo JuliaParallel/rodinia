@@ -130,10 +130,7 @@ float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
     nthreads = omp_get_max_threads();
 
     /* allocate space for returning variable clusters[] */
-    //clusters = (float **)malloc(nclusters * sizeof(float *));
     clusters = (float *)malloc(nclusters * nfeatures * sizeof(float));
-    //for (i = 1; i < nclusters; i++)
-    //    clusters[i] = clusters[i - 1] + nfeatures;
 
     /* randomly pick cluster centers */
     for (i = 0; i < nclusters; i++) {
@@ -149,31 +146,13 @@ float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
     /* need to initialize new_centers_len and new_centers[0] to all 0 */
     new_centers_len = (int *)calloc(nclusters, sizeof(int));
 
-    //new_centers = (float **)malloc(nclusters * sizeof(float *));
     new_centers = (float *)calloc(nclusters * nfeatures, sizeof(float));
-    //for (i = 1; i < nclusters; i++)
-    //    new_centers[i] = new_centers[i - 1] + nfeatures;
 
 
-    //partial_new_centers_len = (int **)malloc(nthreads * sizeof(int *));
     partial_new_centers_len =
         (int *)calloc(nthreads * nclusters, sizeof(int));
-    //for (i = 1; i < nthreads; i++)
-    //    partial_new_centers_len[i] = partial_new_centers_len[i - 1] + nclusters;
 
     partial_new_centers = (float *)calloc(nthreads * nclusters * nfeatures, sizeof(float ));
-    /*
-    partial_new_centers[0] =
-        (float **)malloc(nthreads * nclusters * sizeof(float *));
-    for (i = 1; i < nthreads; i++)
-        partial_new_centers[i] = partial_new_centers[i - 1] + nclusters;
-
-    for (i = 0; i < nthreads; i++) {
-        for (j = 0; j < nclusters; j++)
-            partial_new_centers[i][j] =
-                (float *)calloc(nfeatures, sizeof(float));
-    }
-    */
 
     double t0 = 0, t1 = 0, t2 = 0, t3 = 0;
 #ifdef OMP_OFFLOAD
@@ -185,7 +164,6 @@ float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
 #pragma omp target enter data map(to: clusters[:nclusters*nfeatures], partial_new_centers[:nthreads*nclusters*nfeatures], partial_new_centers_len[:nclusters*nfeatures])
         {
             int tid = 0;
-//#pragma omp target teams distribute parallel for private(i, j, index) firstprivate(npoints, nclusters, nfeatures) reduction(+ : delta)
 #pragma omp target teams distribute parallel for private(i, j, index) firstprivate(npoints, nclusters, nfeatures) reduction(+: delta)
 #else
 #pragma omp parallel shared(feature, clusters, membership,                     \
@@ -233,29 +211,6 @@ float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
                 }
             }
         }
-#if 0
-        if (loop==0) {
-        int a = 0;
-
-        for (i = 0; i < nclusters; i++) {
-            //printf("%d ", new_centers_len[i]);
-            //a += new_centers_len[i];
-            for (int j = 0; j < nfeatures; j++) {
-                int index = i*nfeatures + j;
-                if (index >= 60 && index <= 70) {
-                    printf("%f ", new_centers[index]);
-                }
-            }
-        }
-        puts("");
-        for (i = 0; i < npoints; i++) {
-            //printf("%d ", membership[i]);
-        }
-        printf("\na: %d npoints: %d delta: %f\n", a, npoints, delta);
-        puts("");
-       break;
-        }
-#endif
 
         /* replace old cluster centers with new_centers */
         for (i = 0; i < nclusters; i++) {
@@ -270,8 +225,6 @@ float *kmeans_clustering(float *feature, /* in: [npoints*nfeatures] */
         printf("%d ", loop);
         fflush(stdout);
     } while (delta > threshold && loop++ < 500);
-        printf("t0 %lf t1 %lf t2 %lf t3 %lf\n", t0,  t1, t2, t3);
-    printf("Loop %d\n", loop);
 
 
     free(new_centers);
