@@ -27,12 +27,12 @@ end
 # Calculates the Euclidean distance from each record in the database to the target position.
 function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
-                (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
+                               (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
     if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
             CUDA.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
-                            (lng - latLong.lng) * (lng - latLong.lng))
+                      (lng - latLong.lng) * (lng - latLong.lng))
     end
     return
 end
@@ -62,7 +62,7 @@ function main(args)
     synchronize()
 
     usableDeviceMemory = floor(UInt, freeDeviceMemory * 85 / 100) # 85% arbitrary throttle
-        # to compensate for known CUDA bug
+    # to compensate for known CUDA bug
     maxThreads = floor(UInt, usableDeviceMemory / 12) # 4 bytes in 3 vectors per thread
 
     if numRecords > maxThreads
@@ -78,14 +78,14 @@ function main(args)
     d_distances = CuArray{Float32}(numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda blocks=(gridX, gridY) threads=threadsPerBlock euclid(
+    @cuda blocks = (gridX, gridY) threads = threadsPerBlock euclid(
         d_locations, d_distances, numRecords, lat, lng)
 
     # Copy data from device memory to host memory.
     distances = Array(d_distances)
 
     # Find the resultsCount least distances.
-    findLowest(records, distances, numRecords, resultsCount);
+    findLowest(records, distances, numRecords, resultsCount)
 
     # Print out results.
     if OUTPUT
@@ -109,7 +109,7 @@ function loadData(filename)
     while !eof(flist)
         # Read in all records. If this is the last file in the filelist, then
         # we are done. Otherwise, open next file to be read next iteration.
-        fp = open(chomp(readline(flist)), "r");
+        fp = open(chomp(readline(flist)), "r")
 
         # read each record
         while !eof(fp)
@@ -136,21 +136,21 @@ end
 
 function findLowest(records, distances, numRecords, topN)
     for i = 1:topN
-        minLoc = i-1
+        minLoc = i - 1
         for j = i-1:numRecords-1
-            val = distances[j + 1]
-            if val < distances[minLoc + 1]
+            val = distances[j+1]
+            if val < distances[minLoc+1]
                 minLoc = j
             end
         end
         # swap locations and distances
         tmp = records[i]
-        records[i] = records[minLoc + 1]
-        records[minLoc + 1] = tmp
+        records[i] = records[minLoc+1]
+        records[minLoc+1] = tmp
 
         tmp = distances[i]
-        distances[i] = distances[minLoc + 1]
-        distances[minLoc + 1] = tmp
+        distances[i] = distances[minLoc+1]
+        distances[minLoc+1] = tmp
 
         # Add distance to the min we just found.
         records[i] = Record(records[i].recString, distances[i])
@@ -176,8 +176,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    # FIXME
-    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -189,15 +187,13 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
         empty!(CUDA.compilecache)
 
-        NVTX.@range begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-		CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

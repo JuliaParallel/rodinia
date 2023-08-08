@@ -56,8 +56,6 @@ end
 LLVM.clopts("--unroll-threshold=1200")
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    # FIXME
-    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -67,17 +65,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@range begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

@@ -19,7 +19,7 @@ const EXPAND_RATE = 2   # add one iteration will extend the pyramid base by 2 pe
 const t_chip = 0.0005f0
 const chip_height = 0.016f0
 const chip_width = 0.016f0
-const amb_temp = 80f0   # ambient temperature, assuming no package at all
+const amb_temp = 80.0f0   # ambient temperature, assuming no package at all
 
 function in_range(x, min_x, max_x)
     return x >= min_x && x <= max_x
@@ -33,7 +33,7 @@ function writeoutput(vect, grid_rows, grid_cols, file)
     index = 0
     fp = open(file, "w")
     for i = 1:grid_rows, j = 1:grid_cols
-        @printf(fp, "%d\t%g\n", index, vect[index + 1])
+        @printf(fp, "%d\t%g\n", index, vect[index+1])
         index = index + 1
     end
     close(fp)
@@ -46,7 +46,7 @@ function readinput(vect, grid_rows, grid_cols, file)
             fatal("not enough lines in file")
         end
         val = parse(Float32, chomp(readline(fp)))
-        vect[(i - 1) * grid_cols + j] = val
+        vect[(i-1)*grid_cols+j] = val
     end
     close(fp)
 end
@@ -54,15 +54,15 @@ end
 const MATRIX_SIZE = BLOCK_SIZE * BLOCK_SIZE
 
 function calculate_temp(iteration,    # number of iteration
-                        power,        # power input
-                        temp_src,     # temperature input/output
-                        temp_dst,     # temperature input/output
-                        grid_cols,    # col of grid
-                        grid_rows,    # row of grid
-                        border_cols,  # border offset
-                        border_rows,  # border offset
-                        Cap,          # Capacitance
-                        Rx, Ry, Rz, step)
+    power,        # power input
+    temp_src,     # temperature input/output
+    temp_dst,     # temperature input/output
+    grid_cols,    # col of grid
+    grid_rows,    # row of grid
+    border_cols,  # border offset
+    border_rows,  # border offset
+    Cap,          # Capacitance
+    Rx, Ry, Rz, step)
     temp_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     power_on_cuda = @cuStaticSharedMem(Float32, (BLOCK_SIZE, BLOCK_SIZE))
     # for saving temporary temperature result
@@ -106,9 +106,9 @@ function calculate_temp(iteration,    # number of iteration
     if in_range(loadYidx, 0, grid_rows - 1) &&
        in_range(loadXidx, 0, grid_cols - 1)
         # Load the temperature data from global memory to shared memory
-        temp_on_cuda[tx, ty] = temp_src[index + 1]
+        temp_on_cuda[tx, ty] = temp_src[index+1]
         # Load the power data from global memory to shared memory
-        power_on_cuda[tx, ty] = power[index + 1]
+        power_on_cuda[tx, ty] = power[index+1]
     end
 
     sync_threads()
@@ -117,10 +117,10 @@ function calculate_temp(iteration,    # number of iteration
     # input data used to rule out computation outside the boundary.
     validYmin = (blkY < 0) ? -blkY + 1 : 1
     validYmax = (blkYmax > grid_rows - 1) ?
-                    BLOCK_SIZE - (blkYmax - grid_rows + 1) : BLOCK_SIZE
+                BLOCK_SIZE - (blkYmax - grid_rows + 1) : BLOCK_SIZE
     validXmin = (blkX < 0) ? -blkX + 1 : 1
     validXmax = (blkXmax > grid_cols - 1) ?
-                    BLOCK_SIZE - (blkXmax - grid_cols + 1) : BLOCK_SIZE
+                BLOCK_SIZE - (blkXmax - grid_cols + 1) : BLOCK_SIZE
 
     N = ty - 1
     S = ty + 1
@@ -140,15 +140,15 @@ function calculate_temp(iteration,    # number of iteration
            in_range(tx, validXmin, validXmax) &&
            in_range(ty, validYmin, validYmax)
             computed = true
-            t1 = temp_on_cuda[tx, S ] +
-                 temp_on_cuda[tx, N ] -
+            t1 = temp_on_cuda[tx, S] +
+                 temp_on_cuda[tx, N] -
                  temp_on_cuda[tx, ty] * 2.0
-            t2 = temp_on_cuda[E , ty] +
-                 temp_on_cuda[W , ty] -
+            t2 = temp_on_cuda[E, ty] +
+                 temp_on_cuda[W, ty] -
                  temp_on_cuda[tx, ty] * 2.0
             temp_t[tx, ty] = Float32(temp_on_cuda[tx, ty] +
-                step_div_Cap * (power_on_cuda[tx, ty] + t1 * Ry_1 +
-                t2 * Rx_1 + (amb_temp - temp_on_cuda[tx, ty]) * Rz_1))
+                                     step_div_Cap * (power_on_cuda[tx, ty] + t1 * Ry_1 +
+                                                     t2 * Rx_1 + (amb_temp - temp_on_cuda[tx, ty]) * Rz_1))
         end
 
         sync_threads()
@@ -165,15 +165,15 @@ function calculate_temp(iteration,    # number of iteration
     # after the last iteration, only threads coordinated within the
     # small block perform the calculation and switch on ``computed''
     if computed
-        temp_dst[index + 1] = temp_t[tx, ty]
+        temp_dst[index+1] = temp_t[tx, ty]
     end
     return
 end
 
 # compute N time steps
 function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
-                           num_iterations, blockCols, blockRows, borderCols,
-                           borderRows)
+    num_iterations, blockCols, blockRows, borderCols,
+    borderRows)
     grid_height = chip_height / row
     grid_width = chip_width / col
 
@@ -191,9 +191,9 @@ function compute_tran_temp(MatrixPower, MatrixTemp, col, row, total_iterations,
         temp = src
         src = dst
         dst = temp
-        @cuda blocks=(blockCols, blockRows) threads=(BLOCK_SIZE, BLOCK_SIZE) calculate_temp(
+        @cuda blocks = (blockCols, blockRows) threads = (BLOCK_SIZE, BLOCK_SIZE) calculate_temp(
             min(num_iterations, total_iterations - t),
-            MatrixPower, MatrixTemp[src + 1], MatrixTemp[dst + 1],
+            MatrixPower, MatrixTemp[src+1], MatrixTemp[dst+1],
             col, row, borderCols, borderRows, Cap, Rx, Ry, Rz, step)
     end
 
@@ -224,9 +224,9 @@ function main(args)
     smallBlockCol = BLOCK_SIZE - pyramid_height * EXPAND_RATE
     smallBlockRow = BLOCK_SIZE - pyramid_height * EXPAND_RATE
     blockCols = floor(Int32, grid_cols / smallBlockCol) +
-        ((grid_cols % smallBlockCol == 0) ? 0 : 1)
+                ((grid_cols % smallBlockCol == 0) ? 0 : 1)
     blockRows = floor(Int32, grid_rows / smallBlockRow) +
-        ((grid_rows % smallBlockRow == 0) ? 0 : 1)
+                ((grid_rows % smallBlockRow == 0) ? 0 : 1)
 
     FilesavingTemp = Vector{Float32}(undef, size)
     FilesavingPower = Vector{Float32}(undef, size)
@@ -242,15 +242,15 @@ function main(args)
 
     MatrixTemp = Array{CuArray{Float32,1}}(undef, 2)
     MatrixTemp[1] = CuArray(FilesavingTemp)
-    MatrixTemp[2] = CuArray{Float32}(size)
+    MatrixTemp[2] = CuArray{Float32}(undef, size)
     MatrixPower = CuArray(FilesavingPower)
 
     println("Start computing the transient temperature")
     ret = compute_tran_temp(MatrixPower, MatrixTemp, grid_cols, grid_rows,
-                            total_iterations, pyramid_height, blockCols,
-                            blockRows, borderCols, borderRows)
+        total_iterations, pyramid_height, blockCols,
+        blockRows, borderCols, borderRows)
     println("Ending simulation")
-    MatrixOut = Array(MatrixTemp[ret + 1])
+    MatrixOut = Array(MatrixTemp[ret+1])
 
     if OUTPUT
         writeoutput(MatrixOut, grid_rows, grid_cols, "output.txt")
@@ -259,8 +259,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    #FIXME
-    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -270,17 +268,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@range begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

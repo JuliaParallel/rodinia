@@ -20,11 +20,11 @@ function main(args)
     num_frames = 1
 
     if length(args) != 2
-        println(stderr,"usage: ",basename(Base.source_path())," <num of frames> <input file>")
+        println(stderr, "usage: ", basename(Base.source_path()), " <num of frames> <input file>")
         exit(1)
     end
 
-    num_frames = parse(Int32,args[1])
+    num_frames = parse(Int32, args[1])
 
     video_file_name = args[2]
 
@@ -41,7 +41,7 @@ function main(args)
     Iter = 20
     ns = 4
     k_count = 0
-    
+
     threshold = 1.8
     radius = 10.0
     delta = 3.0
@@ -69,17 +69,17 @@ function main(args)
 
     # Find possible matches for cell centers based on GICOV and record the
     # rows/columns in which they are found
-    I = findall(!iszero, .!double_eq.(gicov,0.0) .& double_eq.(img_dilated,gicov))
-    crow,ccol = (getindex.(I, 1), getindex.(I, 2))
+    I = findall(!iszero, .!double_eq.(gicov, 0.0) .& double_eq.(img_dilated, gicov))
+    crow, ccol = (getindex.(I, 1), getindex.(I, 2))
     # convert to zero-based indices for parity with the C code (don't
     # use map in the above expression, because it's very slow)
-    crow,ccol = crow.-1,ccol.-1
+    crow, ccol = crow .- 1, ccol .- 1
     # sort based on increasing y-coordinate to have the same order as the C benchmark
     sortedy = sortperm(crow)
     crow = crow[sortedy]
     ccol = ccol[sortedy]
 
-    GICOV_spots = [sqrt(gicov[crow[i]+1,ccol[i]+1]) for i in 1:size(crow,1)]
+    GICOV_spots = [sqrt(gicov[crow[i]+1, ccol[i]+1]) for i in 1:size(crow, 1)]
 
     result_indices = findall((crow .> 26) .& (crow .< BOTTOM - TOP + 39))
     x_result = ccol[result_indices]
@@ -90,29 +90,29 @@ function main(args)
     t = [i * 2.0 * C_PI / 36.0 for i in 0:35]
 
     # Store cell boundaries (as simple circles) for all cells
-    cellx = [x_result[i] + radius * cos(t[j]) for i in 1:size(x_result,1), j in 1:36]
-    celly = [y_result[i] + radius * sin(t[j]) for i in 1:size(x_result,1), j in 1:36]
+    cellx = [x_result[i] + radius * cos(t[j]) for i in 1:size(x_result, 1), j in 1:36]
+    celly = [y_result[i] + radius * sin(t[j]) for i in 1:size(x_result, 1), j in 1:36]
 
-    A = TMatrix(9,4)
+    A = TMatrix(9, 4)
     cell_width = AVI_video_width(cell_file)
     cell_height = AVI_video_height(cell_file)
 
-    V = zeros(Float64,size(x_result,1))
-    QAX_CENTERS = zeros(Float64,size(x_result,1))
-    QAY_CENTERS = zeros(Float64,size(x_result,1))
+    V = zeros(Float64, size(x_result, 1))
+    QAX_CENTERS = zeros(Float64, size(x_result, 1))
+    QAY_CENTERS = zeros(Float64, size(x_result, 1))
 
     # For all possible results, find the ones that are feasibly leukocytes and
     # store their centers
     k_count = 0
 
-    for n in 0:size(x_result,1)-1
+    for n in 0:size(x_result, 1)-1
         if (G[n+1] < -1 * threshold) | (G[n+1] > threshold)
 
-            x = Matrix{Float64}(undef, (1,36))
-            y = Matrix{Float64}(undef, (1,36))
+            x = Matrix{Float64}(undef, (1, 36))
+            y = Matrix{Float64}(undef, (1, 36))
 
             # Get current values of possible cells from cellx/celly matrices
-            uniformseg(view(cellx,n+1,:), view(celly,n+1,:), x, y)
+            uniformseg(view(cellx, n + 1, :), view(celly, n + 1, :), x, y)
 
             # Make sure that the possible leukocytes are not too close to the
             # edge of the frame
@@ -135,7 +135,7 @@ function main(args)
 
                 X = getsampling(Cx, ns)
                 Cy_temp = similar(Cy)
-                Cy_temp[:,1] = Cy[:,1] .- 40.0
+                Cy_temp[:, 1] = Cy[:, 1] .- 40.0
                 Y = getsampling(Cy_temp, ns)
 
                 Ix1 = linear_interp2(grad_x, X, Y)
@@ -143,9 +143,9 @@ function main(args)
                 Xs = getfdriv(Cx, ns)
                 Ys = getfdriv(Cy, ns)
 
-                Nx = Ys ./ sqrt.(Xs.^2 + Ys.^2)
-                Ny = -1.0 .* Ys ./ sqrt.(Xs.^2 + Ys.^2)
-                W = view(Ix1,1) .* Nx + view(Iy1,1) .* Ny
+                Nx = Ys ./ sqrt.(Xs .^ 2 + Ys .^ 2)
+                Ny = -1.0 .* Ys ./ sqrt.(Xs .^ 2 + Ys .^ 2)
+                W = view(Ix1, 1) .* Nx + view(Iy1, 1) .* Ny
 
                 V[n+1] = mean(W) / std_dev(W)
 
@@ -159,21 +159,21 @@ function main(args)
     end
 
     # Report the total number of cells detected
-    println("Cells detected: ",k_count)
+    println("Cells detected: ", k_count)
     println()
 
     # Report the breakdown of the detection runtime
-    println("Detection runtime");
-    println("-----------------");
-    print(@sprintf("GICOV computation: %.5f seconds\n",GICOV_time))
-    print(@sprintf("   GICOV dilation: %.5f seconds\n",dilate_time))
-    print(@sprintf("            Total: %.5f seconds\n",time() - program_start_time))
+    println("Detection runtime")
+    println("-----------------")
+    print(@sprintf("GICOV computation: %.5f seconds\n", GICOV_time))
+    print(@sprintf("   GICOV dilation: %.5f seconds\n", dilate_time))
+    print(@sprintf("            Total: %.5f seconds\n", time() - program_start_time))
 
     # Now that the cells have been detected in the first frame,
     #  track the ellipses through subsequent frames
     println()
     if (num_frames > 1)
-        println("Tracking cells across ",num_frames," frames")
+        println("Tracking cells across ", num_frames, " frames")
     else
         println("Tracking cells across 1 frame")
     end
@@ -184,13 +184,11 @@ function main(args)
     end
 
     # Report total program execution time
-    print(@sprintf("\nTotal application run time: %.5f seconds\n",time() - program_start_time))
+    print(@sprintf("\nTotal application run time: %.5f seconds\n", time() - program_start_time))
 end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    #FIXME
-    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -200,17 +198,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@range begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end
