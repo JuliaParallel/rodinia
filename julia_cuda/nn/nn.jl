@@ -53,8 +53,8 @@ function main(args)
     # Scaling calculations - added by Sam Kauffman
     synchronize()
 
-    maxGridX = attribute(dev, CUDA.MAX_GRID_DIM_X)
-    maxThreadsPerBlock = attribute(dev, CUDA.MAX_THREADS_PER_BLOCK)
+    maxGridX = attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_GRID_DIM_X)
+    maxThreadsPerBlock = attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK)
     threadsPerBlock = min(maxThreadsPerBlock, DEFAULT_THREADS_PER_BLOCK)
 
     freeDeviceMemory = Mem.free()
@@ -75,7 +75,7 @@ function main(args)
 
     # Allocate memory on device and copy data from host to device.
     d_locations = CuArray(locations)
-    d_distances = CuArray{Float32}(numRecords)
+    d_distances = CuArray{Float32}(undef, numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
     @cuda blocks = (gridX, gridY) threads = threadsPerBlock euclid(
