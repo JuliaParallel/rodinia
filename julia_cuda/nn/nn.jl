@@ -42,7 +42,8 @@ function main(args)
     # Parse command line
     filename, resultsCount, lat, lng, quiet, timing, platform, dev =
         parseCommandline(args)
-    numRecords, records, locations = loadData(filename)
+    numRecords::Int, records, locations = loadData(filename)
+
 
     if resultsCount > numRecords
         resultsCount = numRecords
@@ -57,7 +58,7 @@ function main(args)
     maxThreadsPerBlock = attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK)
     threadsPerBlock = min(maxThreadsPerBlock, DEFAULT_THREADS_PER_BLOCK)
 
-    freeDeviceMemory = Mem.free()
+    freeDeviceMemory = CUDA.available_memory()
 
     synchronize()
 
@@ -99,7 +100,7 @@ function main(args)
 end
 
 function loadData(filename)
-    recNum = 0
+    recNum = 0.0f0
     records = Record[]
     locations = LatLong[]
 
