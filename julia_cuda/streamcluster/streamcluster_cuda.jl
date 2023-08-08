@@ -121,9 +121,9 @@ function pgain(x, points, z, numcenters, kmax, is_center, center_table,
     p_cd = CuArray(p_c)
 
     work_mem_d = CuArray{Float32}(undef, stride * (nThread + 1))
-    Mem.set!(work_mem_d.buf, UInt8(0), sizeof(work_mem_d)) # FIXME: needs wrapper
+    fill!(work_mem_d, UInt8(0))
     switch_membership_d = CuArray{Bool}(undef, num)
-    Mem.set!(switch_membership_d.buf, UInt8(0), sizeof(switch_membership_d)) # FIXME: needs wrapper
+    fill!(switch_membership_d, UInt8(0))
 
     #=======================================#
     # KERNEL: CALCULATE COST
