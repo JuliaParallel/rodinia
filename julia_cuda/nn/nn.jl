@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+#using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 using Printf
 
@@ -30,7 +31,7 @@ function euclid(d_locations, d_distances, numRecords, lat, lng)
     if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
-            CUDAnative.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
+            CUDA.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
                             (lng - latLong.lng) * (lng - latLong.lng))
     end
     return
@@ -52,8 +53,8 @@ function main(args)
     # Scaling calculations - added by Sam Kauffman
     synchronize()
 
-    maxGridX = attribute(dev, CUDAdrv.MAX_GRID_DIM_X)
-    maxThreadsPerBlock = attribute(dev, CUDAdrv.MAX_THREADS_PER_BLOCK)
+    maxGridX = attribute(dev, CUDA.MAX_GRID_DIM_X)
+    maxThreadsPerBlock = attribute(dev, CUDA.MAX_THREADS_PER_BLOCK)
     threadsPerBlock = min(maxThreadsPerBlock, DEFAULT_THREADS_PER_BLOCK)
 
     freeDeviceMemory = Mem.free()
@@ -175,7 +176,8 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
+    # FIXME
+    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -185,9 +187,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
+        NVTX.@range begin
             for i in 1:5
                 GC.gc(true)
             end
@@ -195,7 +197,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             for i in 1:5
                 GC.gc(true)
             end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+		CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
 end

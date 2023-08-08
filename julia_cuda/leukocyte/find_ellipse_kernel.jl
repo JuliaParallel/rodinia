@@ -1,4 +1,4 @@
-using CUDAdrv, CUDAnative
+using CUDA
 
 # The number of sample points in each ellipse (stencil)
 const NPOINTS = 150

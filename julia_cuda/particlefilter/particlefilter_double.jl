@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 const OUTPUT = haskey(ENV, "OUTPUT")
 
@@ -175,15 +175,15 @@ end
 @inline function d_randu(seed, index)
     num = A * seed[index] + C
     seed[index] = num % M
-    return CUDAnative.abs(seed[index]/M)
+    return CUDA.abs(seed[index]/M)
 end
 
 @inline function d_randn(seed, index)
     u = d_randu(seed, index)
     v = d_randu(seed, index)
-    cosine = CUDAnative.cos(2*pi*v)
-    rt = -2 * CUDAnative.log(u)
-    return CUDAnative.sqrt(rt) * cosine
+    cosine = CUDA.cos(2*pi*v)
+    rt = -2 * CUDA.log(u)
+    return CUDA.sqrt(rt) * cosine
 end
 
 @inline function calc_likelihood_sum(I, ind, num_ones, index)
@@ -276,7 +276,7 @@ function sum_kernel(partial_sums, Nparticles)
 
     if i==1
         sum = 0.0
-        num_blocks = unsafe_trunc(Int,CUDAnative.ceil(Nparticles/threads_per_block))
+        num_blocks = unsafe_trunc(Int,CUDA.ceil(Nparticles/threads_per_block))
         for x=1:num_blocks
             sum += partial_sums[x]
         end
@@ -307,14 +307,14 @@ function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
             indX = dev_round_double(array.X[i]) + objxy[y*2 + 2]
             indY = dev_round_double(array.Y[i]) + objxy[y*2 + 1]
 
-            ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1) + 1
+            ind[(i-1)*count_ones + y + 1] = CUDA.abs(indX*IszY*Nfr + indY*Nfr + k - 1) + 1
             if ind[(i-1)*count_ones + y + 1] > param.max_size
                 ind[(i-1)*count_ones + y + 1] = 1
             end
         end
         likelihood[i] = calc_likelihood_sum(I, ind, count_ones, i)
         likelihood[i] = likelihood[i]/count_ones
-        weights[i] = weights[i] * CUDAnative.exp(likelihood[i])
+        weights[i] = weights[i] * CUDA.exp(likelihood[i])
     end
     buffer[threadIdx().x] = 0.0
 
@@ -513,7 +513,8 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
+    #FIXME
+    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -523,9 +524,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
+        NVTX.@range begin
             for i in 1:5
                 GC.gc(true)
             end
@@ -533,7 +534,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             for i in 1:5
                 GC.gc(true)
             end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
 end

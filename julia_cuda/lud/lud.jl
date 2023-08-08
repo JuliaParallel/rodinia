@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 using LLVM
 
 include("common.jl")
@@ -36,7 +36,7 @@ function main(args)
         matrix_copy = copy(matrix)
     end
 
-    sec = CUDAdrv.@elapsed begin
+    sec = CUDA.@elapsed begin
         d_matrix = CuArray(matrix)
         lud_cuda(d_matrix, matrix_dim)
         matrix = Array(d_matrix)
@@ -56,7 +56,8 @@ end
 LLVM.clopts("--unroll-threshold=1200")
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
+    # FIXME
+    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -68,7 +69,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
         empty!(CUDAnative.compilecache)
 
-        NVTX.@activate begin
+        NVTX.@range begin
             for i in 1:5
                 GC.gc(true)
             end
@@ -76,7 +77,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             for i in 1:5
                 GC.gc(true)
             end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
 end

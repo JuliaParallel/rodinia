@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
@@ -183,7 +183,8 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
+    #FIXME
+    #NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -195,7 +196,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
         empty!(CUDAnative.compilecache)
 
-        NVTX.@activate begin
+        NVTX.@range begin
             for i in 1:5
                 GC.gc(true)
             end
@@ -203,7 +204,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             for i in 1:5
                 GC.gc(true)
             end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
 end

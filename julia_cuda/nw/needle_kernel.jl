@@ -1,5 +1,4 @@
-using CUDAdrv
-using CUDAnative
+using CUDA
 
 const BLOCK_SIZE = 16
 const BLOCK_SIZE_P1 = BLOCK_SIZE + 1
