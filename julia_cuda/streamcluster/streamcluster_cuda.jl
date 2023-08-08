@@ -1,7 +1,6 @@
 include("streamcluster_header.jl")
 
-using CUDAdrv
-using CUDAnative
+using CUDA
 
 const THREADS_PER_BLOCK = 512
 const MAXBLOCKS = 65536
