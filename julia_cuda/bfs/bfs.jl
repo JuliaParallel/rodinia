@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 const OUTPUT = haskey(ENV, "OUTPUT")
 
@@ -13,13 +13,12 @@ struct Node
 end
 
 function Kernel(g_graph_nodes, g_graph_edges, g_graph_mask,
-                  g_updating_graph_mask, g_graph_visited, g_cost,
-                  no_of_nodes)
-    tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x;
+    g_updating_graph_mask, g_graph_visited, g_cost,
+    no_of_nodes)
+    tid = (blockIdx().x - 1) * MAX_THREADS_PER_BLOCK + threadIdx().x
     if tid <= no_of_nodes && g_graph_mask[tid]
         g_graph_mask[tid] = false
-        for i = g_graph_nodes[tid].starting:(g_graph_nodes[tid].starting +
-                                             g_graph_nodes[tid].no_of_edges - Int32(1))
+        for i = g_graph_nodes[tid].starting:(g_graph_nodes[tid].starting+g_graph_nodes[tid].no_of_edges-Int32(1))
             id = g_graph_edges[i]
             if !g_graph_visited[id]
                 g_cost[id] = g_cost[tid] + Int32(1)
@@ -30,8 +29,8 @@ function Kernel(g_graph_nodes, g_graph_edges, g_graph_mask,
 end
 
 function Kernel2(g_graph_mask, g_updating_graph_mask, g_graph_visited,
-                  g_over, no_of_nodes)
-    tid = (blockIdx().x - UInt32(1)) * MAX_THREADS_PER_BLOCK + threadIdx().x;
+    g_over, no_of_nodes)
+    tid = (blockIdx().x - UInt32(1)) * MAX_THREADS_PER_BLOCK + threadIdx().x
     if tid <= no_of_nodes && g_updating_graph_mask[tid]
         g_graph_mask[tid] = true
         g_graph_visited[tid] = true
@@ -57,7 +56,7 @@ function read_file(input_f)
     for i = 1:no_of_nodes
         start = parse(Int, readuntil(fp, ' '))
         edgeno = parse(Int, readline(fp))
-        h_graph_nodes[i] = Node(start+1, edgeno)
+        h_graph_nodes[i] = Node(start + 1, edgeno)
         h_graph_mask[i] = false
         h_updating_graph_mask[i] = false
         h_graph_visited[i] = false
@@ -85,7 +84,7 @@ function read_file(input_f)
     for i = 1:edge_list_size
         id = parse(Int, readuntil(fp, ' '))
         cost = parse(Int, readline(fp))
-        h_graph_edges[i] = id+1
+        h_graph_edges[i] = id + 1
     end
 
     close(fp)
@@ -121,11 +120,11 @@ function main(args)
     # Manual copies to device
     g_graph_nodes = CuArray(h_graph_nodes)
     g_graph_edges = CuArray(h_graph_edges)
-    g_graph_mask  = CuArray(h_graph_mask)
+    g_graph_mask = CuArray(h_graph_mask)
     g_updating_graph_mask = CuArray(h_updating_graph_mask)
     g_graph_visited = CuArray(h_graph_visited)
     g_cost = CuArray(h_cost)
-    g_stop = CuArray{Bool}(1)
+    g_stop = CuArray{Bool}(undef, 1)
 
     k = 0
     println("Start traversing the tree")
@@ -136,13 +135,13 @@ function main(args)
         stop[1] = false
         copyto!(g_stop, stop)
 
-        @cuda blocks=blocks threads=threads Kernel(
+        @cuda blocks = blocks threads = threads Kernel(
             g_graph_nodes, g_graph_edges, g_graph_mask,
             g_updating_graph_mask, g_graph_visited,
             g_cost, no_of_nodes
         )
 
-        @cuda blocks=blocks threads=threads Kernel2(
+        @cuda blocks = blocks threads = threads Kernel2(
             g_graph_mask, g_updating_graph_mask, g_graph_visited,
             g_stop, no_of_nodes
         )
@@ -171,7 +170,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -181,17 +179,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 const OUTPUT = haskey(ENV, "OUTPUT")
 
@@ -26,7 +26,7 @@ end
 function randu(seed, index)
     num::Int32 = A * seed[index] + C
     seed[index] = num % M
-    q = seed[index]/M
+    q = seed[index] / M
     return abs(q)
 end
 
@@ -41,11 +41,11 @@ end
 # Video sequence
 
 function setif(test_value, new_value, array3D::Array{UInt8}, dimX, dimY, dimZ)
-    for x=0:dimX-1
-        for y=0:dimY-1
-            for z=0:dimZ-1
-                if array3D[x*dimY*dimZ + y*dimZ + z + 1] == test_value
-                    array3D[x*dimY*dimZ + y*dimZ + z + 1] = new_value
+    for x = 0:dimX-1
+        for y = 0:dimY-1
+            for z = 0:dimZ-1
+                if array3D[x*dimY*dimZ+y*dimZ+z+1] == test_value
+                    array3D[x*dimY*dimZ+y*dimZ+z+1] = new_value
                 end
             end
         end
@@ -53,12 +53,12 @@ function setif(test_value, new_value, array3D::Array{UInt8}, dimX, dimY, dimZ)
 end
 
 function addnoise(array3D::Array{UInt8}, dimX, dimY, dimZ, seed)
-    for x=0:dimX-1
-        for y=0:dimY-1
-            for z=0:dimZ-1
+    for x = 0:dimX-1
+        for y = 0:dimY-1
+            for z = 0:dimZ-1
                 noise = convert(Int, trunc(5 * randn(seed, 1)))
-                array3D[x*dimY*dimZ + y*dimZ + z + 1] =
-                    array3D[x*dimY*dimZ + y*dimZ + z + 1] + noise
+                array3D[x*dimY*dimZ+y*dimZ+z+1] =
+                    array3D[x*dimY*dimZ+y*dimZ+z+1] + noise
             end
         end
     end
@@ -81,21 +81,21 @@ function dilate_matrix(matrix, posX, posY, posZ, dimX, dimY, dimZ, error)
     while endY > dimY
         endY -= 1
     end
-    for x=startX:endX-1
-        for y=startY:endY-1
-            distance = sqrt((x-posX)^2 + (y-posY)^2)
+    for x = startX:endX-1
+        for y = startY:endY-1
+            distance = sqrt((x - posX)^2 + (y - posY)^2)
             if distance < error
-                matrix[x * dimY * dimZ + y * dimZ + posZ + 1] = 1
+                matrix[x*dimY*dimZ+y*dimZ+posZ+1] = 1
             end
         end
     end
 end
 
 function imdilate_disk(matrix::Array{UInt8}, dimX, dimY, dimZ, error, new_matrix)
-    for z=0:dimZ-1
-        for x=0:dimX-1
-            for y=0:dimY-1
-                if matrix[x * dimY * dimZ + y * dimZ + z + 1] == 1
+    for z = 0:dimZ-1
+        for x = 0:dimX-1
+            for y = 0:dimY-1
+                if matrix[x*dimY*dimZ+y*dimZ+z+1] == 1
                     dilate_matrix(new_matrix, x, y, z, dimX, dimY, dimZ, error)
                 end
             end
@@ -107,31 +107,31 @@ function videosequence(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32})
 
     max_size = IszX * IszY * Nfr
     # get object centers
-    x0 = convert(Int, rounddouble(IszX/2.0))
-    y0 = convert(Int, rounddouble(IszY/2.0))
-    I[x0 * IszY * Nfr + y0 * Nfr + 1] = 1       # TODO: +1 instead of 0?
+    x0 = convert(Int, rounddouble(IszX / 2.0))
+    y0 = convert(Int, rounddouble(IszY / 2.0))
+    I[x0*IszY*Nfr+y0*Nfr+1] = 1       # TODO: +1 instead of 0?
 
     # Move point
     xk = yk = 0
     for k = 2:Nfr
-        xk = abs(x0 + (k - 2));
-        yk = abs(y0 - 2 * (k - 2));
-        pos = yk * IszY * Nfr + xk * Nfr + k;
+        xk = abs(x0 + (k - 2))
+        yk = abs(y0 - 2 * (k - 2))
+        pos = yk * IszY * Nfr + xk * Nfr + k
         if pos > max_size
-            pos = 1;
+            pos = 1
         end
-        I[pos] = 1;
+        I[pos] = 1
     end
 
     # Dialate matrix
     new_matrix = zeros(UInt8, IszX * IszY * Nfr)
     imdilate_disk(I, IszX, IszY, Nfr, 5, new_matrix)
 
-    for x=1:IszX
-        for y=1:IszY
-            for k=1:Nfr
-                I[(x-1) * IszY * Nfr + (y-1) * Nfr + k] =
-                    new_matrix[(x-1) * IszY * Nfr + (y-1) * Nfr + k]
+    for x = 1:IszX
+        for y = 1:IszY
+            for k = 1:Nfr
+                I[(x-1)*IszY*Nfr+(y-1)*Nfr+k] =
+                    new_matrix[(x-1)*IszY*Nfr+(y-1)*Nfr+k]
             end
         end
     end
@@ -146,14 +146,14 @@ end
 # Particle filter
 
 function streldisk(disk, radius)
-    diameter = radius * 2 -1
-    for x=1:diameter
-        for y=1:diameter
-            distance = sqrt((x-radius)^2 + (y-radius)^2)
+    diameter = radius * 2 - 1
+    for x = 1:diameter
+        for y = 1:diameter
+            distance = sqrt((x - radius)^2 + (y - radius)^2)
             if distance < radius
-                disk[(x-1)*diameter + y] = 1
+                disk[(x-1)*diameter+y] = 1
             else
-                disk[(x-1)*diameter + y] = 0
+                disk[(x-1)*diameter+y] = 0
             end
         end
     end
@@ -167,7 +167,7 @@ end
     weights,    # Int
     Nparticles)
     CDF[1] = weights[1]
-    for x=2:Nparticles
+    for x = 2:Nparticles
         CDF[x] = weights[x] + CDF[x-1]
     end
 end
@@ -175,23 +175,24 @@ end
 @inline function d_randu(seed, index)
     num = A * seed[index] + C
     seed[index] = num % M
-    return CUDAnative.abs(seed[index]/M)
+    return CUDA.abs(seed[index] / M)
 end
 
 @inline function d_randn(seed, index)
     u = d_randu(seed, index)
     v = d_randu(seed, index)
-    cosine = CUDAnative.cos(2*pi*v)
-    rt = -2 * CUDAnative.log(u)
-    return CUDAnative.sqrt(rt) * cosine
+    cosine = CUDA.cos(2 * pi * v)
+    rt = -2 * CUDA.log(u)
+    return CUDA.sqrt(rt) * cosine
 end
 
 @inline function calc_likelihood_sum(I, ind, num_ones, index)
     likelihood_sum = Float64(0)
-    for x=1:num_ones
-        i = ind[(index-1) * num_ones + x]
-        v = ((I[i] - 100)*(I[i] - 100)
-            - (I[i] -228)*(I[i] -228))/50
+    for x = 1:num_ones
+        i = ind[(index-1)*num_ones+x]
+        v = ((I[i] - 100) * (I[i] - 100)
+             -
+             (I[i] - 228) * (I[i] - 228)) / 50
         likelihood_sum += v
     end
     return likelihood_sum
@@ -199,7 +200,7 @@ end
 
 @inline function dev_round_double(value)::Int32
     new_value = unsafe_trunc(Int32, value)
-    if value - new_value < .5f0
+    if value - new_value < 0.5f0
         return new_value
     else
         # NOTE: keep buggy semantics of original, should be new_value+1
@@ -212,11 +213,11 @@ end
 
 function find_index_kernel(arrayX, arrayY, CDF, u, xj, yj, weights, Nparticles)
     block_id = blockIdx().x
-    i = blockDim().x * (block_id-1) + threadIdx().x
+    i = blockDim().x * (block_id - 1) + threadIdx().x
 
     if i <= Nparticles
         index = 0   # an invalid index
-        for x=1:Nparticles
+        for x = 1:Nparticles
             if CDF[x] >= u[i]
                 index = x
                 break
@@ -235,7 +236,7 @@ end
 
 function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, seed)
     block_id = blockIdx().x
-    i = blockDim().x * (block_id-1) + threadIdx().x
+    i = blockDim().x * (block_id - 1) + threadIdx().x
 
     shared = @cuStaticSharedMem(Float64, 2)
     u1_i = 1
@@ -252,9 +253,9 @@ function normalize_weights_kernel(weights, Nparticles, partial_sums, CDF, u, see
     end
     sync_threads()
 
-    if i==1
+    if i == 1
         cdf_calc(CDF, weights, Nparticles)
-        u[1] = (1/Nparticles) * d_randu(seed, i)
+        u[1] = (1 / Nparticles) * d_randu(seed, i)
     end
     sync_threads()
 
@@ -272,12 +273,12 @@ end
 
 function sum_kernel(partial_sums, Nparticles)
     block_id = blockIdx().x
-    i = blockDim().x * (block_id-1) + threadIdx().x
+    i = blockDim().x * (block_id - 1) + threadIdx().x
 
-    if i==1
+    if i == 1
         sum = 0.0
-        num_blocks = unsafe_trunc(Int,CUDAnative.ceil(Nparticles/threads_per_block))
-        for x=1:num_blocks
+        num_blocks = unsafe_trunc(Int, CUDA.ceil(Nparticles / threads_per_block))
+        for x = 1:num_blocks
             sum += partial_sums[x]
         end
         partial_sums[1] = sum
@@ -286,15 +287,15 @@ function sum_kernel(partial_sums, Nparticles)
 end
 
 function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
-                           count_ones, k, IszY, Nfr, partial_sums, param)
+    count_ones, k, IszY, Nfr, partial_sums, param)
     block_id = blockIdx().x
-    i = blockDim().x * (block_id-1) + threadIdx().x
+    i = blockDim().x * (block_id - 1) + threadIdx().x
 
     buffer = @cuStaticSharedMem(Float64, 512)
     if i <= param.Nparticles
         array.X[i] = j.x[i]
         array.Y[i] = j.y[i]
-        weights[i] = 1/param.Nparticles
+        weights[i] = 1 / param.Nparticles
 
         array.X[i] = array.X[i] + 1.0 + 5.0 * d_randn(param.seed, i)
         array.Y[i] = array.Y[i] - 2.0 + 2.0 * d_randn(param.seed, i)
@@ -303,18 +304,18 @@ function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
     sync_threads()
 
     if i <= param.Nparticles
-        for y=0:count_ones-1
-            indX = dev_round_double(array.X[i]) + objxy[y*2 + 2]
-            indY = dev_round_double(array.Y[i]) + objxy[y*2 + 1]
+        for y = 0:count_ones-1
+            indX = dev_round_double(array.X[i]) + objxy[y*2+2]
+            indY = dev_round_double(array.Y[i]) + objxy[y*2+1]
 
-            ind[(i-1)*count_ones + y + 1] = CUDAnative.abs(indX*IszY*Nfr + indY*Nfr + k - 1) + 1
-            if ind[(i-1)*count_ones + y + 1] > param.max_size
-                ind[(i-1)*count_ones + y + 1] = 1
+            ind[(i-1)*count_ones+y+1] = CUDA.abs(indX * IszY * Nfr + indY * Nfr + k - 1) + 1
+            if ind[(i-1)*count_ones+y+1] > param.max_size
+                ind[(i-1)*count_ones+y+1] = 1
             end
         end
         likelihood[i] = calc_likelihood_sum(I, ind, count_ones, i)
-        likelihood[i] = likelihood[i]/count_ones
-        weights[i] = weights[i] * CUDAnative.exp(likelihood[i])
+        likelihood[i] = likelihood[i] / count_ones
+        weights[i] = weights[i] * CUDA.exp(likelihood[i])
     end
     buffer[threadIdx().x] = 0.0
 
@@ -325,15 +326,15 @@ function likelihood_kernel(array, j, ind, objxy, likelihood, I, weights,
     end
     sync_threads()
 
-    s = div(blockDim().x,2)
+    s = div(blockDim().x, 2)
     while s > 0
         if threadIdx().x <= s
             v = buffer[threadIdx().x]
-            v += buffer[threadIdx().x + s]
+            v += buffer[threadIdx().x+s]
             buffer[threadIdx().x] = v
         end
         sync_threads()
-        s>>=1
+        s >>= 1
     end
     if threadIdx().x == 1
         partial_sums[blockIdx().x] = buffer[1]
@@ -344,13 +345,13 @@ end
 
 function getneighbors(se::Array{Int}, num_ones, neighbors::Array{Int}, radius)
     neighY = 1
-    center = radius -1
-    diameter = radius * 2 -1
-    for x=0:diameter-1
-        for y=0:diameter-1
-            if se[x*diameter + y + 1] != 0
-                neighbors[neighY * 2 - 1] = y - center
-                neighbors[neighY * 2] = x - center
+    center = radius - 1
+    diameter = radius * 2 - 1
+    for x = 0:diameter-1
+        for y = 0:diameter-1
+            if se[x*diameter+y+1] != 0
+                neighbors[neighY*2-1] = y - center
+                neighbors[neighY*2] = x - center
                 neighY += 1
             end
         end
@@ -361,18 +362,18 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     max_size = IszX * IszY * Nfr
 
     # Original particle centroid
-    xe = rounddouble(IszY/2.0)
-    ye = rounddouble(IszX/2.0)
+    xe = rounddouble(IszY / 2.0)
+    ye = rounddouble(IszX / 2.0)
 
     # Expected object locations, compared to cneter
     radius = 5
-    diameter = radius * 2 -1
+    diameter = radius * 2 - 1
     disk = Vector{Int}(undef, diameter * diameter)
     streldisk(disk, radius)
     count_ones = 0
-    for x=1:diameter
-        for y=1:diameter
-            if disk[(x-1) * diameter + y] == 1
+    for x = 1:diameter
+        for y = 1:diameter
+            if disk[(x-1)*diameter+y] == 1
                 count_ones += 1
             end
         end
@@ -383,28 +384,28 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
 
     # Initial weights are all equal (1/Nparticles)
     weights = Vector{Float64}(undef, Nparticles)
-    for x=1:Nparticles
+    for x = 1:Nparticles
         weights[x] = 1 / Nparticles
     end
 
     # Initial likelihood to 0.0
-    g_likelihood = CuArray{Float64}(Nparticles)
-    g_arrayX = CuArray{Float64}(Nparticles)
-    g_arrayY = CuArray{Float64}(Nparticles)
+    g_likelihood = CuArray{Float64}(undef, Nparticles)
+    g_arrayX = CuArray{Float64}(undef, Nparticles)
+    g_arrayY = CuArray{Float64}(undef, Nparticles)
     xj = Vector{Float64}(undef, Nparticles)
     yj = Vector{Float64}(undef, Nparticles)
-    g_CDF = CuArray{Float64}(Nparticles)
+    g_CDF = CuArray{Float64}(undef, Nparticles)
 
-    g_ind = CuArray{Int}(count_ones * Nparticles)
-    g_u = CuArray{Float64}(Nparticles)
-    g_partial_sums = CuArray{Float64}(Nparticles)
+    g_ind = CuArray{Int}(undef, count_ones * Nparticles)
+    g_u = CuArray{Float64}(undef, Nparticles)
+    g_partial_sums = CuArray{Float64}(undef, Nparticles)
 
-    for x=1:Nparticles
+    for x = 1:Nparticles
         xj[x] = xe
         yj[x] = ye
     end
 
-    num_blocks = Int(ceil(Nparticles/threads_per_block))
+    num_blocks = Int(ceil(Nparticles / threads_per_block))
 
     g_xj = CuArray(xj)
     g_yj = CuArray(yj)
@@ -413,20 +414,20 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     g_weights = CuArray(weights)
     g_seed = CuArray(seed)
 
-    for k=2:Nfr
-        @cuda blocks=num_blocks threads=threads_per_block likelihood_kernel(
+    for k = 2:Nfr
+        @cuda blocks = num_blocks threads = threads_per_block likelihood_kernel(
             (X=g_arrayX, Y=g_arrayY), (x=g_xj, y=g_yj), g_ind,
             g_objxy, g_likelihood, g_I, g_weights,
             count_ones, k, IszY, Nfr, g_partial_sums,
             (max_size=max_size, Nparticles=Nparticles, seed=g_seed))
 
-        @cuda blocks=num_blocks threads=threads_per_block sum_kernel(
+        @cuda blocks = num_blocks threads = threads_per_block sum_kernel(
             g_partial_sums, Nparticles)
 
-        @cuda blocks=num_blocks threads=threads_per_block normalize_weights_kernel(
+        @cuda blocks = num_blocks threads = threads_per_block normalize_weights_kernel(
             g_weights, Nparticles, g_partial_sums, g_CDF, g_u, g_seed)
 
-        @cuda blocks=num_blocks threads=threads_per_block find_index_kernel(
+        @cuda blocks = num_blocks threads = threads_per_block find_index_kernel(
             g_arrayX, g_arrayY, g_CDF, g_u, g_xj, g_yj, g_weights, Nparticles)
     end
 
@@ -435,7 +436,7 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     weights = Array(g_weights)
 
     xe = ye = 0
-    for x=1:Nparticles
+    for x = 1:Nparticles
         xe += arrayX[x] * weights[x]
         ye += arrayY[x] * weights[x]
     end
@@ -445,14 +446,15 @@ function particlefilter(I::Array{UInt8}, IszX, IszY, Nfr, seed::Array{Int32}, Np
     else
         outf = stdout
     end
-    println(outf,"XE: $xe")
-    println(outf,"YE: $ye")
-    distance = sqrt((xe - Int(rounddouble(IszX/2.0)))^2
-                   +(ye - Int(rounddouble(IszY/2.0)))^2)
-    println(outf,"distance: $distance")
+    println(outf, "XE: $xe")
+    println(outf, "YE: $ye")
+    distance = sqrt((xe - Int(rounddouble(IszX / 2.0)))^2
+                    +
+                    (ye - Int(rounddouble(IszY / 2.0)))^2)
+    println(outf, "distance: $distance")
 
     if OUTPUT
-      close(outf)
+        close(outf)
     end
 
 end
@@ -502,7 +504,7 @@ function main(args)
     # initialize
     seed = Vector{Int32}(undef, Nparticles)
     for i = 1:Nparticles
-        seed[i] = i-1
+        seed[i] = i - 1
     end
     I = zeros(UInt8, IszX * IszY * Nfr)
 
@@ -513,7 +515,8 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
+    #FIXME
+
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -523,9 +526,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
+        NVTX.@range begin
             for i in 1:5
                 GC.gc(true)
             end
@@ -533,7 +536,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
             for i in 1:5
                 GC.gc(true)
             end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+            CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
         end
     end
 end

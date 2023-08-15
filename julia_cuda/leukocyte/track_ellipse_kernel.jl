@@ -1,4 +1,4 @@
-using CUDAdrv, CUDAnative
+using CUDA
 
 # The number of threads per thread block
 const threads_per_block = 320
@@ -8,7 +8,7 @@ const next_lowest_power_of_two = 256
 # Regularized version of the Heaviside step function:
 # He(x) = (atan(x) / pi) + 0.5
 function heaviside(z)
-    CUDAnative.atan(z) * (Float32(1) / Float32(C_PI)) + Float32(0.5)
+    CUDA.atan(z) * (Float32(1) / Float32(C_PI)) + Float32(0.5)
 end
 
 function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
@@ -166,7 +166,7 @@ function IMGVF_kernel(I_flat, IMGVF_flat, m_array, n_array, offsets, vx, vy, e,
             end
 
             # Keep track of the total change of this thread's matrix elements
-            total_diff += CUDAnative.abs(new_val - old_val)
+            total_diff += CUDA.abs(new_val - old_val)
 
             # We need to synchronize between virtual thread blocks to prevent
             # threads from writing the values from the buffer to the actual

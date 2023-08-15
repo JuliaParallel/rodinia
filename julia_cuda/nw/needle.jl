@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 using LLVM
 
 using Printf
@@ -44,10 +44,13 @@ const blosum62 = [
 ]
 
 function usage()
-    println(STDERR, """
-        Usage: needle.jl <max_rows/max_cols> <penalty>
-        <dimension>      - x and y dimensions
-        <penalty>        - penalty(positive integer)""")
+    println(
+        STDERR,
+        """
+Usage: needle.jl <max_rows/max_cols> <penalty>
+<dimension>      - x and y dimensions
+<penalty>        - penalty(positive integer)"""
+    )
     exit(1)
 end
 
@@ -65,7 +68,7 @@ function main(args)
         max_rows = parse(Int32, args[1])
         max_cols = parse(Int32, args[1])
         penalty = parse(Int32, args[2])
-	    @assert max_rows % 16 == 0
+        @assert max_rows % 16 == 0
     else
         usage(argc, argv)
     end
@@ -80,21 +83,21 @@ function main(args)
     println("Start Needleman-Wunsch")
 
     for i = 2:max_rows # Please define your own sequence.
-        input_itemsets[i,1] = rand(rng) % 10 + 1
+        input_itemsets[i, 1] = rand(rng) % 10 + 1
     end
     for j = 2:max_cols # Please define your own sequence.
-        input_itemsets[1,j] = rand(rng) % 10 + 1
+        input_itemsets[1, j] = rand(rng) % 10 + 1
     end
 
     for j = 2:max_cols, i = 2:max_rows
-        reference[i,j] = blosum62[input_itemsets[i,1] + 1, input_itemsets[1,j] + 1]
+        reference[i, j] = blosum62[input_itemsets[i, 1]+1, input_itemsets[1, j]+1]
     end
 
     for i = 2:max_rows
-        input_itemsets[i,1] = -(i - 1) * penalty
+        input_itemsets[i, 1] = -(i - 1) * penalty
     end
     for j = 2:max_cols
-        input_itemsets[1,j] = -(j - 1) * penalty
+        input_itemsets[1, j] = -(j - 1) * penalty
     end
 
     matrix_cuda = CuArray(input_itemsets)
@@ -105,14 +108,14 @@ function main(args)
     println("Processing top-left matrix")
     # process top-left matrix
     for i = 1:block_width
-        @cuda blocks=(i, 1) threads=(BLOCK_SIZE, 1) needle_cuda_shared_1(
+        @cuda blocks = (i, 1) threads = (BLOCK_SIZE, 1) needle_cuda_shared_1(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
     println("Processing bottom-right matrix")
     # process bottom-right matrix
     for i = block_width-1:-1:1
-        @cuda blocks=(i, 1) threads=(BLOCK_SIZE, 1) needle_cuda_shared_2(
+        @cuda blocks = (i, 1) threads = (BLOCK_SIZE, 1) needle_cuda_shared_2(
             reference_cuda, matrix_cuda, max_cols, penalty, i, block_width)
     end
 
@@ -129,7 +132,7 @@ function main(args)
 
             if i == max_rows - 2 && j == max_rows - 2
                 # Print the first element.
-                @printf(fpo, "%d ", output_itemsets[i + 1, j + 1])
+                @printf(fpo, "%d ", output_itemsets[i+1, j+1])
             end
 
             if i == 0 && j == 0
@@ -138,17 +141,17 @@ function main(args)
 
             if i > 0 && j > 0
                 nw = output_itemsets[i, j]
-                w = output_itemsets[i + 1, j]
-                n = output_itemsets[i, j + 1]
+                w = output_itemsets[i+1, j]
+                n = output_itemsets[i, j+1]
             elseif i == 0
                 nw = n = LIMIT
-                w = output_itemsets[i + 1, j]
+                w = output_itemsets[i+1, j]
             elseif j == 0
                 nw = w = LIMIT
-                n = output_itemsets[i, j + 1]
+                n = output_itemsets[i, j+1]
             end
 
-            new_nw = nw + reference[i + 1, j + 1]
+            new_nw = nw + reference[i+1, j+1]
             new_w = w - penalty
             new_n = n - penalty
 
@@ -188,7 +191,6 @@ end
 LLVM.clopts("--unroll-threshold=300")
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -198,17 +200,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+#using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 using Printf
 
@@ -26,12 +27,12 @@ end
 # Calculates the Euclidean distance from each record in the database to the target position.
 function euclid(d_locations, d_distances, numRecords, lat, lng)
     globalId = threadIdx().x + blockDim().x *
-                (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
+                               (gridDim().x * (blockIdx().y - 1) + (blockIdx().x - 1))
     if globalId <= numRecords
         latLong = d_locations[globalId]
         d_distances[globalId] =
-            CUDAnative.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
-                            (lng - latLong.lng) * (lng - latLong.lng))
+            CUDA.sqrt((lat - latLong.lat) * (lat - latLong.lat) +
+                      (lng - latLong.lng) * (lng - latLong.lng))
     end
     return
 end
@@ -41,7 +42,8 @@ function main(args)
     # Parse command line
     filename, resultsCount, lat, lng, quiet, timing, platform, dev =
         parseCommandline(args)
-    numRecords, records, locations = loadData(filename)
+    numRecords::Int, records, locations = loadData(filename)
+
 
     if resultsCount > numRecords
         resultsCount = numRecords
@@ -52,16 +54,16 @@ function main(args)
     # Scaling calculations - added by Sam Kauffman
     synchronize()
 
-    maxGridX = attribute(dev, CUDAdrv.MAX_GRID_DIM_X)
-    maxThreadsPerBlock = attribute(dev, CUDAdrv.MAX_THREADS_PER_BLOCK)
+    maxGridX = attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_GRID_DIM_X)
+    maxThreadsPerBlock = attribute(dev, CUDA.DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK)
     threadsPerBlock = min(maxThreadsPerBlock, DEFAULT_THREADS_PER_BLOCK)
 
-    freeDeviceMemory = Mem.free()
+    freeDeviceMemory = CUDA.available_memory()
 
     synchronize()
 
     usableDeviceMemory = floor(UInt, freeDeviceMemory * 85 / 100) # 85% arbitrary throttle
-        # to compensate for known CUDA bug
+    # to compensate for known CUDA bug
     maxThreads = floor(UInt, usableDeviceMemory / 12) # 4 bytes in 3 vectors per thread
 
     if numRecords > maxThreads
@@ -74,17 +76,17 @@ function main(args)
 
     # Allocate memory on device and copy data from host to device.
     d_locations = CuArray(locations)
-    d_distances = CuArray{Float32}(numRecords)
+    d_distances = CuArray{Float32}(undef, numRecords)
 
     # Execute kernel. There will be no more than (gridY - 1) extra blocks.
-    @cuda blocks=(gridX, gridY) threads=threadsPerBlock euclid(
+    @cuda blocks = (gridX, gridY) threads = threadsPerBlock euclid(
         d_locations, d_distances, numRecords, lat, lng)
 
     # Copy data from device memory to host memory.
     distances = Array(d_distances)
 
     # Find the resultsCount least distances.
-    findLowest(records, distances, numRecords, resultsCount);
+    findLowest(records, distances, numRecords, resultsCount)
 
     # Print out results.
     if OUTPUT
@@ -98,7 +100,7 @@ function main(args)
 end
 
 function loadData(filename)
-    recNum = 0
+    recNum = 0.0f0
     records = Record[]
     locations = LatLong[]
 
@@ -108,7 +110,7 @@ function loadData(filename)
     while !eof(flist)
         # Read in all records. If this is the last file in the filelist, then
         # we are done. Otherwise, open next file to be read next iteration.
-        fp = open(chomp(readline(flist)), "r");
+        fp = open(chomp(readline(flist)), "r")
 
         # read each record
         while !eof(fp)
@@ -135,21 +137,21 @@ end
 
 function findLowest(records, distances, numRecords, topN)
     for i = 1:topN
-        minLoc = i-1
+        minLoc = i - 1
         for j = i-1:numRecords-1
-            val = distances[j + 1]
-            if val < distances[minLoc + 1]
+            val = distances[j+1]
+            if val < distances[minLoc+1]
                 minLoc = j
             end
         end
         # swap locations and distances
         tmp = records[i]
-        records[i] = records[minLoc + 1]
-        records[minLoc + 1] = tmp
+        records[i] = records[minLoc+1]
+        records[minLoc+1] = tmp
 
         tmp = distances[i]
-        distances[i] = distances[minLoc + 1]
-        distances[minLoc + 1] = tmp
+        distances[i] = distances[minLoc+1]
+        distances[minLoc+1] = tmp
 
         # Add distance to the min we just found.
         records[i] = Record(records[i].recString, distances[i])
@@ -175,7 +177,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -185,17 +186,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

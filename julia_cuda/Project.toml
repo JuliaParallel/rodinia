@@ -1,7 +1,5 @@
 [deps]
-CUDAdrv = "c5f51814-7f29-56b8-a69c-e4d8f6be1fde"
-CUDAnative = "be33ccc6-a3ff-5ff2-a52e-74243cff1e17"
-CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 LLVM = "929cbde3-209d-540e-8aea-75f648917ca0"
-NVTX = "abe033e4-6c58-5f6f-85fa-ab729cab124a"
+NVTX = "5da4648a-3479-48b8-97b9-01cb529c0a1f"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"

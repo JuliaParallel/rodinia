@@ -1,4 +1,4 @@
-using CUDAdrv, CUDAnative
+using CUDA
 
 # The number of sample points in each ellipse (stencil)
 const NPOINTS = 150
@@ -21,7 +21,7 @@ end
 # Kernel to find the maximal GICOV value at each pixel of a
 #  video frame, based on the input x- and y-gradient matrices
 function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_tX, c_tY,
-                      device_gicov_out)
+    device_gicov_out)
     # Determine this thread's pixel
     i = blockIdx().x + MAX_RAD + 2
     j = threadIdx().x + MAX_RAD + 2
@@ -41,15 +41,15 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_
         for n in 1:NPOINTS
             # Determine the x- and y-coordinates of the current sample
             # point
-            y = j + ldg(c_tY, LinearIndices(c_tY)[k,n])
-            x = i + ldg(c_tX, LinearIndices(c_tX)[k,n])
+            y = j + ldg(c_tY, LinearIndices(c_tY)[k, n])
+            x = i + ldg(c_tX, LinearIndices(c_tX)[k, n])
 
             # Compute the combined gradient value at the current sample
             # point
-            p = ldg(device_grad_x, LinearIndices(device_grad_x)[x,y]) *
-                    ldg(c_cos_angle, LinearIndices(c_cos_angle)[n]) +
-                ldg(device_grad_y, LinearIndices(device_grad_y)[x,y]) *
-                    ldg(c_sin_angle, LinearIndices(c_sin_angle)[n])
+            p = ldg(device_grad_x, LinearIndices(device_grad_x)[x, y]) *
+                ldg(c_cos_angle, LinearIndices(c_cos_angle)[n]) +
+                ldg(device_grad_y, LinearIndices(device_grad_y)[x, y]) *
+                ldg(c_sin_angle, LinearIndices(c_sin_angle)[n])
 
             # Update the running total
             sum += p
@@ -74,11 +74,11 @@ function GICOV_kernel(device_grad_x, device_grad_y, c_sin_angle, c_cos_angle, c_
     end
 
     # Store the maximal GICOV value
-    if (1 <= i <= size(device_gicov_out,1)) &
-       (1 <= j <= size(device_gicov_out,2))
-      @inbounds device_gicov_out[i,j] = max_GICOV
+    if (1 <= i <= size(device_gicov_out, 1)) &
+       (1 <= j <= size(device_gicov_out, 2))
+        @inbounds device_gicov_out[i, j] = max_GICOV
     else
-      @cuprintf("invalid blockid,threadid = %d,%d\n",blockIdx().x,threadIdx().x)
+        @cuprintf("invalid blockid,threadid = %d,%d\n", blockIdx().x, threadIdx().x)
     end
     return
 end
@@ -90,18 +90,18 @@ function GICOV_CUDA(host_grad_x, host_grad_y, GICOV_constants)
 
     # Allocate device memory
     # TODO: should be put in texture memory
-    device_grad_x = CuArray(collect(convert(Array{Float32,2},host_grad_x)'))
-    device_grad_y = CuArray(collect(convert(Array{Float32,2},host_grad_y)'))
+    device_grad_x = CuArray(collect(convert(Array{Float32,2}, host_grad_x)'))
+    device_grad_y = CuArray(collect(convert(Array{Float32,2}, host_grad_y)'))
 
     # Allocate & initialize device memory for result
     # (some elements are not assigned values in the kernel)
-    device_gicov_out = CuArray{Float32}(size(device_grad_x,1),size(device_grad_y,2))
+    device_gicov_out = CuArray{Float32}(undef, size(device_grad_x, 1), size(device_grad_y, 2))
 
     # Setup execution parameters
-    num_blocks = size(host_grad_y,2) - (2 * MaxR)
-    threads_per_block = size(host_grad_x,1) - (2 * MaxR)
+    num_blocks = size(host_grad_y, 2) - (2 * MaxR)
+    threads_per_block = size(host_grad_x, 1) - (2 * MaxR)
 
-    @cuda blocks=num_blocks threads=threads_per_block GICOV_kernel(device_grad_x, device_grad_y,
+    @cuda blocks = num_blocks threads = threads_per_block GICOV_kernel(device_grad_x, device_grad_y,
         GICOV_constants.c_sin_angle, GICOV_constants.c_cos_angle,
         GICOV_constants.c_tX, GICOV_constants.c_tY, device_gicov_out)
 
@@ -111,14 +111,14 @@ end
 
 # Transfers pre-computed constants used by the two kernels to the GPU
 function transfer_constants(host_sin_angle, host_cos_angle, host_tX, host_tY,
-        host_strel)
-  # TODO: should all be put in constant memory
-  c_sin_angle = CuArray(convert(Array{Float32,1},host_sin_angle))
-  c_cos_angle = CuArray(convert(Array{Float32,1},host_cos_angle))
-  c_tX = CuArray(convert(Array{Int32,2},host_tX))
-  c_tY = CuArray(convert(Array{Int32,2},host_tY))
-  c_strel = CuArray(convert(Array{Float32,2},host_strel))
-  CUDAConstValues(c_sin_angle,c_cos_angle,c_tX,c_tY,c_strel)
+    host_strel)
+    # TODO: should all be put in constant memory
+    c_sin_angle = CuArray(convert(Array{Float32,1}, host_sin_angle))
+    c_cos_angle = CuArray(convert(Array{Float32,1}, host_cos_angle))
+    c_tX = CuArray(convert(Array{Int32,2}, host_tX))
+    c_tY = CuArray(convert(Array{Int32,2}, host_tY))
+    c_strel = CuArray(convert(Array{Float32,2}, host_strel))
+    CUDAConstValues(c_sin_angle, c_cos_angle, c_tX, c_tY, c_strel)
 end
 
 
@@ -129,14 +129,14 @@ end
 # Here the neighborhood is defined by the structuring element (c_strel)
 function dilate_kernel(img_dev, c_strel, dilated_out)
     # Find the center of the structuring element
-    el_center_i = div(size(c_strel,1),2)
-    el_center_j = div(size(c_strel,2),2)
+    el_center_i = div(size(c_strel, 1), 2)
+    el_center_j = div(size(c_strel, 2), 2)
 
-    img_m = size(img_dev,1)
-    img_n = size(img_dev,2)
+    img_m = size(img_dev, 1)
+    img_n = size(img_dev, 2)
 
     # Determine this thread's location in the matrix
-    thread_id = ((blockIdx().x -1) * blockDim().x) + threadIdx().x - 1
+    thread_id = ((blockIdx().x - 1) * blockDim().x) + threadIdx().x - 1
     i = mod(thread_id, img_m)
     j = div(thread_id, img_m)
 
@@ -144,19 +144,19 @@ function dilate_kernel(img_dev, c_strel, dilated_out)
     max::Float32 = 0.0
 
     # Iterate across the structuring element
-    for el_i in 1:size(c_strel,1), el_j in 1:size(c_strel,2)
+    for el_i in 1:size(c_strel, 1), el_j in 1:size(c_strel, 2)
         y = i - el_center_i + el_i
         x = j - el_center_j + el_j
         # Make sure we have not gone off the edge of the matrix
-        @inbounds if (1 <= y <= size(img_dev,1)) & (1 <= x <= size(img_dev,2)) & (ldg(c_strel, LinearIndices(c_strel)[el_i,el_j]) != 0.0)
-            temp = ldg(img_dev, LinearIndices(img_dev)[y,x])
+        @inbounds if (1 <= y <= size(img_dev, 1)) & (1 <= x <= size(img_dev, 2)) & (ldg(c_strel, LinearIndices(c_strel)[el_i, el_j]) != 0.0)
+            temp = ldg(img_dev, LinearIndices(img_dev)[y, x])
             if temp > max
                 max = temp
             end
         end
     end
     # Store the maximum value found
-    @inbounds dilated_out[i+1,j+1] = max
+    @inbounds dilated_out[i+1, j+1] = max
     return
 end
 
@@ -165,13 +165,13 @@ end
 function dilate_CUDA(img_in, GICOV_constants)
     # TODO: should be put in texture memory
     img_dev = CuArray(img_in)
-    dilated_out = CuArray{Float32}((size(img_in,1),size(img_in,2)))
+    dilated_out = CuArray{Float32}(undef, (size(img_in, 1), size(img_in, 2)))
 
-    num_threads = size(img_in,1) * size(img_in,2)
+    num_threads = size(img_in, 1) * size(img_in, 2)
     threads_per_block = 176
-    num_blocks = trunc(Int64,num_threads / threads_per_block + 0.5)
+    num_blocks = trunc(Int64, num_threads / threads_per_block + 0.5)
 
-    @cuda blocks=num_blocks threads=threads_per_block dilate_kernel(img_dev, GICOV_constants.c_strel, dilated_out)
+    @cuda blocks = num_blocks threads = threads_per_block dilate_kernel(img_dev, GICOV_constants.c_strel, dilated_out)
 
     Array(dilated_out)
 end

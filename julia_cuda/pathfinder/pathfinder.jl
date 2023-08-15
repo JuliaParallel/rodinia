@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 include("../../common/julia/crand.jl")
 const rng = LibcRNG()
@@ -49,8 +49,8 @@ end
 inrange(x, min, max) = x >= min && x <= max
 
 function dynproc_kernel(iteration,
-                        gpu_wall, gpu_src, gpu_result,
-                        cols, rows, start_step, border)
+    gpu_wall, gpu_src, gpu_result,
+    cols, rows, start_step, border)
     prev = @cuStaticSharedMem(Int32, BLOCK_SIZE)
     result = @cuStaticSharedMem(Int32, BLOCK_SIZE)
 
@@ -59,15 +59,15 @@ function dynproc_kernel(iteration,
 
     small_block_cols = BLOCK_SIZE - iteration * HALO * 2
 
-    blk_x = small_block_cols * (bx-1) - border;
-    blk_x_max = blk_x + BLOCK_SIZE -1
+    blk_x = small_block_cols * (bx - 1) - border
+    blk_x_max = blk_x + BLOCK_SIZE - 1
 
     xidx = blk_x + tx
 
-    valid_x_min = (blk_x < 0) ? - blk_x : 0
-    valid_x_max = (blk_x_max > cols-1) ? BLOCK_SIZE-1-(blk_x_max-cols+1) : BLOCK_SIZE-1
-    valid_x_min = valid_x_min+1
-    valid_x_max = valid_x_max+1
+    valid_x_min = (blk_x < 0) ? -blk_x : 0
+    valid_x_max = (blk_x_max > cols - 1) ? BLOCK_SIZE - 1 - (blk_x_max - cols + 1) : BLOCK_SIZE - 1
+    valid_x_min = valid_x_min + 1
+    valid_x_max = valid_x_max + 1
 
     W = tx - 1
     E = tx + 1
@@ -85,7 +85,7 @@ function dynproc_kernel(iteration,
     computed = false
     for i = 1:iteration
         computed = false
-        if inrange(tx, i+1, BLOCK_SIZE-i) && is_valid
+        if inrange(tx, i + 1, BLOCK_SIZE - i) && is_valid
             computed = true
 
             left = prev[W]
@@ -95,7 +95,7 @@ function dynproc_kernel(iteration,
             shortest = min(left, up)
             shortest = min(shortest, right)
 
-            index = cols * (start_step + (i-1)) + xidx
+            index = cols * (start_step + (i - 1)) + xidx
             result[tx] = shortest + gpu_wall[index]
         end
         sync_threads()
@@ -120,10 +120,10 @@ function calc_path(wall, result, rows, cols, pyramid_height, block_cols, border_
     dst = 1
 
     for t = 0:pyramid_height:rows-1
-        src,dst = dst,src
-        iter = min(pyramid_height, rows-t-1)
+        src, dst = dst, src
+        iter = min(pyramid_height, rows - t - 1)
 
-        @cuda blocks=block_cols threads=BLOCK_SIZE dynproc_kernel(iter,
+        @cuda blocks = block_cols threads = BLOCK_SIZE dynproc_kernel(iter,
             wall, result[src], result[dst],
             cols, rows, t, border_cols
         )
@@ -138,8 +138,8 @@ function main(args)
 
     # Calculate parameters
     border_cols = pyramid_height * HALO
-    small_block_col = BLOCK_SIZE - pyramid_height*HALO * 2
-    block_cols = floor(Int, cols/small_block_col) + ((cols % small_block_col == 0) ? 0 : 1)
+    small_block_col = BLOCK_SIZE - pyramid_height * HALO * 2
+    block_cols = floor(Int, cols / small_block_col) + ((cols % small_block_col == 0) ? 0 : 1)
 
     println("""pyramid_height: $pyramid_height
                grid_size: [$cols]
@@ -150,8 +150,8 @@ function main(args)
 
     # Setup GPU memory
     gpu_result = Vector{CuArray{Int32,1}}(undef, 2)
-    gpu_result[1] = CuArray(wall[:,1])
-    gpu_result[2] = CuArray{Int32}(cols)
+    gpu_result[1] = CuArray(wall[:, 1])
+    gpu_result[2] = CuArray{Int32}(undef, cols)
 
     gpu_wall = CuArray(wall[cols+1:end])
 
@@ -167,13 +167,13 @@ function main(args)
         open("output.txt", "a") do fpo
             println(fpo, "data:")
 
-            for i=1:cols
+            for i = 1:cols
                 print(fpo, "$(wall[i]) ")
             end
             println(fpo, "")
 
             println(fpo, "result:")
-            for i=1:cols
+            for i = 1:cols
                 print(fpo, "$(result[i]) ")
             end
             println(fpo, "")
@@ -183,7 +183,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -193,17 +192,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 using Printf
 
 include("../../common/julia/crand.jl")
@@ -33,7 +33,7 @@ end
 
 function main(args)
     if length(args) != 1
-        println(stderr, "usage: backprop <num of input elements>");
+        println(stderr, "usage: backprop <num of input elements>")
         exit(1)
     end
 
@@ -50,7 +50,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -60,17 +59,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-using CUDAdrv, CUDAnative, NVTX
+using CUDA, NVTX
 
 using Printf
 
@@ -14,7 +14,7 @@ const OUTPUT = haskey(ENV, "OUTPUT")
 # configuration
 const SP = 1 # number of repetitions of speedy must be >=1
 const SEED = 1
-const ITER  = 3 # iterate ITER* k log k times ITER >= 1
+const ITER = 3 # iterate ITER* k log k times ITER >= 1
 const PRINT_INFO = false
 
 
@@ -22,9 +22,9 @@ const PRINT_INFO = false
 function shuffle(points)
     for i = 0:points.num-2
         j = (rand(rng, Culong) % (points.num - i)) + i
-        temp = points.p[i + 1]
-        points.p[i + 1] = points.p[j + 1]
-        points.p[j + 1] = temp
+        temp = points.p[i+1]
+        points.p[i+1] = points.p[j+1]
+        points.p[j+1] = temp
     end
 end
 
@@ -32,15 +32,15 @@ end
 function intshuffle(intarray, length)
     for i = 0:length-1
         j = (rand(rng, Culong) % (length - i)) + i
-        temp = intarray[i + 1]
-        intarray[i + 1] = intarray[j + 1]
-        intarray[j + 1] = temp
+        temp = intarray[i+1]
+        intarray[i+1] = intarray[j+1]
+        intarray[j+1] = temp
     end
 end
 
 # compute Euclidean distance squared between two points
 function dist(p1, p2, dim)
-    result = 0f0
+    result = 0.0f0
 
     for i = 1:dim
         result += (p1.coord[i] - p2.coord[i]) * (p1.coord[i] - p2.coord[i])
@@ -52,7 +52,7 @@ end
 const __pspeedy_i = Ref{Int32}(0)
 const __pspeedy_open = Ref{Bool}(false)
 const __pspeedy_costs = Ref{Vector{Float32}}() # cost for each thread.
-const __pspeedy_totalcost = Ref{Float32}(0f0)
+const __pspeedy_totalcost = Ref{Float32}(0.0f0)
 
 # run speedy on the points, return total cost of solution
 function pspeedy(points, z, kcenter, pid)
@@ -115,13 +115,13 @@ function pspeedy(points, z, kcenter, pid)
     end
 
     __pspeedy_open[] = false
-    mytotal = 0f0
+    mytotal = 0.0f0
 
     for k = k1+1:k2
         mytotal += points.p[k].cost
     end
 
-    __pspeedy_costs[][pid + 1] = mytotal
+    __pspeedy_costs[][pid+1] = mytotal
 
     # aggregate costs from each thread
     if pid == 0
@@ -153,7 +153,7 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
     # stop instead if improvement is less than e
     while change / cost > 1.0 * e
 
-        change = 0f0
+        change = 0.0f0
         numberOfPoints = points.num
 
         # randomize order in which centers are considered
@@ -163,8 +163,8 @@ function pFL(points, feasible, z, k, kmax, cost, iter, e, pid)
 
         for i = 0:iter-1
             x = i % numfeasible
-            change += pgain(feasible[x + 1], points, z, k, kmax, g_is_center,
-                            g_center_table, g_switch_membership, g_isCoordChanged[])
+            change += pgain(feasible[x+1], points, z, k, kmax, g_is_center,
+                g_center_table, g_switch_membership, g_isCoordChanged[])
         end
 
         cost -= change
@@ -212,7 +212,7 @@ function selectfeasible_fast(points, kmin, pid)
     totalweight = 0
 
     for i = 2:points.num
-        accumweight[i] = accumweight[i - 1] + points.p[i].weight
+        accumweight[i] = accumweight[i-1] + points.p[i].weight
     end
 
     totalweight = accumweight[points.num]
@@ -232,7 +232,7 @@ function selectfeasible_fast(points, kmin, pid)
 
         while l + 1 < r
             k = floor(Int32, (l + r) / 2)
-            if accumweight[k + 1] > w
+            if accumweight[k+1] > w
                 r = k
             else
                 l = k
@@ -258,8 +258,8 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
         __pkmedian_hizs = zeros(Float32, nproc[])
     end
 
-    hiz = 0f0
-    loz = 0f0
+    hiz = 0.0f0
+    loz = 0.0f0
 
     numberOfPoints = points.num
     ptDimension = points.dim
@@ -278,19 +278,19 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
         @printf("%i points in %i dimensions\n", numberOfPoints, ptDimension)
     end
 
-    myhiz = 0f0
+    myhiz = 0.0f0
 
     for kk = k1+1:k2
         myhiz += dist(points.p[kk], points.p[1], ptDimension) * points.p[kk].weight
     end
 
-    __pkmedian_hizs[pid + 1] = myhiz
+    __pkmedian_hizs[pid+1] = myhiz
 
     for i = 1:nproc[]
         hiz += __pkmedian_hizs[i]
     end
 
-    loz = 0f0
+    loz = 0.0f0
     z = (hiz + loz) / 2
 
     # NEW: Check whether more centers than points!
@@ -364,7 +364,7 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
         __pkmedian_feasible = selectfeasible_fast(points, kmin, pid)
 
         for i = 1:points.num
-            g_is_center[points.p[i].assign + 1] = true
+            g_is_center[points.p[i].assign+1] = true
         end
     end
 
@@ -381,7 +381,7 @@ function pkmedian(points, kmin, kmax, kfinal, pid)
 
         # if number of centers seems good, try a more accurate FL
         if (__pkmedian_k[] <= 1.1 * kmax && __pkmedian_k[] >= 0.9 * kmin) ||
-           (__pkmedian_k[] <= kmax + 2   && __pkmedian_k[] >= kmin - 2)
+           (__pkmedian_k[] <= kmax + 2 && __pkmedian_k[] >= kmin - 2)
 
             if PRINT_INFO && pid == 0
                 println("Trying a more accurate local search...")
@@ -427,17 +427,17 @@ function contcenters(points)
     for i = 1:points.num
         # compute relative weight of this point to the cluster
         if points.p[i].assign != (i - 1)
-            relweight = points.p[points.p[i].assign + 1].weight +
-                points.p[i].weight
+            relweight = points.p[points.p[i].assign+1].weight +
+                        points.p[i].weight
             relweight = points.p[i].weight / relweight
 
             for ii = 1:points.dim
-                points.p[points.p[i].assign + 1].coord[ii] *= 1f0 - relweight
-                points.p[points.p[i].assign + 1].coord[ii] +=
+                points.p[points.p[i].assign+1].coord[ii] *= 1.0f0 - relweight
+                points.p[points.p[i].assign+1].coord[ii] +=
                     points.p[i].coord[ii] * relweight
             end
 
-            points.p[points.p[i].assign + 1].weight += points.p[i].weight
+            points.p[points.p[i].assign+1].weight += points.p[i].weight
         end
     end
 end
@@ -449,7 +449,7 @@ function copycenters(points, centers, centerIDs, offset)
 
     # mark the centers
     for i = 1:points.num
-        is_a_median[points.p[i].assign + 1] = 1
+        is_a_median[points.p[i].assign+1] = 1
     end
 
     k = centers.num
@@ -480,7 +480,7 @@ function outcenterIDs(centers, centerIDs, outfile)
     is_a_median = [false for i = 1:centers.num]
 
     for i = 1:centers.num
-        is_a_median[centers.p[i].assign + 1] = true
+        is_a_median[centers.p[i].assign+1] = true
     end
 
     for i = 1:centers.num
@@ -516,11 +516,11 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
     centers = Points(dim, 0, centersize)
 
     for i = 1:chunksize
-        points.p[i] = Point(0f0, Vector{Float32}(undef, dim), 0, 0f0)
+        points.p[i] = Point(0.0f0, Vector{Float32}(undef, dim), 0, 0.0f0)
     end
 
     for i = 1:centersize
-        centers.p[i] = Point(1f0, Vector{Float32}(undef, dim), 0, 0f0)
+        centers.p[i] = Point(1.0f0, Vector{Float32}(undef, dim), 0, 0.0f0)
     end
 
     IDoffset = 0
@@ -542,7 +542,7 @@ function streamCluster(stream, kmin, kmax, dim, chunksize, centersize, outfile)
         points.num = numRead
 
         for i = 1:points.num
-            points.p[i].weight = 1f0
+            points.p[i].weight = 1.0f0
         end
 
         resize!(g_switch_membership, points.num)
@@ -634,7 +634,6 @@ end
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    NVTX.stop()
     main(ARGS)
 
     if haskey(ENV, "PROFILE")
@@ -644,17 +643,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
             GC.gc()
         end
 
-        empty!(CUDAnative.compilecache)
+        empty!(CUDA.compilecache)
 
-        NVTX.@activate begin
-            for i in 1:5
-                GC.gc(true)
-            end
-            main(ARGS)                                       # measure compile time
-            for i in 1:5
-                GC.gc(true)
-            end
-            CUDAdrv.@profile NVTX.@range "host" main(ARGS)   # measure execution time
+        for i in 1:5
+            GC.gc(true)
         end
+        main(ARGS)                                       # measure compile time
+        for i in 1:5
+            GC.gc(true)
+        end
+        CUDA.@profile NVTX.@range "host" main(ARGS)   # measure execution time
     end
 end
